@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Branch {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  address     String?
+  city        String
+  state       String
+  pincode     String
+  country     String  @default("India")
+  phone       String
+  email       String  @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  users       User[]    // Admins or employees under this branch
+  transactions Transaction[] // Any orders/payments related to this branch
+  inventory   Inventory[] // Items held by the branch (optional)
+}
+
+model Transaction {
+  id         Int     @id @default(autoincrement())
+  amount     Float
+  branch     Branch  @relation(fields: [branchId], references: [id])
+  branchId   Int
+  createdAt  DateTime @default(now())
+}
+
+model Inventory {
+  id         Int     @id @default(autoincrement())
+  name       String
+  quantity   Int
+  branch     Branch  @relation(fields: [branchId], references: [id])
+  branchId   Int
+}
+
+
+model User {
+  id           Int      @id @default(autoincrement())
+  image        String?
+  name         String
+  email        String   @unique
+  password     String
+  role         Role
+  branchId     Int?
+  branch       Branch?  @relation(fields: [branchId], references: [id])
+  createdById  Int?
+  createdBy    User?    @relation("CreatedUsers", fields: [createdById], references: [id])
+  createdUsers User[]   @relation("CreatedUsers")
+  createdAt    DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  SALESMAN
+  VIEWER
+}
