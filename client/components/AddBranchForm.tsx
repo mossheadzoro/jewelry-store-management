@@ -55,7 +55,7 @@ export default function AddBranchForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-4 rounded shadow space-y-4 mb-2"
+      className="space-y-4   p-4 rounded-md shadow-md"
     >
       {Object.entries(formData).map(([key, value]) => (
         <input

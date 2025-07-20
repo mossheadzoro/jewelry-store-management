@@ -3,7 +3,8 @@ import { prisma } from "../../../../../../libs/prisma";
 import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const id = await Number(params.id);
+  const paramsId =  params.id;
+  const id = Number(paramsId);
 
   if (!id) {
     return NextResponse.json({ error: "Branch ID is required" }, { status: 400 });

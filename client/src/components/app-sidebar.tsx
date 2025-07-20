@@ -33,6 +33,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import  BranchSelector  from "../../components/BranchSelector"
+import { useRouter } from "next/navigation"
 
 const data = {
   user: {
@@ -42,22 +43,22 @@ const data = {
   },
   navMain: [
     {
-      title: "Dashboard",
-      url: "#",
+      title: "Home Dashboard",
+      url: "/dashboard",
       icon: IconDashboard,
     },
     {
-      title: "Lifecycle",
-      url: "#",
+      title: "Billing",
+      url: "/billing",
       icon: IconListDetails,
     },
     {
-      title: "Analytics",
-      url: "#",
+      title: "Inventory",
+      url: "/inventory",
       icon: IconChartBar,
     },
     {
-      title: "Projects",
+      title: "Sales",
       url: "#",
       icon: IconFolder,
     },
@@ -152,6 +153,9 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+
+  const router=useRouter()
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
