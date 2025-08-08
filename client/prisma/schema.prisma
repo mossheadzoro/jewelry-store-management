@@ -8,101 +8,151 @@ datasource db {
 }
 
 model Branch {
-  id          Int          @id @default(autoincrement())
-  name        String       @unique
-  address     String
-  city        String
-  state       String
-  pincode     String
-  country     String       @default("India")
-  phone       String
-  email       String       @unique
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  address   String
+  city      String
+  state     String
+  pincode   String
+  country   String   @default("India")
+  phone     String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  users       User[]
+  users        User[]
   transactions Transaction[]
-  inventory   ProductItem[]
+  inventory    ProductItem[]
+
+  // ✅ Add these reverse relations:
+  categories    Category[]
+  subCategories SubCategory[]
+
+  purchases   Purchase[]
 }
 
 model User {
-  id              Int       @id @default(autoincrement())
-  image           String?
-  name            String
-  email           String    @unique
-  password        String
-  role            Role
-  gender          Gender?
-  branchId        Int?
-  branch          Branch?   @relation(fields: [branchId], references: [id])
-  createdById     Int?
-  createdBy       User?     @relation("CreatedUsers", fields: [createdById], references: [id])
-  createdUsers    User[]    @relation("CreatedUsers")
-  createdAt       DateTime  @default(now())
+  id           Int      @id @default(autoincrement())
+  image        String?
+  name         String
+  email        String   @unique
+  password     String
+  role         Role
+  gender       Gender?
+  branchId     Int?
+  branch       Branch?  @relation(fields: [branchId], references: [id])
+  createdById  Int?
+  createdBy    User?    @relation("CreatedUsers", fields: [createdById], references: [id])
+  createdUsers User[]   @relation("CreatedUsers")
+  createdAt    DateTime @default(now())
 
-  phone           String?
-  address         String?
-  aadharNumber    String?   @unique
-  panNumber       String?
+  phone        String?
+  address      String?
+  aadharNumber String? @unique
+  panNumber    String?
 
-  salary          Float?
-  bankAccount     String?
-  ifscCode        String?
+  salary      Float?
+  bankAccount String?
+  ifscCode    String?
 
-  isCommissionBased Boolean  @default(false)
-  commissionRate   Float?
-  totalSales       Float?     @default(0)
-  lastSaleDate     DateTime?
+  isCommissionBased Boolean   @default(false)
+  commissionRate    Float?
+  totalSales        Float?    @default(0)
+  lastSaleDate      DateTime?
 }
 
 model Transaction {
-  id         Int       @id @default(autoincrement())
-  amount     Float
-  branch     Branch    @relation(fields: [branchId], references: [id])
-  branchId   Int
-  createdAt  DateTime  @default(now())
+  id        Int      @id @default(autoincrement())
+  amount    Float
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  branchId  Int
+  createdAt DateTime @default(now())
 }
 
 model Category {
-  id           Int           @id @default(autoincrement())
-  name         String        @unique
-  description  String?
-  createdAt    DateTime      @default(now())
-
+  id            Int           @id @default(autoincrement())
+  name          String        @unique
+  description   String?
+  createdAt     DateTime      @default(now())
+  branchId      Int
+  branch        Branch        @relation(fields: [branchId], references: [id])
   subCategories SubCategory[]
 }
 
 model SubCategory {
-  id           Int          @id @default(autoincrement())
-  name         String
-  category     Category     @relation(fields: [categoryId], references: [id])
-  categoryId   Int
-  createdAt    DateTime     @default(now())
-
-  products     ProductItem[]
+  id         Int           @id @default(autoincrement())
+  name       String
+  category   Category      @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  createdAt  DateTime      @default(now())
+  branchId   Int
+  branch     Branch       @relation(fields: [branchId], references: [id])
+  products   ProductItem[]
 }
 
 model ProductItem {
-  id           Int        @id @default(autoincrement())
-  name         String
-  barcode      String     @unique
-  productCode  String     @unique
-  weight       Float
-  purity       Float      // e.g. 22K = 91.6
-  price        Float
-  quantity     Int        @default(1)
-  image        String?
-  description  String?
+  id          Int     @id @default(autoincrement())
+  name        String
+  barcode     String  @unique
+  productCode String  @unique
+  huidNumber  String  @unique // <-- Added field
+  weight      Float
+  purity      Float // e.g. 22K = 91.6
+  price       Float
+  quantity    Int     @default(1)
+  image       String?
+  description String?
 
-  branch       Branch     @relation(fields: [branchId], references: [id])
-  branchId     Int
+  branch   Branch @relation(fields: [branchId], references: [id])
+  branchId Int
 
-  subCategory  SubCategory @relation(fields: [subCategoryId], references: [id])
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
   subCategoryId Int
 
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchases   Purchase[]
 }
+
+model Customer {
+  id          Int      @id @default(autoincrement())
+  name        String
+  mobile      String   @unique
+  email       String?   @unique
+  pan         String?  @unique
+  gstin       String?  @unique
+  aadhar      String?  @unique
+  address     String
+  city        String
+  state       String
+  pincode     String
+  gender      Gender
+  dob         DateTime?
+  anniversary DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  purchases   Purchase[]
+}
+
+model Purchase {
+  id          Int          @id @default(autoincrement())
+  customer    Customer     @relation(fields: [customerId], references: [id])
+  customerId  Int
+
+  product     ProductItem  @relation(fields: [productId], references: [id])
+  productId   Int
+
+  branch      Branch       @relation(fields: [branchId], references: [id])
+  branchId    Int
+
+  quantity    Int          @default(1)
+  totalPrice  Float
+  purchasedAt DateTime     @default(now())
+}
+
+
 
 enum Role {
   ADMIN

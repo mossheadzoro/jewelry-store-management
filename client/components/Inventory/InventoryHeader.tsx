@@ -12,7 +12,6 @@ export function InventoryHeader() {
 
   const {selectedBranch}=useBranchStore();
 
-const router=useRouter();
 
 
 
@@ -26,12 +25,7 @@ const router=useRouter();
         />
         <h1 className="text-base font-medium">Moumita Alankar ({selectedBranch?.name})</h1>
         <Input className="max-w-sm px-4 xl:ml-[100px]"  placeholder="Search items..."/>
-        <div className="ml-auto flex items-center mr-5  gap-2">
-            <Button className="px-2 py-2" onClick={() => router.push('/inventory/add-stock')}>
-                <PlusCircleIcon/>
-                Add Stock
-             </Button>
-        </div>
+        
       </div>
     </header>
   )
