@@ -12,8 +12,10 @@ import { useBranchStore } from "@/lib/store/useBranchStore";
 type Props = {
   open: boolean
   setOpen: (open: boolean) => void
+  onSuccess?: () => void
+  parentCategoryId?: number
 }
-const SubCategoryModal=({ open, setOpen }: Props)=> {
+const SubCategoryModal=({ open, setOpen, onSuccess, parentCategoryId }: Props)=> {
   
     const {selectedBranch}=useBranchStore()
   const branchId=selectedBranch?.id
@@ -31,24 +33,29 @@ const SubCategoryModal=({ open, setOpen }: Props)=> {
         categoryId,
         branchId:branchId,
       });
-      if (res.status === 200) {
+      if (res.status === 200 || res.status === 201) {
         alert("Sub-category created");
         setName("");
-        setCategoryId("");
+        if (!parentCategoryId) setCategoryId("");
         setOpen(false);
-        setLoading(false)
+        setLoading(false);
+        onSuccess?.();
       }
     } catch (err) {
       console.error(err);
     }
   };
 
- useEffect(() => {
-  if (!branchId) return;
-  axios.get(`/api/inventory/category/fetchAll?branchId=${branchId}`)
-    .then((res) => setCategories(res.data))
-    .catch((err) => console.error("Failed to fetch categories:", err));
-}, [open]);
+  useEffect(() => {
+    if (parentCategoryId) {
+      setCategoryId(parentCategoryId.toString());
+    } else {
+      if (!branchId) return;
+      axios.get(`/api/inventory/category/fetchAll?branchId=${branchId}`)
+        .then((res) => setCategories(res.data))
+        .catch((err) => console.error("Failed to fetch categories:", err));
+    }
+  }, [open, parentCategoryId, branchId]);
 
 
   return (
@@ -66,21 +73,23 @@ const SubCategoryModal=({ open, setOpen }: Props)=> {
               placeholder="Enter sub-category name"
             />
           </div>
-          <div>
-            <Label>Parent Category</Label>
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full border border-gray-300 rounded-md p-2 bg-black"
-            >
-              <option value="">Select category</option>
-              {categories.map((cat: any) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!parentCategoryId && (
+            <div>
+              <Label>Parent Category</Label>
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className="w-full border border-gray-300 rounded-md p-2 bg-black text-white"
+              >
+                <option value="">Select category</option>
+                {categories.map((cat: any) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <Button onClick={handleSubmit} disabled={loading}>
             {loading?"Creating...":"Create"}
           </Button>

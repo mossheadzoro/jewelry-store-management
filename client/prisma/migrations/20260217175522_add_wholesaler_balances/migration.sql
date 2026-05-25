@@ -1,0 +1,10 @@
+-- AlterTable
+ALTER TABLE "Order" ADD COLUMN     "wholesalerId" TEXT;
+
+-- AlterTable
+ALTER TABLE "Wholesaler" ADD COLUMN     "goldBal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "moneyBal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "silverBal" DOUBLE PRECISION NOT NULL DEFAULT 0;
+
+-- AddForeignKey
+ALTER TABLE "Order" ADD CONSTRAINT "Order_wholesalerId_fkey" FOREIGN KEY ("wholesalerId") REFERENCES "Wholesaler"("id") ON DELETE SET NULL ON UPDATE CASCADE;

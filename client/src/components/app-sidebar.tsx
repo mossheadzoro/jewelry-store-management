@@ -10,6 +10,8 @@ import {
   IconFileDescription,
   IconFileWord,
   IconFolder,
+  IconGridGoldenratio,
+  IconHammer,
   IconHelp,
   IconInnerShadowTop,
   IconListDetails,
@@ -32,7 +34,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import  BranchSelector  from "../../components/BranchSelector"
+import BranchSelector from "../../components/BranchSelector"
 import { useRouter } from "next/navigation"
 
 const data = {
@@ -58,13 +60,18 @@ const data = {
       icon: IconChartBar,
     },
     {
+      title: "Stock Ledger",
+      url: "/inventory/ledger",
+      icon: IconDatabase,
+    },
+    {
       title: "Sales",
-      url: "#",
+      url: "/sales",
       icon: IconFolder,
     },
     {
-      title: "Team",
-      url: "#",
+      title: "Customers",
+      url: "/customer",
       icon: IconUsers,
     },
   ],
@@ -135,26 +142,36 @@ const data = {
   ],
   documents: [
     {
-      name: "Data Library",
+      name: "Book items",
       url: "#",
       icon: IconDatabase,
     },
     {
-      name: "Reports",
-      url: "#",
+      name: "Order Book",
+      url: "/orderBook",
       icon: IconReport,
     },
     {
-      name: "Word Assistant",
-      url: "#",
+      name: "Metal Exchange Reports",
+      url: "/metalExchange",
       icon: IconFileWord,
+    },
+    {
+      name: "Karigar Panel",
+      url: "/karigar",
+      icon: IconHammer,
+    },
+    {
+      name: "Whole-Saler Panel",
+      url: "/wholesaler",
+      icon: IconGridGoldenratio,
     },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
-  const router=useRouter()
+  const router = useRouter()
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -165,7 +182,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <BranchSelector/>
+              <BranchSelector />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "ProductItem" ADD COLUMN     "otherCharges" DOUBLE PRECISION,
+ALTER COLUMN "huidNumber" DROP NOT NULL,
+ALTER COLUMN "price" DROP NOT NULL;

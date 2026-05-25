@@ -38,7 +38,8 @@ export async function GET(req: NextRequest) {
     const formattedProducts = products.map((product) => ({
       id: product.id,
       name: product.name,
-      weight: product.weight,
+      gsWeight: product.gsWeight,
+      ntWeight: product.ntWeight,
       purity: product.purity,
       barcode: product.barcode,
       branch: {

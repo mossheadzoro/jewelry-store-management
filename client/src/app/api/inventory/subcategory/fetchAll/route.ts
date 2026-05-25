@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
           include: {
             products: {
               select: {
-                weight: true,
+                ntWeight: true,
               },
             },
           },
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
         
         id: sub.id,
         name: sub.name,
-        totalWeight: sub.products.reduce((acc, p) => acc + p.weight, 0),
+        totalWeight: sub.products.reduce((acc, p) => acc + p.ntWeight, 0),
         category: {
           id: cat.id,
           name: cat.name,

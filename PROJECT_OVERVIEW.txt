@@ -1,0 +1,503 @@
+================================================================================
+   JEWELRY STORE MANAGEMENT SYSTEM — FULL PROJECT OVERVIEW
+   (Paste this into any AI to give it full context of your project)
+================================================================================
+
+PROJECT NAME: Jewelry Store Management System (Atelier ERP)
+REPOSITORY:   jewelry-store-management
+TYPE:         Full-stack monorepo (client + server)
+DOMAIN:       Jewellery retail shop management — billing, inventory, customers,
+              karigars (artisans), orders, wholesalers, metal exchange (tonch)
+
+================================================================================
+1. TECH STACK
+================================================================================
+
+FRONTEND (client/):
+  - Framework:       Next.js 15.3.5 (App Router, Server Components)
+  - Language:        TypeScript 5.8.3
+  - React:           React 19
+  - Styling:         Tailwind CSS 4.1.11 (with tw-animate-css)
+  - UI Primitives:   Radix UI (Dialog, Select, Popover, Tabs, Tooltip, etc.)
+  - Icons:           Lucide React, Tabler Icons React
+  - Charts:          Recharts 2.15.4
+  - Tables:          TanStack React Table 8.21.3
+  - Forms:           React Hook Form 7.61.1 + Zod 4.0 + ArkType 2.1
+  - State Mgmt:      Zustand 5.0.6 (global stores for branch/user)
+  - Drag & Drop:     @dnd-kit (core, sortable, modifiers, utilities)
+  - Date Utilities:  date-fns 4.1.0, React Day Picker 9.8.1
+  - Toasts:          Sonner 2.0.6
+  - Drawer:          Vaul 1.1.2
+  - Excel Export:    xlsx 0.18.5
+  - HTTP Client:     Axios 1.10.0 + native fetch
+  - Auth:            NextAuth 4.24.11 (JWT strategy, credentials provider)
+  - Fonts:           Geist Sans + Geist Mono (via next/font/google)
+
+BACKEND (built into Next.js API routes):
+  - ORM:             Prisma 6.11.1
+  - Database:        PostgreSQL (hosted on Neon — serverless Postgres)
+  - Connection:      PgBouncer connection pooling via Neon pooler
+  - Auth Backend:    NextAuth with bcryptjs password hashing
+  - File Storage:    Cloudflare R2 (S3-compatible) via @aws-sdk/client-s3
+  - Image CDN:       Cloudinary (for product images)
+  - File Uploads:    Multer 2.0.2, Formidable 3.5.4
+
+SERVER (server/):
+  - Minimal Node.js package (likely placeholder/future microservice)
+  - Has its own package.json but no significant code
+
+BUILD TOOLS:
+  - PostCSS 8.5.6
+  - ESLint 9 + eslint-config-next
+  - ts-node (for seed scripts)
+
+================================================================================
+2. FOLDER STRUCTURE
+================================================================================
+
+jewelry-store-management/
+├── .git/
+├── .gitignore
+├── LICENSE
+├── README.md
+├── server/                          # Placeholder backend
+│   ├── package.json
+│   └── tsconfig.json
+└── client/                          # Main Next.js application
+    ├── .env                         # Environment variables
+    ├── package.json                 # Dependencies & scripts
+    ├── next.config.ts               # Next.js config (Cloudinary images)
+    ├── middleware.ts                 # Auth middleware (NextAuth JWT)
+    ├── tsconfig.json                # TypeScript config
+    ├── postcss.config.mjs           # PostCSS (Tailwind)
+    ├── components.json              # shadcn/ui component config
+    │
+    ├── prisma/
+    │   ├── schema.prisma            # 🗄️  Full database schema (1013 lines)
+    │   ├── seed.js                  # Database seeder
+    │   └── migrations/              # Prisma migration history
+    │
+    ├── libs/                        # Shared server-side utilities
+    │   ├── prisma.ts                # Prisma client singleton
+    │   ├── billingCalculation.ts    # Tax/billing math utilities
+    │   └── inventoryLedger.ts       # Ledger entry insertion helper
+    │
+    ├── types/                       # TypeScript type definitions
+    │   ├── next-auth.d.ts           # NextAuth session augmentation
+    │   ├── order.ts                 # Order-related types
+    │   └── TonchQueueItem.ts        # Metal exchange queue types
+    │
+    ├── public/                      # Static assets (SVGs)
+    ├── styles/                      # (empty, styles in globals.css)
+    │
+    ├── src/
+    │   ├── app/                     # Next.js App Router
+    │   │   ├── layout.tsx           # Root layout (Geist fonts)
+    │   │   ├── page.tsx             # Root redirect
+    │   │   ├── globals.css          # Global CSS (Tailwind + CSS vars)
+    │   │   ├── favicon.ico
+    │   │   │
+    │   │   ├── login/               # Login page
+    │   │   ├── dashboard/           # Role-based dashboards
+    │   │   │   ├── page.tsx         # Dashboard router
+    │   │   │   ├── admin/           # Admin dashboard
+    │   │   │   ├── manager/         # Manager dashboard
+    │   │   │   └── salesman/        # Salesman dashboard
+    │   │   │
+    │   │   ├── billing/             # Billing/Invoice pages
+    │   │   │   ├── page.tsx         # New bill creation
+    │   │   │   └── edit/[id]/       # Edit existing invoice
+    │   │   │
+    │   │   ├── sales/               # Sales management
+    │   │   │   └── page.tsx         # Invoices, reports, bulk ops
+    │   │   │
+    │   │   ├── customer/            # Customer management
+    │   │   │   ├── page.tsx         # Customer list
+    │   │   │   └── [id]/page.tsx    # Customer detail/profile
+    │   │   │
+    │   │   ├── inventory/           # Inventory management
+    │   │   │   └── page.tsx         # Products, categories, ledger
+    │   │   │
+    │   │   ├── karigar/             # Karigar (artisan) management
+    │   │   │   └── page.tsx
+    │   │   │
+    │   │   ├── orderBook/           # Order management
+    │   │   │   ├── page.tsx         # Create/view orders
+    │   │   │   └── print/[id]/      # Print order slips
+    │   │   │
+    │   │   ├── metalExchange/       # Metal exchange (tonch)
+    │   │   │   └── page.tsx
+    │   │   │
+    │   │   ├── wholesaler/          # Wholesaler management
+    │   │   │   ├── page.tsx
+    │   │   │   └── [id]/page.tsx
+    │   │   │
+    │   │   └── api/                 # ===== API ROUTES =====
+    │   │       ├── auth/            # NextAuth endpoints
+    │   │       │   └── [...nextauth]/
+    │   │       ├── billing/
+    │   │       │   ├── create/      # POST: Create invoice
+    │   │       │   ├── list/        # GET: List invoices (paginated)
+    │   │       │   ├── [id]/        # GET/PUT: Fetch/update invoice
+    │   │       │   ├── searchProducts/ # GET: Search products
+    │   │       │   ├── add-item/    # POST: Add item to invoice
+    │   │       │   ├── advance/     # GET/POST: Advance deposits
+    │   │       │   ├── bulk-print/  # POST: Bulk print invoices
+    │   │       │   ├── export/      # GET: Export invoices
+    │   │       │   └── reports/     # GET: Sales reports
+    │   │       ├── customer/
+    │   │       │   ├── create/      # POST: Create customer
+    │   │       │   ├── list/        # GET: List all (paginated)
+    │   │       │   ├── [id]/        # GET/PUT/DELETE: CRUD
+    │   │       │   ├── search/      # GET: Search customers
+    │   │       │   └── search-by-id/ # GET: Find by ID
+    │   │       ├── inventory/
+    │   │       │   ├── overview/    # GET: Category overview
+    │   │       │   ├── product/
+    │   │       │   │   ├── create/  # POST: Create product
+    │   │       │   │   ├── fetchAll/ # GET: List products
+    │   │       │   │   ├── fetchById/ # GET: Single product
+    │   │       │   │   ├── updateByID/ # PUT: Update product
+    │   │       │   │   └── codes/   # POST: Generate barcodes
+    │   │       │   ├── category/    # CRUD categories
+    │   │       │   ├── subcategory/ # CRUD subcategories
+    │   │       │   ├── ledger/      # GET: Inventory ledger
+    │   │       │   ├── search/      # GET: Search products
+    │   │       │   ├── audit/       # Stock audit
+    │   │       │   ├── transfer/    # Inventory transfer
+    │   │       │   └── recent-activity/ # Recent activity
+    │   │       ├── karigar/         # Karigar CRUD + jobs
+    │   │       ├── order/           # Order CRUD
+    │   │       ├── metal-exchange/  # Metal exchange sessions
+    │   │       ├── wholesalers/     # Wholesaler CRUD + txns
+    │   │       ├── branch/          # Branch management
+    │   │       ├── users/           # User management
+    │   │       ├── dashboard/       # Dashboard data
+    │   │       ├── products/        # Product search
+    │   │       ├── stock/           # Stock management
+    │   │       └── upload/          # File upload endpoints
+    │   │
+    │   ├── hooks/                   # Custom React hooks
+    │   │   ├── useBillingLogic.ts   # Core billing state machine
+    │   │   ├── use-billing-customer.ts
+    │   │   ├── useActivbeMetalExchangeSession.ts
+    │   │   └── use-mobile.ts
+    │   │
+    │   ├── lib/                     # Shared utilities
+    │   │   ├── utils.ts             # clsx + tailwind-merge
+    │   │   ├── cloudinary.ts        # Cloudinary config
+    │   │   ├── fineGold.ts          # Fine gold calculations
+    │   │   ├── purity.ts            # Purity maps
+    │   │   ├── format.ts            # Number formatting
+    │   │   ├── metalExchange.ts     # Metal exchange helpers
+    │   │   ├── store/
+    │   │   │   ├── useBranchStore.ts  # Zustand: selected branch
+    │   │   │   └── useUserStore.ts    # Zustand: current user
+    │   │   └── actions/             # Server actions
+    │   │
+    │   └── components/              # src-level shared components
+    │       ├── app-sidebar.tsx       # Main navigation sidebar
+    │       ├── nav-main.tsx          # Primary nav items
+    │       ├── nav-documents.tsx     # Document shortcuts
+    │       ├── nav-user.tsx          # User avatar/menu
+    │       ├── nav-secondary.tsx     # Secondary nav
+    │       ├── site-header.tsx       # Top header bar
+    │       ├── section-cards.tsx     # Dashboard stat cards
+    │       ├── chart-area-interactive.tsx # Dashboard charts
+    │       ├── data-table.tsx        # Reusable data table
+    │       └── ui/                   # shadcn/ui primitives
+    │
+    └── components/                  # Feature-level components
+        ├── Billing/
+        │   ├── BillingPage.tsx       # Main billing orchestrator
+        │   ├── BillingControls.tsx   # Metal rate, taxation toggles
+        │   ├── BillingProductTable.tsx # Product items table
+        │   ├── BillingSummary.tsx    # Right sidebar summary
+        │   ├── BillingPaymentSection.tsx # Multi-payment entry
+        │   ├── MetalExchangeSection.tsx # Old gold exchange UI
+        │   ├── ExcessGoldModal.tsx   # Excess gold settlement
+        │   ├── ProductSearch.tsx     # Barcode/product search
+        │   ├── AddProductModal.tsx   # Quick product creation
+        │   ├── AddCustomer.tsx       # Customer creation (inline)
+        │   ├── GSTDetails.tsx        # GST tax breakdown
+        │   └── BackendAdjustments.tsx # Server-side corrections
+        │
+        ├── Sales/
+        │   ├── SalesPageClient.tsx   # Sales page orchestrator
+        │   ├── InvoicesTab.tsx       # Invoice listing + search
+        │   ├── InvoiceTable.tsx      # Invoice table
+        │   ├── InvoiceTableRow.tsx   # Single invoice row
+        │   ├── InvoicePagination.tsx # Pagination controls
+        │   ├── ReportsTab.tsx        # Sales reports
+        │   ├── ReportSummaryCards.tsx # Report stats
+        │   ├── SalesByCategorySection.tsx # Category breakdown
+        │   ├── BulkOperationsTab.tsx # Bulk print/operations
+        │   ├── SalesHeader.tsx       # Page header
+        │   ├── SalesSearch.tsx       # Search input
+        │   └── DateFilterChips.tsx   # Date preset filters
+        │
+        ├── Customer/
+        │   ├── CustomerPageClient.tsx    # Customer list page
+        │   ├── CustomerTable.tsx         # Customer data table
+        │   ├── CustomerDetailsClient.tsx # Customer profile/CRM
+        │   ├── SummaryCards.tsx           # Stats cards
+        │   ├── AddCustomerModal.tsx       # Create customer
+        │   ├── EditCustomerModal.tsx      # Edit customer
+        │   └── DirectCommunicationModal.tsx # Message customer
+        │
+        ├── Inventory/
+        │   ├── InventoryOverviewClient.tsx # Vault overview
+        │   ├── InventoryLedgerClient.tsx   # Movement ledger
+        │   ├── InventoryHeader.tsx         # Section header
+        │   ├── Category/                   # Category CRUD
+        │   ├── SubCategory/                # SubCategory CRUD
+        │   └── Product/
+        │       ├── AddProductForm.tsx      # Full product form
+        │       ├── EditProduct.tsx         # Edit product
+        │       ├── ShowAllProducts.tsx     # Product gallery
+        │       ├── GenerateProductCode.tsx # Auto code gen
+        │       └── ProductImageUpload.tsx  # Image upload
+        │
+        ├── Karigar/
+        │   ├── KarigarPage.tsx            # Karigar directory
+        │   ├── KarigarDirectory.tsx       # List all karigars
+        │   ├── KarigarProfile.tsx         # Profile card
+        │   ├── KarigarForm.tsx            # Create/edit form
+        │   ├── AssignMetalForm.tsx        # Issue metal to karigar
+        │   ├── ReceiveMetalModal.tsx      # Receive jewellery back
+        │   ├── ReceiveMetalDialog.tsx     # Confirmation dialog
+        │   └── AdjustLossModal.tsx        # Adjust wastage/loss
+        │
+        ├── OrderBook/
+        │   ├── OrderPage.tsx              # Order management
+        │   ├── CreateOrderView.tsx        # Create new order
+        │   ├── AllOrdersView.tsx          # View all orders
+        │   ├── OrderSlipPreview.tsx       # Print-ready slip
+        │   ├── CreateCustomerModal.tsx    # Inline customer create
+        │   ├── ImageUploader.tsx          # Order image upload
+        │   └── VoiceRecorder.tsx          # Voice note recording
+        │
+        ├── MetalExchange/
+        │   ├── MetalExchangePage.tsx       # Main exchange page
+        │   ├── tonch-item-form.tsx         # Single tonch form
+        │   ├── tonch-items-queue.tsx       # Queue of items
+        │   ├── customer-details.tsx        # Customer card
+        │   ├── session-summary.tsx         # Session totals
+        │   ├── page-header.tsx             # Header
+        │   └── authorization-panel.tsx     # Approve session
+        │
+        ├── Wholesaler/
+        │   ├── WholesalerDashboard.jsx    # Wholesaler list
+        │   ├── WholesalerTable.jsx        # Data table
+        │   ├── WholeSalerDetails.tsx      # Detail view
+        │   ├── CreateWholesalerModel.tsx  # Create form
+        │   ├── StatusBadge.jsx            # Status indicator
+        │   ├── SummaryCard.jsx            # Stats card
+        │   └── details/                   # Transaction details
+        │
+        ├── ui/
+        │   └── BaseModal.tsx              # Reusable modal wrapper
+        │
+        ├── BaseModal.tsx                  # Root-level modal
+        ├── BranchSelector.tsx             # Branch dropdown
+        ├── AddBranchForm.tsx              # Create branch form
+        ├── AddUserForm.tsx                # Create user form
+        └── QuickCreate.tsx                # Quick-action menu
+
+================================================================================
+3. DATABASE SCHEMA (PostgreSQL via Prisma)
+================================================================================
+
+MODELS (25 total):
+  ┌─ Branch            — Multi-branch store locations
+  ├─ User              — Staff (Admin, Manager, Salesman, Viewer)
+  ├─ Transaction       — Financial transactions
+  ├─ Category          — Product categories (Gold, Silver, Diamond)
+  ├─ SubCategory       — Sub-categories (Ring, Chain, Bangle, etc.)
+  ├─ ProductItem       — Individual inventory items (barcode, HUID, weight)
+  ├─ StoneDetail       — Gemstone specifications (carat, clarity, cut)
+  ├─ Customer          — Customer CRM data
+  ├─ Purchase          — Purchase history
+  ├─ Invoice           — Sales invoices (multi-payment, tax, old gold)
+  ├─ InvoiceItem       — Line items on invoice
+  ├─ InvoicePayment    — Payment splits (Cash, UPI, Card, Metal, etc.)
+  ├─ Order             — Custom orders (with karigar assignment)
+  ├─ OrderItem         — Items in an order (images, voice notes)
+  ├─ Advance           — Advance deposits (metal + money)
+  ├─ Karigar           — Artisan/goldsmith profiles
+  ├─ KarigarJob        — Metal issued to karigar
+  ├─ KarigarJobJewellery — Jewellery output per job
+  ├─ KarigarHeldMetal  — Metal balance held by karigar
+  ├─ MetalExchangeSession — Tonch (melting) sessions
+  ├─ MetalExchangeItem — Individual items in a session
+  ├─ MetalExchangeAudit — Audit trail for exchanges
+  ├─ Wholesaler        — Wholesaler profiles + balances
+  ├─ WholesalerTransaction — Metal/cash transactions
+  ├─ WholesalerCashItem — Cash line items
+  ├─ WholesalerLedgerEntry — Wholesaler ledger
+  ├─ InventoryLedger   — Full inventory movement trail
+  ├─ InventoryTransfer — Inter-branch transfers
+  ├─ InventoryTransferItem — Transfer line items
+  ├─ StockAudit        — Physical stock audits
+  └─ StockAuditItem    — Audit discrepancies
+
+ENUMS:
+  Role, Gender, PaymentMethod, OrderStatus, OrderPriority,
+  MetalType, MetalExchangeStatus, InventoryTxnType, InventoryRefType,
+  KarigarDepartment, JobStatus, RemainingAction, JewelleryPurity,
+  WholesalerTransactionType, WholesalerMetalType
+
+KEY RELATIONSHIPS:
+  - Branch → Users, Products, Invoices, Orders, Categories
+  - Customer → Invoices, Orders, Advances, MetalExchangeSessions
+  - Invoice → InvoiceItems → ProductItem (stock deduction)
+  - Invoice → InvoicePayments (multi-method split payments)
+  - Order → Karigar (artisan assignment)
+  - Order → Advance (deposit tracking)
+  - Karigar → KarigarJobs → KarigarJobJewellery (metal tracking)
+  - ProductItem → InventoryLedger (full audit trail)
+
+================================================================================
+4. FULLY FUNCTIONAL FEATURES (What the app DOES do)
+================================================================================
+
+A) BILLING ENGINE & SALES
+   - Creating Invoices: Dynamic rows with metal value auto-calculation based on live-entered gold/silver rates.
+   - Taxation: Full GST computation (3% total, or split between metal and making charges), hallmark charge tracking.
+   - Making Charges: Flat rate or percentage based, with discounts on making charges.
+   - Payment Splitting: Accepting split payments across Cash, UPI, Card, NEFT, Cheque, Advance, and Metal simultaneously.
+   - Old Gold Exchange: Auto-deducting pure gold equivalent from the bill total.
+   - Excess Gold Settlement: Cash-out (returning cash to customer) or "Return Gold" ledger entries.
+   - Interactive Edit: Invoices can be reopened and fully edited with state restoration.
+   - Real-time Inventory Deduction: Selling a product automatically removes it from stock and updates the ledger.
+   - Listing & Pagination: Fully functional invoice list with backend pagination and React Query caching.
+
+B) INVENTORY & STOCK
+   - Product Management: Creating products with dynamic categories (Gold, Silver, Diamond) and sub-categories (Rings, Chains).
+   - Barcode/HUID Tracking: Auto-generating product codes.
+   - Ledger: Real-time tracking of every stock movement (IN, OUT, SELL, EXCHANGE).
+   - Dynamic Searching: Searching products by barcode or name directly in the billing screen.
+
+C) CUSTOMER CRM
+   - Registration & Management: Creating and editing customer profiles with PAN/Aadhar tracking.
+   - Search & Lookup: Robust searching via mobile or name.
+   - Transaction History: Viewing a customer's detailed purchase history, ledger, and outstanding balances.
+   - Statistical Summaries: Calculating lifetime value, total outstanding, and determining VIP/Gold tiers based on spend.
+
+D) METAL EXCHANGE (TONCH) & KARIGAR
+   - Creating Tonch Sessions: Logging raw metal weights before and after melting to calculate purity.
+   - Karigar Management: Maintaining a directory of artisans.
+   - (Basic) Issuing Metal: Registering metal given to a karigar.
+
+================================================================================
+4.1 UI STUBS & NON-WORKING FEATURES (Buttons exist but logic isn't wired)
+================================================================================
+
+The following features have buttons, modals, or UI elements visible on the frontend, but the underlying backend API or logic is NOT YET IMPLEMENTED or is heavily stubbed:
+
+1. Direct Communication / Messaging
+   - *Where:* Customer Details Page -> "Message" button.
+   - *Status:* The modal opens, templates can be selected, and a "Send" button exists. However, clicking send just triggers a 1.5-second visual mock delay and an alert. It does NOT integrate with Twilio, WhatsApp Business API, or any actual email service.
+
+2. Exporting Data (Excel/PDF)
+   - *Where:* "Export" buttons found on the Sales Invoices tab, Customer List, and Inventory screens.
+   - *Status:* The UI buttons exist, but clicking them currently does nothing. No XLSX or PDF generation library is actively wired to these specific buttons yet.
+
+3. Advanced Table Filtering
+   - *Where:* "Filter" button next to search bars on most data tables (Sales, Customers).
+   - *Status:* Clicking the button does nothing. Advanced multi-column filtering is not yet implemented on the backend.
+
+4. Sales Reports & Analytics
+   - *Where:* Sales Page -> "Reports" tab.
+   - *Status:* The charts and summary cards often display static or highly simplified mock data. Full historic aggregation API endpoints are missing or incomplete.
+
+5. Bulk Operations
+   - *Where:* Sales Page -> "Bulk Operations" tab.
+   - *Status:* The UI exists to select multiple invoices for bulk printing or deletion, but the backend bulk action endpoints are not fully wired.
+
+6. Voice Recording Storage (Order Book)
+   - *Where:* Order Creation -> Voice Note Recorder.
+   - *Status:* The microphone records audio on the frontend successfully, but uploading and saving the `.webm` audio file to Cloudflare R2/Database upon form submission is not fully robust/implemented.
+
+7. Karigar Wastage & Fine Gold Adjustments
+   - *Where:* Karigar details -> Adjust Wastage modal.
+   - *Status:* Forms exist, but the complex double-entry accounting for fine gold loss during manufacturing is not completely finalized in the database ledger.
+
+8. Wholesaler Financial Settlements
+   - *Where:* Wholesaler dashboards.
+   - *Status:* The UI exists, but the backend double-entry system mapping wholesaler metal accounts against cash accounts is partially incomplete.
+
+================================================================================
+5. AUTHENTICATION & AUTHORIZATION
+================================================================================
+
+  - Provider:     NextAuth v4 (Credentials provider)
+  - Strategy:     JWT-based sessions
+  - Hashing:      bcryptjs
+  - Middleware:    Protects /dashboard/* routes
+  - Roles:        ADMIN, MANAGER, SALESMAN, VIEWER
+  - Session:      Augmented with user ID, role, branchId
+
+================================================================================
+6. STATE MANAGEMENT
+================================================================================
+
+  - Zustand Stores:
+    • useBranchStore — Selected branch (persisted, multi-branch support)
+    • useUserStore   — Current user info (role, branch, name)
+  - Custom Hooks:
+    • useBillingLogic — Core billing state machine (products, payments,
+      taxes, old gold, excess gold, advances, calculations)
+    • useActivbeMetalExchangeSession — Active tonch session
+    • use-billing-customer — Customer search for billing
+  - Pattern: Client components fetch via useEffect + useState,
+             no server-side data fetching or React Query
+
+================================================================================
+7. EXTERNAL SERVICES
+================================================================================
+
+  - Database:       Neon PostgreSQL (ap-southeast-1, PgBouncer pooling)
+  - File Storage:   Cloudflare R2 (S3-compatible, for product images)
+  - Image CDN:      Cloudinary (product image optimization)
+  - GST API:        External GST validation API (via API key)
+
+================================================================================
+8. DESIGN SYSTEM
+================================================================================
+
+  - Theme:          Dark mode only (oklch color space)
+  - Primary:        Gold accent (#D4A843 / oklch variants)
+  - Background:     Near-black (#0a0a0a, #141414, #1a1a1a)
+  - Borders:        Subtle (#222, #333)
+  - Typography:     Geist Sans + Geist Mono
+  - Component Lib:  shadcn/ui pattern (Radix primitives + Tailwind)
+  - Aesthetic:      Premium "Atelier" luxury jewellery store feel
+  - Responsive:     Desktop-first design (1400px max container)
+
+================================================================================
+9. SCRIPTS
+================================================================================
+
+  npm run dev     — Start development server (Next.js)
+  npm run build   — Production build
+  npm run start   — Production server
+  npm run lint    — ESLint
+  npm run seed    — Run database seeder (node prisma/seed.js)
+
+================================================================================
+10. CONVENTIONS & PATTERNS
+================================================================================
+
+  - API Routes:     Next.js Route Handlers (app/api/*/route.ts)
+  - Data Fetching:  Client-side fetch in useEffect (no React Query)
+  - Components:     Feature-based folders (Billing/, Sales/, Customer/)
+  - Naming:         PascalCase components, camelCase hooks/utils
+  - DB Queries:     Prisma ORM with explicit select/include
+  - Transactions:   prisma.$transaction() for multi-step operations
+  - Error Handling: try/catch with console.error + JSON error responses
+  - Imports:        Relative paths for components/, absolute @/* for src/
+
+================================================================================
+END OF PROJECT OVERVIEW
+================================================================================

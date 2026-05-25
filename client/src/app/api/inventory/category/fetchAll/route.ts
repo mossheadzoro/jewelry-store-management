@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     subCategories: {
       include: {
         products: {
-          select: { weight: true },
+          select: { ntWeight: true },
         },
       },
     },
@@ -31,7 +31,7 @@ const categoryTotals = categories.map((category) => {
   const totalWeight = category.subCategories.reduce((sum, sub) => {
     return (
       sum +
-      sub.products.reduce((subSum, product) => subSum + (product.weight ?? 0), 0)
+      sub.products.reduce((subSum, product) => subSum + (product.ntWeight ?? 0), 0)
     );
   }, 0);
 

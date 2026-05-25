@@ -21,7 +21,8 @@ import { useRouter } from "next/navigation";
 type Product = {
   id: number;
   name: string;
-  weight: number;
+  gsWeight: number;
+  ntWeight:number;
   barcode: string;
   purity: string;
 };
@@ -63,7 +64,8 @@ export default function ShowAllProducts() {
         product.barcode.toLowerCase().includes(lowerQuery) ||
         product.purity.toLowerCase().includes(lowerQuery) ||
         product.id.toString().includes(lowerQuery) ||
-        product.weight.toString().includes(lowerQuery)
+        product.gsWeight.toString().includes(lowerQuery)||
+        product.ntWeight.toString().includes(lowerQuery)
     );
 
     setFilteredProducts(filtered);
@@ -95,7 +97,8 @@ export default function ShowAllProducts() {
           <TableRow>
             <TableHead>Product ID</TableHead>
             <TableHead>Product Name</TableHead>
-            <TableHead>Weight</TableHead>
+            <TableHead>GS.Weight</TableHead>
+            <TableHead>NT.Weight</TableHead>
             <TableHead>Barcode ID</TableHead>
             <TableHead>Purity</TableHead>
           </TableRow>
@@ -106,7 +109,8 @@ export default function ShowAllProducts() {
               <TableRow onClick={()=>router.push(`/inventory/product/${p.id}`)} key={p.id}>
                 <TableCell>{p.id}</TableCell>
                 <TableCell>{p.name}</TableCell>
-                <TableCell>{p.weight.toFixed(2)} g</TableCell>
+                <TableCell>{p.gsWeight.toFixed(2)} g</TableCell>
+                <TableCell>{p.ntWeight.toFixed(2)} g</TableCell>
                 <TableCell>{p.barcode}</TableCell>
                 <TableCell>{p.purity}</TableCell>
               </TableRow>

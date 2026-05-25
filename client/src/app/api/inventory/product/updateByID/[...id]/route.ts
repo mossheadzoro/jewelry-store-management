@@ -16,7 +16,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const {
       name,
       price,
-      weight,
+      gsWeight,
+      ntWeight,
       productCode,
       huidNumber,
       image,
@@ -31,7 +32,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       data: {
         name,
         price,
-        weight,
+        gsWeight,
+        ntWeight,
         productCode,
         huidNumber,
         image,
