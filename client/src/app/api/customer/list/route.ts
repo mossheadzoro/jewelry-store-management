@@ -10,30 +10,52 @@ export async function GET(req: Request) {
   const skip = (page - 1) * limit;
 
   try {
-    // Build where clause for search
-    const where = search.length >= 2
-      ? {
-          OR: [
-            { name: { contains: search, mode: "insensitive" as const } },
-            { mobile: { contains: search } },
-            { id: !isNaN(Number(search)) ? { equals: Number(search) } : undefined },
-          ].filter((clause) => {
-            // Remove undefined id clause
-            return !Object.values(clause).some((v) => v === undefined);
-          }),
-        }
-      : {};
+    // Build where clause for search and tags
+    const where: any = {};
+    const conditions: any[] = [];
+
+    if (search.length >= 2) {
+      conditions.push({
+        OR: [
+          { name: { contains: search, mode: "insensitive" as const } },
+          { mobile: { contains: search } },
+          { id: !isNaN(Number(search)) ? { equals: Number(search) } : undefined },
+        ].filter((clause) => {
+          return !Object.values(clause).some((v) => v === undefined);
+        }),
+      });
+    }
+
+    const tagId = searchParams.get("tagId");
+    if (tagId) {
+      conditions.push({
+        tags: {
+          some: {
+            tagDefinitionId: tagId,
+          },
+        },
+      });
+    }
+
+    if (conditions.length > 0) {
+      where.AND = conditions;
+    }
 
     // Total count for pagination
     const totalCount = await prisma.customer.count({ where });
 
-    // Get customers with invoice data
+    // Get customers with invoice data and tags
     const customers = await prisma.customer.findMany({
       where,
       skip,
       take: limit,
       orderBy: { createdAt: "desc" },
       include: {
+        tags: {
+          include: {
+            tagDefinition: true,
+          },
+        },
         invoices: {
           select: {
             id: true,
@@ -117,6 +139,13 @@ export async function GET(req: Request) {
         outstanding,
         dueDays,
         createdAt: customer.createdAt,
+        tags: customer.tags.map((t) => ({
+          id: t.tagDefinition.id,
+          name: t.tagDefinition.name,
+          label: t.tagDefinition.label,
+          color: t.tagDefinition.color,
+          type: t.tagDefinition.type,
+        })),
       };
     });
 

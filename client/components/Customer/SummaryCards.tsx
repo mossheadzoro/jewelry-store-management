@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Users, Crown, IndianRupee, TrendingUp, ArrowRight } from "lucide-react";
 import { formatCurrency } from "../../src/lib/format";
 
@@ -17,6 +18,8 @@ interface SummaryCardsProps {
 }
 
 export default function SummaryCards({ stats, loading }: SummaryCardsProps) {
+  const router = useRouter();
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -58,6 +61,7 @@ export default function SummaryCards({ stats, loading }: SummaryCardsProps) {
       badge: null,
       badgePositive: true,
       link: "View Aging Report →",
+      onClick: () => router.push("/customer/receivables"),
     },
   ];
 
@@ -66,7 +70,10 @@ export default function SummaryCards({ stats, loading }: SummaryCardsProps) {
       {cards.map((card, idx) => (
         <div
           key={idx}
-          className="group relative overflow-hidden rounded-2xl bg-[#141414] border border-[#1f1f1f] p-6 hover:border-[#2a2a2a] transition-all duration-300"
+          onClick={card.onClick}
+          className={`group relative overflow-hidden rounded-2xl bg-[#141414] border border-[#1f1f1f] p-6 hover:border-[#2a2a2a] transition-all duration-300 ${
+            card.onClick ? "cursor-pointer hover:bg-[#1a1a1a] active:scale-[0.99]" : ""
+          }`}
         >
           {/* Subtle gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#D4A843]/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

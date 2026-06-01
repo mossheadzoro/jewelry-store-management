@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, UserPlus, Loader2 } from "lucide-react";
 
 interface AddCustomerModalProps {
@@ -27,6 +27,10 @@ const INDIAN_STATES = [
 export default function AddCustomerModal({ open, onClose, onSuccess }: AddCustomerModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [mobileError, setMobileError] = useState("");
+  const [checkingMobile, setCheckingMobile] = useState(false);
+  const [manualTags, setManualTags] = useState<any[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [form, setForm] = useState({
     name: "",
     mobile: "",
@@ -43,6 +47,54 @@ export default function AddCustomerModal({ open, onClose, onSuccess }: AddCustom
     anniversary: "",
   });
 
+  useEffect(() => {
+    if (!open) return;
+    const checkMobile = async () => {
+      const cleanMobile = form.mobile.replace(/\D/g, "");
+      if (cleanMobile.length >= 10) {
+        setCheckingMobile(true);
+        setMobileError("");
+        try {
+          const res = await fetch(`/api/customer/search?mobile=${cleanMobile}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.customer) {
+              setMobileError(`Customer exists: ${data.customer.name}`);
+            }
+          }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setCheckingMobile(false);
+        }
+      } else {
+        setMobileError("");
+      }
+    };
+    
+    const timer = setTimeout(checkMobile, 500);
+    return () => clearTimeout(timer);
+  }, [form.mobile, open]);
+
+  // Fetch manual tag definitions on mount
+  useEffect(() => {
+    if (!open) return;
+    const fetchDefinitions = async () => {
+      try {
+        const res = await fetch("/api/customer/tags/definitions");
+        if (res.ok) {
+          const data = await res.json();
+          const manuals = data.definitions.filter((d: any) => d.type === "MANUAL");
+          setManualTags(manuals);
+        }
+      } catch (err) {
+        console.error("Failed to fetch manual tag definitions", err);
+      }
+    };
+    fetchDefinitions();
+    setSelectedTagIds([]);
+  }, [open]);
+
   if (!open) return null;
 
   const handleChange = (field: string, value: string) => {
@@ -53,6 +105,11 @@ export default function AddCustomerModal({ open, onClose, onSuccess }: AddCustom
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (mobileError) {
+      setError("Cannot create customer. Mobile number already exists.");
+      return;
+    }
 
     if (!form.name.trim() || !form.mobile.trim() || !form.address.trim() || !form.city.trim() || !form.pincode.trim()) {
       setError("Please fill in all required fields.");
@@ -73,12 +130,31 @@ export default function AddCustomerModal({ open, onClose, onSuccess }: AddCustom
         return;
       }
 
+      const newCustomer = await res.json();
+
+      // Assign initial manual tags if selected
+      if (selectedTagIds.length > 0) {
+        await fetch("/api/customer/tags/assign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ customerId: newCustomer.id, tagIds: selectedTagIds }),
+        });
+      }
+
+      // Trigger automatic tag evaluations
+      await fetch("/api/customer/tags/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId: newCustomer.id }),
+      }).catch((err) => console.error("Error evaluating customer tags:", err));
+
       // Reset form and close
       setForm({
         name: "", mobile: "", email: "", gender: "MALE",
         address: "", city: "", state: "Maharashtra", pincode: "",
         pan: "", gstin: "", aadhar: "", dob: "", anniversary: "",
       });
+      setSelectedTagIds([]);
       onSuccess();
       onClose();
     } catch {
@@ -131,7 +207,7 @@ export default function AddCustomerModal({ open, onClose, onSuccess }: AddCustom
             <h3 className="text-[12px] font-semibold text-[#555] uppercase tracking-wider mb-3">Personal Information</h3>
             <div className="grid grid-cols-2 gap-4">
               <InputField label="Full Name *" value={form.name} onChange={(v) => handleChange("name", v)} placeholder="e.g. Sanya Arora" />
-              <InputField label="Mobile Number *" value={form.mobile} onChange={(v) => handleChange("mobile", v)} placeholder="e.g. 9198102 33456" />
+              <InputField label="Mobile Number *" value={form.mobile} onChange={(v) => handleChange("mobile", v)} placeholder="e.g. 9198102 33456" error={mobileError} />
               <InputField label="Email" value={form.email} onChange={(v) => handleChange("email", v)} placeholder="e.g. sanya@mail.com" type="email" />
               <div>
                 <label className="block text-[12px] font-medium text-[#666] mb-1.5">Gender *</label>
@@ -183,6 +259,51 @@ export default function AddCustomerModal({ open, onClose, onSuccess }: AddCustom
               <InputField label="Aadhar" value={form.aadhar} onChange={(v) => handleChange("aadhar", v)} placeholder="XXXX XXXX XXXX" />
             </div>
           </div>
+
+          {/* Customer Tags Section */}
+          {manualTags.length > 0 && (
+            <div>
+              <h3 className="text-[12px] font-semibold text-[#555] uppercase tracking-wider mb-3">Initial Tags</h3>
+              <div className="flex flex-wrap gap-2">
+                {manualTags.map((tag) => {
+                  const isChecked = selectedTagIds.includes(tag.id);
+                  const colorMap: Record<string, string> = {
+                    gold: "border-[#D4A843]/30 text-[#D4A843] bg-[#D4A843]/10",
+                    red: "border-red-500/30 text-red-400 bg-red-500/10",
+                    blue: "border-blue-500/30 text-blue-400 bg-blue-500/10",
+                    gray: "border-gray-500/30 text-gray-400 bg-gray-500/10",
+                    green: "border-emerald-500/30 text-emerald-400 bg-emerald-500/10",
+                    orange: "border-orange-500/30 text-orange-400 bg-orange-500/10",
+                    purple: "border-purple-500/30 text-purple-400 bg-purple-500/10",
+                  };
+                  const activeColorClass = colorMap[tag.color.toLowerCase()] || "border-gray-500/30 text-gray-400 bg-gray-500/10";
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTagIds((prev) =>
+                          prev.includes(tag.id) ? prev.filter((id) => id !== tag.id) : [...prev, tag.id]
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-xl border text-[13px] transition-all flex items-center gap-2 cursor-pointer ${
+                        isChecked
+                          ? `${activeColorClass} font-semibold`
+                          : "border-[#1f1f1f] bg-[#0c0c0c] text-[#666] hover:border-[#333] hover:text-[#ccc]"
+                      }`}
+                    >
+                      <span>{tag.label}</span>
+                      <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center text-[8px] ${
+                        isChecked ? "border-current text-current" : "border-[#444]"
+                      }`}>
+                        {isChecked && "✓"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </form>
 
         {/* Footer */}
@@ -196,7 +317,7 @@ export default function AddCustomerModal({ open, onClose, onSuccess }: AddCustom
           </button>
           <button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || checkingMobile || !!mobileError}
             className="h-10 px-6 rounded-xl text-[13px] font-semibold bg-[#D4A843] text-black hover:bg-[#e6bc5a] transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
           >
             {loading ? (
@@ -224,22 +345,27 @@ function InputField({
   onChange,
   placeholder = "",
   type = "text",
+  error = "",
 }: {
   label: string;
   value: string;
   onChange: (val: string) => void;
   placeholder?: string;
   type?: string;
+  error?: string;
 }) {
   return (
     <div>
-      <label className="block text-[12px] font-medium text-[#666] mb-1.5">{label}</label>
+      <label className="block text-[12px] font-medium text-[#666] mb-1.5">
+        {label}
+        {error && <span className="text-red-400 ml-2 text-[10px]">{error}</span>}
+      </label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full h-10 px-3.5 rounded-xl bg-[#0c0c0c] border border-[#1f1f1f] text-[13px] text-white placeholder:text-[#333] outline-none focus:border-[#D4A843]/40 transition-colors"
+        className={`w-full h-10 px-3.5 rounded-xl bg-[#0c0c0c] border ${error ? 'border-red-500/50 focus:border-red-500/80' : 'border-[#1f1f1f] focus:border-[#D4A843]/40'} text-[13px] text-white placeholder:text-[#333] outline-none transition-colors [color-scheme:dark]`}
       />
     </div>
   );

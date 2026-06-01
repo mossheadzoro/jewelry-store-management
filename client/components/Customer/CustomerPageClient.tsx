@@ -30,9 +30,18 @@ interface CustomerListResponse {
   pagination: Pagination;
 }
 
-async function fetchCustomerList(page: number, search: string): Promise<CustomerListResponse> {
+interface TagDefinition {
+  id: string;
+  name: string;
+  label: string;
+  color: string;
+  type: "SYSTEM" | "MANUAL";
+}
+
+async function fetchCustomerList(page: number, search: string, tagId: string): Promise<CustomerListResponse> {
   const params = new URLSearchParams({ page: page.toString(), limit: "20" });
   if (search.trim().length >= 2) params.set("search", search.trim());
+  if (tagId) params.set("tagId", tagId);
   const res = await fetch(`/api/customer/list?${params}`);
   if (!res.ok) throw new Error("Failed to fetch customers");
   return res.json();
@@ -44,16 +53,28 @@ export default function CustomerPageClient() {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [selectedTagId, setSelectedTagId] = useState<string>("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editCustomerId, setEditCustomerId] = useState<number | null>(null);
   const [messageCustomer, setMessageCustomer] = useState<CustomerRow | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<CustomerRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Fetch tag definitions
+  const { data: tagsData } = useQuery<{ definitions: TagDefinition[] }>({
+    queryKey: ["tagDefinitions"],
+    queryFn: async () => {
+      const res = await fetch("/api/customer/tags/definitions");
+      if (!res.ok) throw new Error("Failed to fetch tag definitions");
+      return res.json();
+    },
+  });
+  const tagDefinitions = tagsData?.definitions ?? [];
+
   // React Query — cached, deduplicated, automatic background refresh
   const { data, isLoading } = useQuery({
-    queryKey: ["customers", page, search],
-    queryFn: () => fetchCustomerList(page, search),
+    queryKey: ["customers", page, search, selectedTagId],
+    queryFn: () => fetchCustomerList(page, search, selectedTagId),
     placeholderData: (prev) => prev, // keep showing previous data while loading next page
   });
 
@@ -70,7 +91,10 @@ export default function CustomerPageClient() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["customers"] });
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["customers"] });
+    queryClient.invalidateQueries({ queryKey: ["tagDefinitions"] });
+  };
 
   const handlePageChange = (p: number) => setPage(p);
 
@@ -137,6 +161,27 @@ export default function CustomerPageClient() {
                 placeholder="Search by name, mobile, or ID..."
                 className="w-[280px] h-10 pl-10 pr-4 rounded-xl bg-[#111] border border-[#1f1f1f] text-[13px] text-white placeholder:text-[#444] outline-none focus:border-[#D4A843]/40 transition-colors"
               />
+            </div>
+            {/* Tag Filter */}
+            <div className="relative">
+              <select
+                value={selectedTagId}
+                onChange={(e) => {
+                  setSelectedTagId(e.target.value);
+                  setPage(1);
+                }}
+                className="h-10 pl-4 pr-8 rounded-xl bg-[#111] border border-[#1f1f1f] text-[13px] text-white outline-none focus:border-[#D4A843]/40 transition-colors appearance-none cursor-pointer min-w-[150px]"
+              >
+                <option value="">All Tags</option>
+                {tagDefinitions.map((def) => (
+                  <option key={def.id} value={def.id}>
+                    {def.label}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#555] text-[10px]">
+                ▼
+              </div>
             </div>
             {/* Add Customer Button */}
             <button

@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Edit2, Plus, MessageSquare, Download, ShoppingBag, Eye, MapPin, Mail, Phone, Loader2 } from "lucide-react";
+import { ArrowLeft, Edit2, Plus, MessageSquare, Download, ShoppingBag, Eye, MapPin, Mail, Phone, Loader2, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import EditCustomerModal from "./EditCustomerModal";
 import DirectCommunicationModal from "./DirectCommunicationModal";
+import OrderDetailsModal from "./OrderDetailsModal";
 
 interface CustomerDetailsClientProps {
   customerId: number;
@@ -18,6 +19,9 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
   
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCommModal, setShowCommModal] = useState(false);
+  const [showManageTagsModal, setShowManageTagsModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [orderSearchQuery, setOrderSearchQuery] = useState("");
   
   const [activeTab, setActiveTab] = useState<"ledger" | "orders" | "journey" | "wishlist">("ledger");
 
@@ -35,9 +39,32 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
     }
   }, [customerId]);
 
+  const refreshDetails = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/customer/${customerId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCustomer(data.customer);
+        return data.customer;
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    return null;
+  }, [customerId]);
+
   useEffect(() => {
-    fetchDetails();
-  }, [fetchDetails]);
+    // Evaluate system tags first, then fetch details
+    fetch(`/api/customer/tags/evaluate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customerId }),
+    })
+      .catch((err) => console.error("Error evaluating customer tags:", err))
+      .finally(() => {
+        fetchDetails();
+      });
+  }, [customerId, fetchDetails]);
 
   if (loading) {
     return (
@@ -72,11 +99,24 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
     router.push(`/billing/invoice/${invId}`); // Assuming this route exists
   };
 
-  const handleOrderClick = (orderId: string) => {
-    window.open(`/orderBook/print/${orderId}`, "_blank");
+  const handleOrderClick = (order: any) => {
+    setSelectedOrder(order);
   };
 
   const orders = customer.Order || [];
+
+  // Filter orders by search query
+  const filteredOrders = orders.filter((order: any) => {
+    const q = orderSearchQuery.toLowerCase().trim();
+    if (!q) return true;
+    const matchesNo = order.orderNumber?.toLowerCase().includes(q);
+    const matchesStatus = order.status?.toLowerCase().includes(q);
+    const matchesItem = order.items?.some((item: any) => 
+      item.category?.name?.toLowerCase().includes(q) ||
+      item.description?.toLowerCase().includes(q)
+    );
+    return matchesNo || matchesStatus || matchesItem;
+  });
 
   return (
     <main className="flex-1 min-h-screen bg-[#0a0a0a] overflow-auto">
@@ -131,32 +171,100 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
             
             {/* Profile Card */}
             <div className="bg-[#141414] border border-[#222] rounded-2xl p-6">
-              <div className="flex items-center gap-5 mb-6">
-                <div className="w-16 h-16 rounded-full bg-[#222] border border-[#333] flex items-center justify-center text-[22px] font-bold text-[#D4A843]">
+              <div className="flex items-start gap-5 mb-6">
+                <div className="w-16 h-16 rounded-full bg-[#222] border border-[#333] flex items-center justify-center text-[22px] font-bold text-[#D4A843] flex-shrink-0">
                   {initials}
                 </div>
-                <div>
-                  <div className="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest bg-[#D4A843]/10 text-[#D4A843] border border-[#D4A843]/20 mb-1">
-                    {customer.tier || "PLATINUM"} TIER
-                  </div>
-                  <div className="flex items-center gap-2 text-[13px] text-[#999] mt-1.5">
-                    <Phone className="w-3.5 h-3.5" /> +91 {customer.mobile}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 text-[13px] text-[#999]">
+                    <Phone className="w-3.5 h-3.5 flex-shrink-0" /> +91 {customer.mobile}
                   </div>
                   {customer.email && (
-                    <div className="flex items-center gap-2 text-[13px] text-[#999] mt-1">
-                      <Mail className="w-3.5 h-3.5" /> <span className="truncate max-w-[150px]">{customer.email}</span>
+                    <div className="flex items-center gap-2 text-[13px] text-[#999] mt-1.5">
+                      <Mail className="w-3.5 h-3.5 flex-shrink-0" /> <span className="truncate">{customer.email}</span>
+                    </div>
+                  )}
+                  {customer.address && (
+                    <div className="flex items-start gap-2 text-[13px] text-[#999] mt-1.5 leading-normal">
+                      <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                      <span className="break-words">{customer.address}, {customer.city}, {customer.state} - {customer.pincode}</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Preferences Mock (As it's not in DB) */}
+              {/* Additional Details (DOB, Anniversary, PAN, Aadhar, GSTIN) */}
+              <div className="p-4 bg-[#0a0a0a] rounded-xl border border-[#1a1a1a] mb-5 space-y-3">
+                <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest border-b border-[#161616] pb-1.5">Patron Info</p>
+                
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-[13px]">
+                  <div>
+                    <span className="text-[#555] block text-[10px] uppercase font-semibold">Date of Birth</span>
+                    <span className="text-[#ccc]">{customer.dob ? new Date(customer.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#555] block text-[10px] uppercase font-semibold">Anniversary</span>
+                    <span className="text-[#ccc]">{customer.anniversary ? new Date(customer.anniversary).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#555] block text-[10px] uppercase font-semibold">Gender</span>
+                    <span className="text-[#ccc] capitalize">{customer.gender ? customer.gender.toLowerCase() : '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#555] block text-[10px] uppercase font-semibold">PAN</span>
+                    <span className="text-[#ccc] uppercase">{customer.pan || '—'}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[#555] block text-[10px] uppercase font-semibold">Aadhar</span>
+                    <span className="text-[#ccc] tracking-wider">{customer.aadhar || '—'}</span>
+                  </div>
+                  {customer.gstin && (
+                    <div className="col-span-2">
+                      <span className="text-[#555] block text-[10px] uppercase font-semibold">GSTIN</span>
+                      <span className="text-[#ccc] uppercase">{customer.gstin}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Customer Tags Section */}
               <div className="p-4 bg-[#0a0a0a] rounded-xl border border-[#1a1a1a] mb-5">
-                <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest mb-3">Preferences</p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest">Active Tags</p>
+                  <button
+                    onClick={() => setShowManageTagsModal(true)}
+                    className="text-[11px] font-semibold text-[#D4A843] hover:text-[#e6bc5a] hover:underline cursor-pointer transition-colors"
+                  >
+                    Manage Tags
+                  </button>
+                </div>
                 <div className="flex flex-wrap gap-2">
-                  {["Bespoke Rings", "Rose Gold", "Diamonds"].map((tag) => (
-                    <span key={tag} className="px-3 py-1.5 rounded-lg bg-[#1a1a1a] text-[#ccc] text-[12px]">{tag}</span>
-                  ))}
+                  {customer.tags && customer.tags.length > 0 ? (
+                    customer.tags.map((assignment: any) => {
+                      const tag = assignment.tagDefinition;
+                      const colorMap: Record<string, string> = {
+                        gold: "bg-[#D4A843]/15 text-[#D4A843] border-[#D4A843]/30",
+                        red: "bg-red-500/10 text-red-400 border-red-500/25",
+                        blue: "bg-blue-500/10 text-blue-400 border-blue-500/25",
+                        gray: "bg-gray-500/10 text-gray-400 border-gray-500/25",
+                        green: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
+                        orange: "bg-orange-500/10 text-orange-400 border-orange-500/25",
+                        purple: "bg-[#8b5cf6]/10 text-[#8b5cf6] border-[#8b5cf6]/25",
+                      };
+                      const colorClass = colorMap[tag.color.toLowerCase()] || "bg-gray-500/10 text-gray-400 border-gray-500/25";
+                      return (
+                        <span
+                          key={assignment.id}
+                          className={`px-2 py-1 rounded text-[11px] font-medium border ${colorClass}`}
+                          title={`${tag.type === "SYSTEM" ? "System-generated" : "Manually-assigned"}: ${tag.description || ''}`}
+                        >
+                          {tag.label}
+                        </span>
+                      );
+                    })
+                  ) : (
+                    <span className="text-[12px] text-[#444] italic">No active tags</span>
+                  )}
                 </div>
               </div>
 
@@ -334,20 +442,40 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
             {/* Orders Tab Content */}
             {activeTab === "orders" && (
               <div className="space-y-4">
+                
+                {/* Search Bar for Orders */}
+                {orders.length > 0 && (
+                  <div className="relative mb-4">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#444]" />
+                    <input
+                      type="text"
+                      value={orderSearchQuery}
+                      onChange={(e) => setOrderSearchQuery(e.target.value)}
+                      placeholder="Search orders by number, category, or status..."
+                      className="w-full h-10 pl-10 pr-4 rounded-xl bg-[#111] border border-[#1f1f1f] text-[13px] text-white placeholder:text-[#444] outline-none focus:border-[#D4A843]/40 transition-colors"
+                    />
+                  </div>
+                )}
+
                 {orders.length === 0 ? (
                   <div className="bg-[#141414] border border-[#222] rounded-2xl py-12 flex flex-col items-center justify-center">
                     <span className="text-3xl mb-3">📋</span>
                     <p className="text-[#888] text-[14px]">No active or past orders found for this customer.</p>
                   </div>
+                ) : filteredOrders.length === 0 ? (
+                  <div className="bg-[#141414] border border-[#222] rounded-2xl py-12 flex flex-col items-center justify-center">
+                    <Search className="w-8 h-8 text-[#333] mb-3" />
+                    <p className="text-[#888] text-[14px]">No orders matching your search query.</p>
+                  </div>
                 ) : (
                   <div className="space-y-4">
-                    {orders.map((order: any) => {
+                    {filteredOrders.map((order: any) => {
                       const mainItem = order.items?.[0]?.category?.name || "Bespoke Creation";
                       
                       return (
                         <div 
                           key={order.id} 
-                          onClick={() => handleOrderClick(order.id)}
+                          onClick={() => handleOrderClick(order)}
                           className="bg-[#141414] border border-[#222] rounded-2xl p-5 flex items-center justify-between hover:border-[#333] hover:bg-[#1a1a1a] transition-all cursor-pointer group"
                         >
                           <div className="flex items-center gap-5">
@@ -407,6 +535,314 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
         onClose={() => setShowCommModal(false)}
       />
 
+      <OrderDetailsModal
+        open={!!selectedOrder}
+        order={selectedOrder}
+        customerName={customer.name}
+        customerMobile={customer.mobile}
+        onClose={() => setSelectedOrder(null)}
+        onSuccess={async () => {
+          const updatedCustomer = await refreshDetails();
+          if (selectedOrder && updatedCustomer) {
+            const updatedOrder = updatedCustomer.Order?.find((o: any) => o.id === selectedOrder.id);
+            if (updatedOrder) {
+              setSelectedOrder(updatedOrder);
+            } else {
+              setSelectedOrder(null);
+            }
+          }
+        }}
+      />
+
+      <ManageTagsModal
+        open={showManageTagsModal}
+        onClose={() => setShowManageTagsModal(false)}
+        customerId={customer.id}
+        currentTags={customer.tags || []}
+        onSuccess={() => fetchDetails()}
+      />
+
     </main>
+  );
+}
+
+interface ManageTagsModalProps {
+  open: boolean;
+  onClose: () => void;
+  customerId: number;
+  currentTags: any[];
+  onSuccess: () => void;
+}
+
+function ManageTagsModal({ open, onClose, customerId, currentTags, onSuccess }: ManageTagsModalProps) {
+  const [manualTags, setManualTags] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  
+  // Custom tag creation form
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+  const [newColor, setNewColor] = useState("gray");
+  const [creating, setCreating] = useState(false);
+
+  const fetchDefinitions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/customer/tags/definitions");
+      if (res.ok) {
+        const data = await res.json();
+        // filter to manual tags
+        const manuals = data.definitions.filter((d: any) => d.type === "MANUAL");
+        setManualTags(manuals);
+      }
+    } catch (err) {
+      console.error("Failed to fetch definitions", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      fetchDefinitions();
+      // Initialize selectedTagIds with customer's current manual tags
+      const currentManualIds = currentTags
+        .filter((t: any) => t.tagDefinition.type === "MANUAL")
+        .map((t: any) => t.tagDefinitionId);
+      setSelectedTagIds(currentManualIds);
+    }
+  }, [open, currentTags, fetchDefinitions]);
+
+  if (!open) return null;
+
+  const handleToggleTag = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/customer/tags/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId, tagIds: selectedTagIds }),
+      });
+      if (res.ok) {
+        onSuccess();
+        onClose();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to save tag assignments");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error occurred");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLabel.trim()) return;
+    setCreating(true);
+    try {
+      const name = newName.trim() || newLabel.trim().toUpperCase().replace(/\s+/g, "_");
+      const res = await fetch("/api/customer/tags/definitions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          label: newLabel.trim(),
+          description: newDesc.trim() || undefined,
+          color: newColor,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const createdDef = data.definition;
+        setManualTags((prev) => [...prev, createdDef]);
+        setSelectedTagIds((prev) => [...prev, createdDef.id]);
+        
+        // Reset form
+        setNewLabel("");
+        setNewName("");
+        setNewDesc("");
+        setNewColor("gray");
+        setShowCreateForm(false);
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to create tag definition");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error occurred while creating tag");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-[#111] border border-[#222] rounded-2xl p-6 max-w-md w-full shadow-2xl z-50 max-h-[85vh] overflow-y-auto flex flex-col">
+        <h3 className="text-[18px] font-bold text-white mb-1">Manage Customer Tags</h3>
+        <p className="text-[13px] text-[#666] mb-5">Assign or remove manual tags. System tags are evaluated automatically.</p>
+
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 text-[#D4A843] animate-spin" />
+          </div>
+        ) : (
+          <div className="space-y-4 flex-1">
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-[#555] uppercase tracking-widest block">Manual Tags</label>
+              {manualTags.length === 0 ? (
+                <p className="text-[13px] text-[#555] italic">No manual tags defined yet.</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {manualTags.map((tag) => {
+                    const isChecked = selectedTagIds.includes(tag.id);
+                    const colorMap: Record<string, string> = {
+                      gold: "border-[#D4A843]/30 text-[#D4A843] bg-[#D4A843]/10",
+                      red: "border-red-500/30 text-red-400 bg-red-500/10",
+                      blue: "border-blue-500/30 text-blue-400 bg-blue-500/10",
+                      gray: "border-gray-500/30 text-gray-400 bg-gray-500/10",
+                      green: "border-emerald-500/30 text-emerald-400 bg-emerald-500/10",
+                      orange: "border-orange-500/30 text-orange-400 bg-orange-500/10",
+                      purple: "border-purple-500/30 text-purple-400 bg-purple-500/10",
+                    };
+                    const activeColorClass = colorMap[tag.color.toLowerCase()] || "border-gray-500/30 text-gray-400 bg-gray-500/10";
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => handleToggleTag(tag.id)}
+                        className={`flex items-center justify-between p-3 rounded-xl border text-[13px] text-left transition-all ${
+                          isChecked
+                            ? `${activeColorClass} font-semibold`
+                            : "border-[#222] bg-[#161616] text-[#888] hover:border-[#333] hover:text-[#ccc]"
+                        }`}
+                      >
+                        <span>{tag.label}</span>
+                        <span className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] ${
+                          isChecked ? "border-current text-current" : "border-[#444]"
+                        }`}>
+                          {isChecked && "✓"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Custom Tag Creation */}
+            <div className="border-t border-[#222] pt-4">
+              {!showCreateForm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(true)}
+                  className="w-full h-9 rounded-xl border border-dashed border-[#333] text-[13px] text-[#888] hover:text-white hover:border-[#444] transition-all flex items-center justify-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Create Custom Tag Definition
+                </button>
+              ) : (
+                <form onSubmit={handleCreateTag} className="space-y-3 p-3.5 bg-[#161616] border border-[#222] rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-[#D4A843] uppercase tracking-wider">New Tag Definition</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateForm(false)}
+                      className="text-[11px] text-[#666] hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-[#555] uppercase tracking-wider block mb-1">Label</label>
+                    <input
+                      type="text"
+                      required
+                      value={newLabel}
+                      onChange={(e) => setNewLabel(e.target.value)}
+                      placeholder="e.g. Friends & Family"
+                      className="w-full h-8 px-2.5 rounded-lg bg-[#0a0a0a] border border-[#2a2a2a] text-[12px] text-white outline-none focus:border-[#D4A843]/40"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-[#555] uppercase tracking-wider block mb-1">System Code (Opt)</label>
+                      <input
+                        type="text"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value.toUpperCase().replace(/\s+/g, "_"))}
+                        placeholder="FRIENDS_FAMILY"
+                        className="w-full h-8 px-2.5 rounded-lg bg-[#0a0a0a] border border-[#2a2a2a] text-[11px] text-white outline-none focus:border-[#D4A843]/40"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-[#555] uppercase tracking-wider block mb-1">Color</label>
+                      <select
+                        value={newColor}
+                        onChange={(e) => setNewColor(e.target.value)}
+                        className="w-full h-8 px-2 rounded-lg bg-[#0a0a0a] border border-[#2a2a2a] text-[12px] text-white outline-none focus:border-[#D4A843]/40 appearance-none cursor-pointer"
+                      >
+                        <option value="gray">Gray</option>
+                        <option value="gold">Gold</option>
+                        <option value="blue">Blue</option>
+                        <option value="red">Red</option>
+                        <option value="green">Green</option>
+                        <option value="orange">Orange</option>
+                        <option value="purple">Purple</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-[#555] uppercase tracking-wider block mb-1">Description</label>
+                    <input
+                      type="text"
+                      value={newDesc}
+                      onChange={(e) => setNewDesc(e.target.value)}
+                      placeholder="Tag description..."
+                      className="w-full h-8 px-2.5 rounded-lg bg-[#0a0a0a] border border-[#2a2a2a] text-[12px] text-white outline-none focus:border-[#D4A843]/40"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={creating}
+                    className="w-full h-8 rounded-lg bg-[#D4A843] text-black text-[12px] font-semibold hover:bg-[#e6bc5a] transition-all disabled:opacity-50"
+                  >
+                    {creating ? "Creating..." : "Save Tag Definition"}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-[#222]">
+          <button
+            onClick={onClose}
+            className="h-9 px-4 rounded-lg text-[13px] text-[#999] bg-[#1a1a1a] border border-[#252525] hover:text-white transition-all cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || loading}
+            className="h-9 px-4 rounded-lg text-[13px] font-semibold bg-[#D4A843] text-black hover:bg-[#e6bc5a] transition-all disabled:opacity-50 cursor-pointer"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

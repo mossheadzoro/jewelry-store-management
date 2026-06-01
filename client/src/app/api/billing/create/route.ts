@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../libs/prisma";
 import { insertLedgerEntry } from "../../../../../libs/inventoryLedger";
+import { evaluateCustomerTags } from "@/lib/services/TagRuleEngine";
 
 export async function POST(req: Request) {
   try {
@@ -266,6 +267,13 @@ export async function POST(req: Request) {
 
       return newInvoice;
     });
+
+    // Trigger automatic customer tag evaluations after a new purchase is recorded
+    try {
+      await evaluateCustomerTags(customerId);
+    } catch (err) {
+      console.error("Failed to automatically evaluate customer tags after invoice creation:", err);
+    }
 
     return NextResponse.json({ success: true, invoiceId: invoice.id });
   } catch (error: any) {

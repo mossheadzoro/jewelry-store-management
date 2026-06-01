@@ -42,6 +42,7 @@ model Branch {
   // Cost tracking relations
   branchCosts      ProductBranchCost[]
   costLayers       InventoryCostLayer[]
+  tagDefinitions   TagDefinition[]     @relation("BranchToTagDefinitions")
 }
 
 model User {
@@ -80,6 +81,8 @@ model User {
   inventoryLedger    InventoryLedger[]
   inventoryTransfers InventoryTransfer[]
   stockAudits        StockAudit[]
+  tagsCreated        TagDefinition[]     @relation("UserToCreatedTagDefinitions")
+  tagsAssigned       CustomerTag[]       @relation("UserToCustomerTagAssignments")
 
   @@index([branchId])
   @@index([createdById])
@@ -221,6 +224,7 @@ model Customer {
   Advance              Advance[]
   MetalExchangeSession MetalExchangeSession[]
   MetalExchangeItem    MetalExchangeItem[]
+  tags                 CustomerTag[]          @relation("CustomerToCustomerTags")
 
   @@index([name])
   @@index([createdAt])
@@ -1179,5 +1183,61 @@ model BackupLog {
   includes    String[]
   createdById Int
   createdAt   DateTime @default(now())
+}
+
+enum TagType {
+  SYSTEM
+  MANUAL
+}
+
+model TagDefinition {
+  id          String        @id @default(cuid())
+  name        String        @unique // e.g. "HIGH_VALUE", "VIP"
+  label       String        // e.g. "High Value Client"
+  description String?
+  type        TagType
+  color       String        @default("gray") // red, orange, yellow, green, blue, gold, etc.
+  isActive    Boolean       @default(true)
+  isDeleted   Boolean       @default(false)
+  branchId    Int?          // null means global, or specific branch
+  branch      Branch?       @relation("BranchToTagDefinitions", fields: [branchId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  createdById Int?
+  createdBy   User?         @relation("UserToCreatedTagDefinitions", fields: [createdById], references: [id])
+
+  assignments CustomerTag[] @relation("TagDefinitionToCustomerTags")
+
+  @@index([branchId])
+}
+
+model CustomerTag {
+  id              String        @id @default(cuid())
+  customerId      Int
+  customer        Customer      @relation("CustomerToCustomerTags", fields: [customerId], references: [id], onDelete: Cascade)
+  tagDefinitionId String
+  tagDefinition   TagDefinition @relation("TagDefinitionToCustomerTags", fields: [tagDefinitionId], references: [id], onDelete: Cascade)
+  assignedAt      DateTime      @default(now())
+  assignedById    Int?          // null if system
+  assignedBy      User?         @relation("UserToCustomerTagAssignments", fields: [assignedById], references: [id])
+  reason          String?       // "Auto-assigned: Lifetime purchase > 10L"
+
+  @@unique([customerId, tagDefinitionId])
+  @@index([customerId])
+  @@index([tagDefinitionId])
+}
+
+model TagAssignmentHistory {
+  id              String   @id @default(cuid())
+  customerId      Int
+  tagDefinitionId String
+  tagLabel        String
+  action          String   // "ADDED" | "REMOVED"
+  performedById   Int?     // null if system
+  reason          String?
+  createdAt       DateTime @default(now())
+
+  @@index([customerId])
+  @@index([createdAt])
 }
 

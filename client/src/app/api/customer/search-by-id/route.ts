@@ -18,6 +18,11 @@ export async function GET(req: Request) {
         mobile: true,
         address: true,
         gstin: true,
+        tags: {
+          include: {
+            tagDefinition: true,
+          },
+        },
         invoices: {
           select: {
             balanceAmount: true,

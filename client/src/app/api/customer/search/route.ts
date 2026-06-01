@@ -23,6 +23,11 @@ export async function GET(req: Request) {
           address: true,
           city: true,
           gstin: true,
+          tags: {
+            include: {
+              tagDefinition: true,
+            },
+          },
         },
       });
 
@@ -59,6 +64,11 @@ export async function GET(req: Request) {
         address: true,
         city: true,
         gstin: true,
+        tags: {
+          include: {
+            tagDefinition: true,
+          },
+        },
       },
       take: 10,
       orderBy: { name: "asc" },

@@ -24,6 +24,11 @@ export async function GET(
     const customer = await prisma.customer.findUnique({
       where: { id: customerId },
       include: {
+        tags: {
+          include: {
+            tagDefinition: true,
+          },
+        },
         invoices: {
           select: {
             id: true,
@@ -62,6 +67,8 @@ export async function GET(
             deliveryDate: true,
             notes: true,
             createdAt: true,
+            customerName: true,
+            customerMobile: true,
             advance: {
               select: {
                 advanceReceiptNumber: true,

@@ -13,7 +13,19 @@ import { ImageUploader } from "./ImageUploader";
 
 type Category = { id: number; name: string };
 type Karigar = { id: string; name: string; department: string };
-type Customer = { id: string; name: string; mobile: string; address: string };
+type Customer = {
+  id: string;
+  name: string;
+  mobile: string;
+  address: string;
+  tags?: Array<{
+    id: string;
+    name: string;
+    label: string;
+    color: string;
+    type: "SYSTEM" | "MANUAL";
+  }>;
+};
 type ItemDraft = {
   categoryId: string;
   weight: string;
@@ -171,7 +183,34 @@ export default function CreateOrderView({ onOrderCreated }: { onOrderCreated: (o
                     {searching && <div className="px-4 py-3 text-[12px] text-[#666]">Searching...</div>}
                     {customerResults.map((c) => (
                       <div key={c.id} className="px-4 py-3 hover:bg-[#2a2a2a] cursor-pointer transition-colors" onClick={() => { setCustomerName(c.name); setCustomerMobile(c.mobile); setSearchQuery(""); setShowDropdown(false); }}>
-                        <p className="text-[13px] font-semibold text-white">{c.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[13px] font-semibold text-white">{c.name}</p>
+                          {c.tags && c.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {c.tags.map((tag) => {
+                                const colorMap: Record<string, string> = {
+                                  gold: "bg-[#D4A843]/15 text-[#D4A843] border-[#D4A843]/30",
+                                  red: "bg-red-500/10 text-red-400 border-red-500/25",
+                                  blue: "bg-blue-500/10 text-blue-400 border-blue-500/25",
+                                  gray: "bg-gray-500/10 text-gray-400 border-gray-500/25",
+                                  green: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
+                                  orange: "bg-orange-500/10 text-orange-400 border-orange-500/25",
+                                  purple: "bg-purple-500/10 text-purple-400 border-purple-500/25",
+                                };
+                                const colorClass = colorMap[tag.color.toLowerCase()] || "bg-gray-500/10 text-gray-400 border-gray-500/25";
+                                return (
+                                  <span
+                                    key={tag.id}
+                                    className={`px-1.5 py-0.5 rounded text-[9px] font-medium border ${colorClass}`}
+                                    title={tag.label}
+                                  >
+                                    {tag.label}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
                         <p className="text-[11px] text-[#666]">{c.mobile}</p>
                       </div>
                     ))}

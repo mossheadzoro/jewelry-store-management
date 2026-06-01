@@ -297,7 +297,7 @@ function InputField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full h-10 px-3.5 rounded-xl border border-[#333] text-[13px] text-white placeholder:text-[#555] outline-none focus:border-[#D4A843]/40 transition-colors`}
+        className={`w-full h-10 px-3.5 rounded-xl border border-[#333] text-[13px] text-white placeholder:text-[#555] outline-none focus:border-[#D4A843]/40 transition-colors [color-scheme:dark]`}
         style={{ backgroundColor: bg }}
       />
     </div>
