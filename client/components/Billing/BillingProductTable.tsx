@@ -40,15 +40,40 @@ const BillingProductTable = ({ products, removeProduct, onEditProduct }: any) =>
                 </TableCell>
 
                 <TableCell className="py-4 px-4 align-top">
-                  <button
-                    onClick={() => onEditProduct?.(p, idx)}
-                    className="text-[#e8e8e8] font-medium text-left hover:text-[#d4a843] transition-colors focus:outline-none"
-                    aria-label={`Edit ${p.name}`}
-                    type="button"
-                  >
-                    {p.name}
-                  </button>
-                  <p className="text-[#666] text-xs mt-1">Barcode: {p.barcode}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0 h-12 w-12 bg-[#2a2a2a] rounded overflow-hidden flex items-center justify-center border border-[#333]">
+                      {p.image ? (
+                        <img 
+                          src={p.image} 
+                          alt={p.name} 
+                          className="h-full w-full object-cover" 
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            if (e.currentTarget.nextElementSibling) {
+                              (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'block';
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <span 
+                        className="text-[10px] text-[#888] text-center leading-tight px-1"
+                        style={{ display: p.image ? 'none' : 'block' }}
+                      >
+                        No img found
+                      </span>
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => onEditProduct?.(p, idx)}
+                        className="text-[#e8e8e8] font-medium text-left hover:text-[#d4a843] transition-colors focus:outline-none block"
+                        aria-label={`Edit ${p.name}`}
+                        type="button"
+                      >
+                        {p.name}
+                      </button>
+                      <p className="text-[#666] text-xs mt-1">Barcode: {p.barcode}</p>
+                    </div>
+                  </div>
                 </TableCell>
 
                 <TableCell className="text-[#aaa] text-right py-4 px-4 align-top tabular-nums">

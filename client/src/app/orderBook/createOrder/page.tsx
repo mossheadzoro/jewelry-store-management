@@ -4,7 +4,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import CreateOrderView from "../../../../components/OrderBook/CreateOrderView";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useRouter } from "next/navigation";
-import { Order } from "../../../types/order";
+import { Order } from "../../../../types/order";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 

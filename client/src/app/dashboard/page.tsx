@@ -1,7 +1,7 @@
 // app/dashboard/page.tsx
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/authOptions";
 
 export default async function DashboardRedirect() {
   const session = await getServerSession(authOptions);

@@ -71,11 +71,27 @@ const BillingSummary = ({ billing, customer, onCheckout, isSubmitting, isEditMod
 
       <h2 className="text-xl font-bold text-white mb-6">Summary</h2>
 
-      {/* CUSTOMER INFO SUMMARY (Optional context since it was in old UI) */}
+      {/* CUSTOMER INFO SUMMARY */}
       <div className="mb-6 pb-6 border-b border-white/5">
-        <p className="text-sm font-semibold text-white mb-1.5">{customer?.name || "No customer selected"}</p>
-        <p className="text-xs text-[#777] mb-0.5">{customer?.mobile || "—"}</p>
-        <p className="text-xs text-[#777] truncate">{customer?.address || "—"}</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-sm font-semibold text-white mb-1.5">{customer?.name || "No customer selected"}</p>
+            <p className="text-xs text-[#777] mb-0.5">{customer?.mobile || "—"}</p>
+            <p className="text-xs text-[#777] truncate max-w-[180px]">{customer?.address || "—"}</p>
+          </div>
+          {customer && (
+            <div className="text-right flex-shrink-0">
+              <span className="text-[10px] text-[#888] uppercase tracking-wider block mb-0.5">Prev Balance</span>
+              <span className={`text-sm font-bold font-mono ${
+                (customer.currentDue ?? 0) > 0 ? "text-[#e55]" : (customer.currentDue ?? 0) < 0 ? "text-green-400" : "text-[#888]"
+              }`}>
+                ₹ {Math.abs(customer.currentDue ?? 0).toFixed(2)} {
+                  (customer.currentDue ?? 0) > 0 ? "DR" : (customer.currentDue ?? 0) < 0 ? "CR" : ""
+                }
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* PRICING BREAKDOWN */}

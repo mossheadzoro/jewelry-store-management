@@ -2,9 +2,11 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Search, Filter, MoreVertical, ChevronLeft, ChevronRight, Edit } from "lucide-react";
+import { Search, Filter, MoreVertical, ChevronLeft, ChevronRight, Edit, Eye, Printer } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { ProductDetailsModal } from "../../../../../components/Inventory/Product/ProductDetailsModal";
+import { printBarcodes } from "@/lib/barcodePrinter";
 
 interface Product {
   id: number;
@@ -21,6 +23,7 @@ interface Product {
   description: string | null;
   otherCharges: string | null;
   otherChargesPrice: number | null;
+  size: string | null;
 }
 
 interface SubCategoryData {
@@ -54,17 +57,30 @@ export default function SubcategoryDetailPage() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedPurity, setSelectedPurity] = useState<number[]>([]);
+  const [weightFilter, setWeightFilter] = useState("");
+
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handlePrintBarcode = (product: Product) => {
+    printBarcodes([product], data?.subCategory?.name);
+  };
+
   const fetchData = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams({ page: String(page), pageSize: "10" });
     if (search) params.set("search", search);
+    if (selectedPurity.length > 0) params.set("purity", selectedPurity.join(","));
+    if (weightFilter) params.set("weight", weightFilter);
 
     fetch(`/api/inventory/subcategory/${id}?${params}`)
       .then((r) => r.json())
       .then((d) => setData(d))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [id, page, search]);
+  }, [id, page, search, selectedPurity, weightFilter]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -98,10 +114,93 @@ export default function SubcategoryDetailPage() {
         </div>
 
         {/* Filter row */}
-        <div className="flex justify-end mb-6">
-          <button className="flex items-center gap-2 text-yellow-500 border border-yellow-700/40 px-4 py-2 rounded-xl text-sm hover:bg-yellow-900/20 transition-colors">
-            <Filter size={16} /> Filter
+        <div className="flex flex-col items-end mb-6 relative">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 border px-4 py-2 rounded-xl text-sm transition-all ${
+              showFilters
+                ? "bg-yellow-500 text-black border-yellow-500 font-semibold"
+                : "text-yellow-500 border-yellow-700/40 hover:bg-yellow-900/20"
+            }`}
+          >
+            <Filter size={16} /> {showFilters ? "Hide Filters" : "Filter Options"}
           </button>
+
+          {showFilters && (
+            <div className="absolute top-12 right-0 bg-[#141414] border border-gray-800 rounded-2xl p-6 shadow-2xl z-20 w-80 mt-2 space-y-6">
+              {/* Purity Checkboxes */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-[#d4a843] mb-3">Purity</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {[24, 22, 18, 14, 9].map((k) => {
+                    const isChecked = selectedPurity.includes(k);
+                    return (
+                      <label key={k} className="flex items-center gap-2 cursor-pointer text-sm text-gray-300 hover:text-white">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            if (isChecked) {
+                              setSelectedPurity(selectedPurity.filter((p) => p !== k));
+                            } else {
+                              setSelectedPurity([...selectedPurity, k]);
+                            }
+                            setPage(1);
+                          }}
+                          className="accent-[#d4a843] rounded border-gray-800 bg-[#1a1a1a]"
+                        />
+                        <span>{k}K Purity</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Weight Search */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-[#d4a843] mb-2">Weight Range (Nt Wt)</h4>
+                <p className="text-[10px] text-gray-500 mb-3">Entering e.g. 5 searches for 4.5g to 5.9g</p>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={weightFilter}
+                    onChange={(e) => {
+                      setWeightFilter(e.target.value);
+                      setPage(1);
+                    }}
+                    placeholder="Enter base weight..."
+                    className="bg-[#1a1a1a] border border-gray-800 rounded-xl px-4 py-2 text-sm text-white w-full focus:outline-none focus:border-yellow-500"
+                  />
+                  {weightFilter && (
+                    <button
+                      onClick={() => {
+                        setWeightFilter("");
+                        setPage(1);
+                      }}
+                      className="text-xs bg-[#222] border border-[#333] px-3 rounded-xl hover:bg-[#333]"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Reset All */}
+              <div className="flex justify-between items-center border-t border-gray-800/50 pt-4">
+                <button
+                  onClick={() => {
+                    setSelectedPurity([]);
+                    setWeightFilter("");
+                    setPage(1);
+                  }}
+                  className="text-xs text-gray-500 hover:text-white transition-colors"
+                >
+                  Reset All
+                </button>
+                <span className="text-[10px] text-gray-500">Auto-applies</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Inventory Table */}
@@ -171,12 +270,29 @@ export default function SubcategoryDetailPage() {
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      <button
-                        onClick={() => router.push(`/inventory/product/${p.id}`)}
-                        className="text-gray-500 hover:text-yellow-500 transition-colors inline-flex items-center gap-1 text-xs"
-                      >
-                        <Edit size={14} /> Edit
-                      </button>
+                      <div className="flex justify-end gap-3 items-center">
+                        <button
+                          onClick={() => { setSelectedProduct(p); setIsModalOpen(true); }}
+                          className="text-gray-500 hover:text-emerald-400 transition-colors inline-flex items-center text-xs"
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          onClick={() => handlePrintBarcode(p)}
+                          className="text-gray-500 hover:text-blue-400 transition-colors inline-flex items-center text-xs"
+                          title="Print Barcode"
+                        >
+                          <Printer size={16} />
+                        </button>
+                        <button
+                          onClick={() => router.push(`/inventory/product/${p.id}`)}
+                          className="text-gray-500 hover:text-yellow-500 transition-colors inline-flex items-center text-xs"
+                          title="Edit Product"
+                        >
+                          <Edit size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -228,6 +344,16 @@ export default function SubcategoryDetailPage() {
           )}
         </div>
       </div>
+      
+      <ProductDetailsModal 
+        product={selectedProduct} 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onEdit={() => {
+          setIsModalOpen(false);
+          if (selectedProduct) router.push(`/inventory/product/${selectedProduct.id}`);
+        }}
+      />
     </SidebarProvider>
   );
 }

@@ -12,7 +12,6 @@ import {
   Loader2,
   CheckCircle2,
   Shield,
-  AlertCircle,
 } from "lucide-react";
 
 // ── Helpers ──
@@ -27,14 +26,6 @@ function formatCurrency(amount: number) {
 
 function formatDateInput(date: Date) {
   return date.toISOString().split("T")[0];
-}
-
-function formatDateDisplay(date: Date) {
-  return date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
 }
 
 // ── Types ──
@@ -190,7 +181,6 @@ export default function BulkOperationsTab() {
   const handleExportAllPDFs = async () => {
     if (!printPreview && !exportPreview) return;
     setIsExporting(true);
-    // Fetch invoices for the date range and open them all
     try {
       const params = new URLSearchParams({
         branchId: selectedBranch!.id.toString(),
@@ -218,11 +208,11 @@ export default function BulkOperationsTab() {
     <div className="space-y-8">
       {/* Hero Section */}
       <div className="text-center pt-4 pb-2">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#D4A843]/10 border border-[#D4A843]/20 mb-4">
-          <FileText className="w-7 h-7 text-[#D4A843]" />
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#C9943A]/10 border border-[#C9943A]/20 mb-4">
+          <FileText className="w-7 h-7 text-[#C9943A]" />
         </div>
-        <h2 className="text-2xl font-bold text-white">Bulk Operations</h2>
-        <p className="text-sm text-[#666] mt-1.5 max-w-md mx-auto">
+        <h2 className="text-2xl font-bold text-[#F0EBE0] font-serif">Bulk Operations</h2>
+        <p className="text-sm text-[#6B6560] mt-1.5 max-w-md mx-auto">
           Process multiple invoices securely. Generate combined PDFs or export
           detailed ledger data for accounting.
         </p>
@@ -231,60 +221,60 @@ export default function BulkOperationsTab() {
       {/* Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* ── Print Range Card ── */}
-        <div className="rounded-xl border border-[#222] bg-[#111] p-6 hover:border-[#333] transition-all duration-300">
+        <div className="rounded-xl border border-[#1F1F24] bg-[#111113] p-6 hover:border-[#3A2E18] transition-all duration-300">
           {/* Card Header */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-[#D4A843]/10 flex items-center justify-center">
-              <Printer className="w-5 h-5 text-[#D4A843]" />
+            <div className="w-10 h-10 rounded-xl bg-[#C9943A]/10 flex items-center justify-center">
+              <Printer className="w-5 h-5 text-[#C9943A]" />
             </div>
-            <h3 className="text-lg font-semibold text-white">Print Range</h3>
+            <h3 className="text-lg font-semibold text-[#F0EBE0]">Print Range</h3>
           </div>
 
           {/* Invoice Number Inputs */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-xs font-semibold text-[#888] uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-[#6B6560] uppercase tracking-wider mb-2">
                 Start Invoice No.
               </label>
               <div className="relative">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555]" />
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B6560]" />
                 <input
                   type="text"
                   value={startInvoice}
                   onChange={(e) => setStartInvoice(e.target.value)}
                   placeholder="INV-000001"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-sm text-white placeholder-[#555] focus:outline-none focus:border-[#D4A843]/50 focus:ring-1 focus:ring-[#D4A843]/20 transition-all font-mono"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#1A1A1E] border border-[#1F1F24] text-sm text-[#F0EBE0] placeholder-[#6B6560] focus:outline-none focus:border-[#C9943A]/50 focus:ring-1 focus:ring-[#C9943A]/20 transition-all font-mono"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#888] uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-[#6B6560] uppercase tracking-wider mb-2">
                 End Invoice No.
               </label>
               <div className="relative">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555]" />
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B6560]" />
                 <input
                   type="text"
                   value={endInvoice}
                   onChange={(e) => setEndInvoice(e.target.value)}
                   placeholder="INV-000099"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-sm text-white placeholder-[#555] focus:outline-none focus:border-[#D4A843]/50 focus:ring-1 focus:ring-[#D4A843]/20 transition-all font-mono"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#1A1A1E] border border-[#1F1F24] text-sm text-[#F0EBE0] placeholder-[#6B6560] focus:outline-none focus:border-[#C9943A]/50 focus:ring-1 focus:ring-[#C9943A]/20 transition-all font-mono"
                 />
               </div>
             </div>
           </div>
 
           {/* Preview Result */}
-          <div className="rounded-lg bg-[#0d0d0d] border border-[#1e1e1e] px-4 py-3 mb-5 flex items-center justify-between">
-            <span className="text-sm text-[#888]">Selected range:</span>
+          <div className="rounded-lg bg-[#0A0A0B] border border-[#1F1F24] px-4 py-3 mb-5 flex items-center justify-between">
+            <span className="text-sm text-[#6B6560]">Selected range:</span>
             {isPrintLoading ? (
-              <Loader2 className="w-4 h-4 text-[#D4A843] animate-spin" />
+              <Loader2 className="w-4 h-4 text-[#C9943A] animate-spin" />
             ) : printPreview ? (
-              <span className="text-sm font-bold text-[#D4A843] tabular-nums">
+              <span className="text-sm font-bold text-[#C9943A] tabular-nums">
                 {printPreview.count} Invoice{printPreview.count !== 1 ? "s" : ""}
               </span>
             ) : (
-              <span className="text-sm text-[#555]">—</span>
+              <span className="text-sm text-[#6B6560]">—</span>
             )}
           </div>
 
@@ -292,7 +282,7 @@ export default function BulkOperationsTab() {
           <button
             onClick={handleBulkPrint}
             disabled={!printPreview || printPreview.count === 0 || isPrinting}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-[#D4A843] text-black text-sm font-bold hover:bg-[#e6be5a] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-[#C9943A] hover:bg-[#E8B84B] text-black text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer border-0"
           >
             {isPrinting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -304,63 +294,63 @@ export default function BulkOperationsTab() {
         </div>
 
         {/* ── Export Range Card ── */}
-        <div className="rounded-xl border border-[#222] bg-[#111] p-6 hover:border-[#333] transition-all duration-300">
+        <div className="rounded-xl border border-[#1F1F24] bg-[#111113] p-6 hover:border-[#3A2E18] transition-all duration-300">
           {/* Card Header */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-[#D4A843]/10 flex items-center justify-center">
-              <Download className="w-5 h-5 text-[#D4A843]" />
+            <div className="w-10 h-10 rounded-xl bg-[#C9943A]/10 flex items-center justify-center">
+              <Download className="w-5 h-5 text-[#C9943A]" />
             </div>
-            <h3 className="text-lg font-semibold text-white">Export Range</h3>
+            <h3 className="text-lg font-semibold text-[#F0EBE0]">Export Range</h3>
           </div>
 
           {/* Date Inputs */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-xs font-semibold text-[#888] uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-[#6B6560] uppercase tracking-wider mb-2">
                 Date From
               </label>
               <div className="relative">
-                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555]" />
+                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B6560]" />
                 <input
                   type="date"
                   value={exportFrom}
                   onChange={(e) => setExportFrom(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-sm text-white focus:outline-none focus:border-[#D4A843]/50 focus:ring-1 focus:ring-[#D4A843]/20 transition-all [color-scheme:dark]"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#1A1A1E] border border-[#1F1F24] text-sm text-[#F0EBE0] focus:outline-none focus:border-[#C9943A]/50 focus:ring-1 focus:ring-[#C9943A]/20 transition-all [color-scheme:dark]"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#888] uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-[#6B6560] uppercase tracking-wider mb-2">
                 Date To
               </label>
               <div className="relative">
-                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555]" />
+                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B6560]" />
                 <input
                   type="date"
                   value={exportTo}
                   onChange={(e) => setExportTo(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-sm text-white focus:outline-none focus:border-[#D4A843]/50 focus:ring-1 focus:ring-[#D4A843]/20 transition-all [color-scheme:dark]"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#1A1A1E] border border-[#1F1F24] text-sm text-[#F0EBE0] focus:outline-none focus:border-[#C9943A]/50 focus:ring-1 focus:ring-[#C9943A]/20 transition-all [color-scheme:dark]"
                 />
               </div>
             </div>
           </div>
 
           {/* Preview Result */}
-          <div className="rounded-lg bg-[#0d0d0d] border border-[#1e1e1e] px-4 py-3 mb-5 flex items-center justify-between">
-            <span className="text-sm text-[#888]">Total Value:</span>
+          <div className="rounded-lg bg-[#0A0A0B] border border-[#1F1F24] px-4 py-3 mb-5 flex items-center justify-between">
+            <span className="text-sm text-[#6B6560]">Total Value:</span>
             {isExportLoading ? (
-              <Loader2 className="w-4 h-4 text-[#D4A843] animate-spin" />
+              <Loader2 className="w-4 h-4 text-[#C9943A] animate-spin" />
             ) : exportPreview ? (
               <div className="flex items-center gap-3">
-                <span className="text-xs text-[#666]">
+                <span className="text-xs text-[#6B6560]">
                   {exportPreview.count} invoices
                 </span>
-                <span className="text-sm font-bold text-[#D4A843] tabular-nums">
+                <span className="text-sm font-bold text-[#C9943A] tabular-nums">
                   {formatCurrency(exportPreview.totalValue)}
                 </span>
               </div>
             ) : (
-              <span className="text-sm text-[#555]">—</span>
+              <span className="text-sm text-[#6B6560]">—</span>
             )}
           </div>
 
@@ -369,7 +359,7 @@ export default function BulkOperationsTab() {
             <button
               onClick={handleExportAllPDFs}
               disabled={!exportPreview || exportPreview.count === 0 || isExporting}
-              className="flex items-center justify-center gap-2 py-3 rounded-lg border border-[#D4A843]/30 bg-[#D4A843]/10 text-[#D4A843] text-sm font-bold hover:bg-[#D4A843]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
+              className="flex items-center justify-center gap-2 py-3 rounded-lg border border-[#C9943A]/30 bg-[#C9943A]/10 text-[#C9943A] text-sm font-bold hover:bg-[#C9943A]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
             >
               {isExporting && exportSuccess !== "excel" ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -383,7 +373,7 @@ export default function BulkOperationsTab() {
             <button
               onClick={handleExportExcel}
               disabled={!exportPreview || exportPreview.count === 0 || isExporting}
-              className="flex items-center justify-center gap-2 py-3 rounded-lg border border-[#D4A843]/30 bg-[#D4A843]/10 text-[#D4A843] text-sm font-bold hover:bg-[#D4A843]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
+              className="flex items-center justify-center gap-2 py-3 rounded-lg border border-[#C9943A]/30 bg-[#C9943A]/10 text-[#C9943A] text-sm font-bold hover:bg-[#C9943A]/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
             >
               {isExporting && exportSuccess !== "pdf" ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -399,56 +389,56 @@ export default function BulkOperationsTab() {
       </div>
 
       {/* Security Note */}
-      <div className="flex items-center justify-center gap-2 text-xs text-[#444] pt-2">
-        <Shield className="w-3.5 h-3.5" />
+      <div className="flex items-center justify-center gap-2 text-xs text-[#6B6560] pt-2">
+        <Shield className="w-3.5 h-3.5 text-[#C9943A]" />
         <span>Encryption active for all exports</span>
       </div>
 
       {/* Recent Exports / Print Preview Table */}
       {printPreview && printPreview.count > 0 && (
-        <div className="rounded-xl border border-[#222] bg-[#0d0d0d] p-6">
-          <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
-            <FileText className="w-4 h-4 text-[#D4A843]" />
+        <div className="rounded-xl border border-[#1F1F24] bg-[#111113] p-6">
+          <h3 className="text-base font-semibold text-[#F0EBE0] mb-4 flex items-center gap-2 font-serif">
+            <FileText className="w-4 h-4 text-[#C9943A]" />
             Print Preview — {printPreview.count} Invoices
           </h3>
-          <div className="overflow-hidden rounded-lg border border-[#1e1e1e]">
-            <table className="w-full text-left">
+          <div className="overflow-hidden rounded-lg border border-[#1F1F24] bg-[#0A0A0B]">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[#111] border-b border-[#222]">
-                  <th className="px-4 py-3 text-xs font-semibold text-[#888] uppercase tracking-wider">
+                <tr className="bg-[#111113] border-b border-[#1F1F24] text-[#6B6560]">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
                     Invoice No.
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-[#888] uppercase tracking-wider">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
                     Customer
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-[#888] uppercase tracking-wider">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-[#888] uppercase tracking-wider text-right">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right">
                     Amount
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-[#1F1F24] text-[#F0EBE0]">
                 {printPreview.invoices.slice(0, 10).map((inv) => (
                   <tr
                     key={inv.id}
-                    className="border-b border-[#1a1a1a] hover:bg-[#111] transition-colors"
+                    className="hover:bg-[#1A1A1E] transition-colors"
                   >
                     <td className="px-4 py-3 text-sm text-[#ccc] font-mono">
                       {inv.invoiceNumber}
                     </td>
-                    <td className="px-4 py-3 text-sm text-white">
+                    <td className="px-4 py-3 text-sm font-semibold">
                       {inv.customerName}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[#888]">
+                    <td className="px-4 py-3 text-sm text-[#6B6560]">
                       {new Date(inv.date).toLocaleDateString("en-IN", {
                         day: "2-digit",
                         month: "short",
                         year: "numeric",
                       })}
                     </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-[#D4A843] tabular-nums text-right">
+                    <td className="px-4 py-3 text-sm font-semibold text-[#C9943A] tabular-nums text-right font-mono">
                       {formatCurrency(inv.totalAmount)}
                     </td>
                   </tr>
@@ -457,7 +447,7 @@ export default function BulkOperationsTab() {
                   <tr>
                     <td
                       colSpan={4}
-                      className="px-4 py-3 text-center text-xs text-[#555]"
+                      className="px-4 py-3 text-center text-xs text-[#6B6560]"
                     >
                       … and {printPreview.count - 10} more invoices
                     </td>
@@ -467,10 +457,10 @@ export default function BulkOperationsTab() {
             </table>
           </div>
           <div className="mt-3 flex items-center justify-between px-1">
-            <span className="text-xs text-[#666]">
+            <span className="text-xs text-[#6B6560]">
               Total: {printPreview.count} invoices
             </span>
-            <span className="text-sm font-bold text-[#D4A843] tabular-nums">
+            <span className="text-sm font-bold text-[#C9943A] tabular-nums font-mono">
               {formatCurrency(printPreview.totalValue)}
             </span>
           </div>

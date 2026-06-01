@@ -19,6 +19,7 @@ interface Product {
   purity: number;
   price?: number | null;
   quantity: number;
+  reservedQty?: number;
   image?: string | null;
   subCategory?: {
     name: string;
@@ -94,20 +95,39 @@ const ProductSearch: React.FC<ProductSearchProps> = ({ branchId, onSelect, billi
       {/* DROPDOWN SEARCH RESULTS */}
       {results.length > 0 && (
         <Card className="absolute top-[calc(100%+8px)] w-full bg-[#111] border border-[#2a2a2a] rounded-xl max-h-[350px] overflow-y-auto shadow-2xl z-50 p-2 custom-scrollbar">
-          {results.map((p) => (
+          {results.map((p) => {
+            const isReserved = (p.reservedQty ?? 0) >= (p.quantity ?? 1) && p.quantity > 0;
+            return (
             <div
               key={p.id}
-              onClick={() => handleAdd(p)}
-              className="group flex flex-col md:flex-row md:items-center justify-between p-3 rounded-lg hover:bg-[#1a1a1a] border border-transparent hover:border-[#333] cursor-pointer transition-all duration-200 mb-1"
+              onClick={() => !isReserved && handleAdd(p)}
+              className={`group flex flex-col md:flex-row md:items-center justify-between p-3 rounded-lg border border-transparent transition-all duration-200 mb-1 ${
+                isReserved
+                  ? "opacity-60 cursor-not-allowed bg-[#1a1212] border-[#3a2020]"
+                  : "hover:bg-[#1a1a1a] hover:border-[#333] cursor-pointer"
+              }`}
             >
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-[#222] flex items-center justify-center border border-[#333] group-hover:border-[#d4a843] transition-colors flex-shrink-0">
-                  <Plus className="w-5 h-5 text-[#888] group-hover:text-[#d4a843]" />
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center border flex-shrink-0 transition-colors ${
+                    isReserved
+                      ? "bg-[#3a1a1a] border-[#5a2a2a]"
+                      : "bg-[#222] border-[#333] group-hover:border-[#d4a843]"
+                  }`}>
+                  {isReserved ? (
+                    <span className="text-[#e55] text-[9px] font-bold text-center leading-tight">IN USE</span>
+                  ) : (
+                    <Plus className="w-5 h-5 text-[#888] group-hover:text-[#d4a843]" />
+                  )}
                 </div>
 
                 <div className="flex flex-col">
-                  <p className="font-semibold text-white group-hover:text-[#d4a843] transition-colors">
+                  <p className={`font-semibold transition-colors ${
+                    isReserved ? "text-[#888]" : "text-white group-hover:text-[#d4a843]"
+                  }`}>
                     {p.name}
+                    {isReserved && (
+                      <span className="ml-2 text-[9px] font-bold text-[#e55] bg-[#e55]/10 px-1.5 py-0.5 rounded uppercase tracking-wider">Reserved</span>
+                    )}
                   </p>
                   <p className="text-[#777] text-xs font-medium uppercase tracking-wider mb-1">
                     {p.subCategory?.category?.name
@@ -133,7 +153,8 @@ const ProductSearch: React.FC<ProductSearchProps> = ({ branchId, onSelect, billi
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </Card>
       )}
 

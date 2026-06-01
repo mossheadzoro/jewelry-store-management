@@ -37,8 +37,8 @@ export async function GET(req: NextRequest) {
       prevWhere.createdAt = { gte: prevFrom, lte: prevTo };
     }
 
-    // ── Aggregate current period ──
-    const [currentAgg, prevAgg, invoiceCount, prevInvoiceCount] = await Promise.all([
+    // ── Aggregate current & previous periods ──
+    const [currentAgg, prevAgg, pendingInvoiceCount] = await Promise.all([
       prisma.invoice.aggregate({
         where,
         _sum: {
@@ -47,161 +47,146 @@ export async function GET(req: NextRequest) {
           sgst: true,
           balanceAmount: true,
           paidAmount: true,
-          totalMetalAmount: true,
-          totalMakingAmount: true,
-          totalStoneAmount: true,
         },
-        _count: true,
       }),
       prisma.invoice.aggregate({
         where: prevWhere,
         _sum: {
           totalAmount: true,
-          cgst: true,
-          sgst: true,
-          balanceAmount: true,
-          paidAmount: true,
         },
-        _count: true,
       }),
-      prisma.invoice.count({ where }),
-      prisma.invoice.count({ where: prevWhere }),
+      prisma.invoice.count({
+        where: {
+          ...where,
+          isFullyPaid: false,
+        },
+      }),
     ]);
 
     const totalSales = currentAgg._sum.totalAmount || 0;
-    const gstCollected = (currentAgg._sum.cgst || 0) + (currentAgg._sum.sgst || 0);
+    const cgstCollected = currentAgg._sum.cgst || 0;
+    const sgstCollected = currentAgg._sum.sgst || 0;
+    const gstCollected = cgstCollected + sgstCollected;
     const netRevenue = totalSales - gstCollected;
     const pendingDues = currentAgg._sum.balanceAmount || 0;
+    const totalSalesPrevPeriod = prevAgg._sum.totalAmount || 0;
 
-    const prevTotalSales = prevAgg._sum.totalAmount || 0;
-    const prevGst = (prevAgg._sum.cgst || 0) + (prevAgg._sum.sgst || 0);
-    const prevNetRevenue = prevTotalSales - prevGst;
-    const prevPendingDues = prevAgg._sum.balanceAmount || 0;
-
-    // ── Percentage change helper ──
-    function pctChange(current: number, previous: number) {
-      if (previous === 0) return current > 0 ? 100 : 0;
-      return parseFloat((((current - previous) / previous) * 100).toFixed(1));
-    }
-
-    // ── Sales by Category ──
-    // Join through InvoiceItem → ProductItem → SubCategory → Category
-    const categoryBreakdown = await prisma.invoiceItem.groupBy({
-      by: ["productId"],
+    // ── Category Sales breakdown (join through InvoiceItem → ProductItem → SubCategory → Category) ──
+    const invoiceItems = await prisma.invoiceItem.findMany({
       where: {
         invoice: where,
       },
-      _sum: {
-        totalAfterTax: true,
-      },
-    });
-
-    // Get product → category mapping for the products in the breakdown
-    const productIds = categoryBreakdown.map((c) => c.productId);
-    const products = await prisma.productItem.findMany({
-      where: { id: { in: productIds } },
-      select: {
-        id: true,
-        subCategory: {
-          select: {
-            category: {
-              select: { id: true, name: true },
+      include: {
+        product: {
+          include: {
+            subCategory: {
+              include: {
+                category: true,
+              },
             },
           },
         },
       },
     });
 
-    const productCategoryMap = new Map<number, { id: number; name: string }>();
-    for (const p of products) {
-      productCategoryMap.set(p.id, p.subCategory.category);
+    const categorySummaryMap = new Map<string, { itemsSold: number; netWt: number; revenue: number }>();
+    for (const item of invoiceItems) {
+      const catName = item.product.subCategory.category.name || "General";
+      const existing = categorySummaryMap.get(catName) || { itemsSold: 0, netWt: 0, revenue: 0 };
+      existing.itemsSold += item.quantity;
+      existing.netWt += item.ntWeight || 0;
+      existing.revenue += item.totalAfterTax || 0;
+      categorySummaryMap.set(catName, existing);
     }
 
-    // Aggregate by category
-    const categoryTotals = new Map<number, { name: string; total: number }>();
-    for (const item of categoryBreakdown) {
-      const cat = productCategoryMap.get(item.productId);
-      if (!cat) continue;
-      const existing = categoryTotals.get(cat.id) || { name: cat.name, total: 0 };
-      existing.total += item._sum.totalAfterTax || 0;
-      categoryTotals.set(cat.id, existing);
-    }
-
-    const salesByCategory = Array.from(categoryTotals.entries())
-      .map(([id, data]) => ({
-        categoryId: id,
-        categoryName: data.name,
-        totalAmount: parseFloat(data.total.toFixed(2)),
-        percentage: totalSales > 0
-          ? parseFloat(((data.total / totalSales) * 100).toFixed(1))
-          : 0,
-      }))
-      .sort((a, b) => b.totalAmount - a.totalAmount);
+    const salesByCategory = Array.from(categorySummaryMap.entries()).map(([category, details]) => ({
+      category,
+      itemsSold: details.itemsSold,
+      netWt: parseFloat(details.netWt.toFixed(3)),
+      revenue: parseFloat(details.revenue.toFixed(2)),
+      percentage: totalSales > 0 ? parseFloat(((details.revenue / totalSales) * 100).toFixed(1)) : 0,
+    })).sort((a, b) => b.revenue - a.revenue);
 
     // ── Top selling products ──
-    const topProducts = await prisma.invoiceItem.groupBy({
-      by: ["productId"],
-      where: {
-        invoice: where,
-      },
-      _sum: {
-        totalAfterTax: true,
-        quantity: true,
-      },
-      orderBy: {
-        _sum: { totalAfterTax: "desc" },
-      },
-      take: 5,
-    });
+    const productSummaryMap = new Map<number, { name: string; sku: string; qtySold: number; revenue: number }>();
+    for (const item of invoiceItems) {
+      const existing = productSummaryMap.get(item.productId) || {
+        name: item.product.name,
+        sku: item.product.productCode,
+        qtySold: 0,
+        revenue: 0,
+      };
+      existing.qtySold += item.quantity;
+      existing.revenue += item.totalAfterTax || 0;
+      productSummaryMap.set(item.productId, existing);
+    }
 
-    const topProductIds = topProducts.map((p) => p.productId);
-    const topProductDetails = await prisma.productItem.findMany({
-      where: { id: { in: topProductIds } },
-      select: { id: true, name: true, productCode: true },
-    });
-
-    const productNameMap = new Map(topProductDetails.map((p) => [p.id, p]));
-
-    const topSellingProducts = topProducts.map((p) => ({
-      productId: p.productId,
-      name: productNameMap.get(p.productId)?.name || "Unknown",
-      productCode: productNameMap.get(p.productId)?.productCode || "",
-      totalAmount: p._sum.totalAfterTax || 0,
-      quantitySold: p._sum.quantity || 0,
-    }));
+    const topProducts = Array.from(productSummaryMap.entries())
+      .map(([_, details]) => ({
+        productName: details.name,
+        sku: details.sku,
+        qtySold: details.qtySold,
+        revenue: parseFloat(details.revenue.toFixed(2)),
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5)
+      .map((item, index) => ({
+        rank: index + 1,
+        ...item,
+      }));
 
     // ── Payment method breakdown ──
-    const paymentMethods = await prisma.invoicePayment.groupBy({
-      by: ["method"],
+    const invoicePayments = await prisma.invoicePayment.findMany({
       where: {
         invoice: where,
       },
-      _sum: { amount: true },
-      _count: true,
     });
 
-    const paymentBreakdown = paymentMethods.map((pm) => ({
-      method: pm.method,
-      totalAmount: pm._sum.amount || 0,
-      count: pm._count,
-    }));
+    const paymentSummaryMap = new Map<string, { count: number; amount: number }>();
+    let totalPaymentAmount = 0;
+    for (const pay of invoicePayments) {
+      const existing = paymentSummaryMap.get(pay.method) || { count: 0, amount: 0 };
+      existing.count += 1;
+      existing.amount += pay.amount;
+      totalPaymentAmount += pay.amount;
+      paymentSummaryMap.set(pay.method, existing);
+    }
+
+    // Include invoice paymentMethod from invoice itself if payments are empty
+    if (invoicePayments.length === 0) {
+      const invoicesForPayments = await prisma.invoice.findMany({
+        where,
+        select: { paymentMethod: true, totalAmount: true },
+      });
+      for (const inv of invoicesForPayments) {
+        const existing = paymentSummaryMap.get(inv.paymentMethod) || { count: 0, amount: 0 };
+        existing.count += 1;
+        existing.amount += inv.totalAmount;
+        totalPaymentAmount += inv.totalAmount;
+        paymentSummaryMap.set(inv.paymentMethod, existing);
+      }
+    }
+
+    const paymentBreakdown = Array.from(paymentSummaryMap.entries()).map(([method, details]) => ({
+      method,
+      count: details.count,
+      amount: parseFloat(details.amount.toFixed(2)),
+      percentage: totalPaymentAmount > 0 ? parseFloat(((details.amount / totalPaymentAmount) * 100).toFixed(1)) : 0,
+    })).sort((a, b) => b.amount - a.amount);
 
     return NextResponse.json({
       summary: {
         totalSales,
+        totalSalesPrevPeriod,
         gstCollected,
+        cgstCollected,
+        sgstCollected,
         netRevenue,
         pendingDues,
-        invoiceCount,
-        changes: {
-          totalSales: pctChange(totalSales, prevTotalSales),
-          gstCollected: pctChange(gstCollected, prevGst),
-          netRevenue: pctChange(netRevenue, prevNetRevenue),
-          pendingDues: pctChange(pendingDues, prevPendingDues),
-        },
+        pendingInvoiceCount,
       },
       salesByCategory,
-      topSellingProducts,
+      topProducts,
       paymentBreakdown,
     });
   } catch (error: any) {

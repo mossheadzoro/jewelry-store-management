@@ -5,7 +5,7 @@ import { prisma } from "../../../../../libs/prisma";
 
 
 
-export async function fetchAllBranches() {
+async function fetchAllBranches() {
   try {
     const branches = await prisma.branch.findMany();
     return NextResponse.json(branches);

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Hash } from "lucide-react"; // Lucide icons
-import { generateProductCode } from "@/lib/actions/generateCodes"; // Your existing function
+import { generateCodes } from "@/lib/actions/generateCodes"; // Your existing function
 
 type Props = {
   branchCode: string; // First three letters of branch name
@@ -24,13 +24,12 @@ const GenerateProductCodeButton: React.FC<Props> = ({
   const handleGenerate = async () => {
     try {
       setLoading(true);
-      const code = await generateProductCode(
-        branchCode,
+      const res = await generateCodes(
         branchId,
         categoryType,
         categoryName
       );
-      setProductCode(code);
+      setProductCode(res.productCode);
     } catch (error) {
       console.error("Error generating product code:", error);
       setProductCode(null);

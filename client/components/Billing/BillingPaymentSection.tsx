@@ -71,7 +71,7 @@ const BillingPaymentSection = ({ billing }: any) => {
 
   const totalPaid = useMemo(() => {
     return payments.reduce(
-      (acc, p) => acc + (Number(p.amount) || 0),
+      (acc: number, p: any) => acc + (Number(p.amount) || 0),
       0
     );
   }, [payments]);
@@ -101,7 +101,7 @@ const BillingPaymentSection = ({ billing }: any) => {
 
       <div className="p-5">
         <div className="flex flex-col gap-3">
-          {payments.map((p, i) => (
+          {payments.map((p: any, i: number) => (
             <div
               key={i}
               className="grid grid-cols-[140px_1fr_1fr_40px] gap-3 items-center bg-[#1a1a1a] p-2.5 rounded-lg border border-[#2a2a2a]"

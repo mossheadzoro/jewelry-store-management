@@ -33,12 +33,38 @@ export async function GET(
       ];
     }
 
+    const purityParam = req.nextUrl.searchParams.get("purity");
+    if (purityParam) {
+      const purityValues = purityParam.split(",").map((p) => parseFloat(p)).filter((p) => !isNaN(p));
+      if (purityValues.length > 0) {
+        whereClause.purity = { in: purityValues };
+      }
+    }
+
+    const weightParam = req.nextUrl.searchParams.get("weight");
+    if (weightParam) {
+      const w = parseFloat(weightParam);
+      if (!isNaN(w)) {
+        whereClause.ntWeight = {
+          gte: w - 0.5,
+          lte: w + 0.9,
+        };
+      }
+    }
+
+    const orderBy: any = {};
+    if (weightParam) {
+      orderBy.ntWeight = "asc";
+    } else {
+      orderBy.createdAt = "desc";
+    }
+
     const [products, totalCount] = await Promise.all([
       prisma.productItem.findMany({
         where: whereClause,
         skip: (page - 1) * pageSize,
         take: pageSize,
-        orderBy: { createdAt: "desc" },
+        orderBy,
         include: {
           stoneDetails: true,
         },

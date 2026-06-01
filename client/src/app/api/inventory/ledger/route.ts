@@ -57,6 +57,8 @@ export async function GET(req: Request) {
         grossWeightOut: true,
         netWeightIn: true,
         netWeightOut: true,
+        fineWeightIn: true,
+        fineWeightOut: true,
         totalValue: true,
       },
     });
@@ -76,6 +78,8 @@ export async function GET(req: Request) {
         totalGrossWtOut: summary._sum.grossWeightOut || 0,
         totalNetWtIn: summary._sum.netWeightIn || 0,
         totalNetWtOut: summary._sum.netWeightOut || 0,
+        totalFineWtIn: summary._sum.fineWeightIn || 0,
+        totalFineWtOut: summary._sum.fineWeightOut || 0,
         totalValue: summary._sum.totalValue || 0,
       },
     });

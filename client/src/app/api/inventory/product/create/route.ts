@@ -156,10 +156,11 @@ const productSchema = type({
     quantity: 'number>0',
     image: 'string?',
     description: 'string?',
+    size: 'string?',
     branchId: 'number>0',
     subCategoryId: 'number>=0',
     otherCharges: 'string?',
-    otherChargesPrice: 'number|string>0?',
+    otherChargesPrice: 'number|string >=0?',
     stoneDetails: stoneSchema.array().optional()
 });
 
@@ -174,10 +175,29 @@ export async function POST(req: NextRequest) {
             const results = [];
 
             for (const product of parsedProducts) {
-                const { stoneDetails, branchId, subCategoryId, ...productData } = product;
+                const {
+                    stoneDetails,
+                    branchId,
+                    subCategoryId,
+                    subCategoryName,
+                    certNumber,
+                    certCenter,
+                    carat,
+                    color,
+                    clarity,
+                    shape,
+                    cut,
+                    diamondCostPerCent,
+                    certCharge,
+                    makingCharge,
+                    makingChargeType,
+                    certImage,
+                    ...productData
+                } = product as any;
 
                 const dataForPrisma = {
                     ...productData,
+                    huidNumber: productData.huidNumber && productData.huidNumber.trim() !== "" ? productData.huidNumber.trim() : null,
                     gsWeight: parseFloat(productData.gsWeight),
                     ntWeight: parseFloat(productData.ntWeight),
                     purity: parseFloat(productData.purity),
@@ -241,8 +261,14 @@ export async function POST(req: NextRequest) {
             },
             { status: 201 }
         );
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error adding products:', error);
+        if (error.code === 'P2002') {
+            const target = error.meta?.target || [];
+            return NextResponse.json({
+                error: `Unique constraint violation: A product with this ${target.join(', ')} already exists in the ledger.`
+            }, { status: 400 });
+        }
         return NextResponse.json({ error: 'Failed to add products' }, { status: 500 });
     }
 }

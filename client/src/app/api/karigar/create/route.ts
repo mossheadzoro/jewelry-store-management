@@ -43,7 +43,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Create Karigar
     const karigar = await prisma.karigar.create({
       data: {
         // Basic
@@ -56,17 +55,11 @@ export async function POST(req: Request) {
         profilePhoto: profilePhoto?.preview || null,
 
         adharNumber: adharNumber || null,
-        adharImage: documents?.aadhaarFront?.preview || null,
-
         panNumber: panNumber || null,
-
-        voterIdNumber: voterIdNumber || null,
-        voterIdImage: documents?.voterId?.preview || null,
 
         // Work
         department,
         speciality: specialities || [],
-        wastagePercent: parseFloat(wastage || "0"),
 
         // Defaults handled by Prisma
         isActive: true,

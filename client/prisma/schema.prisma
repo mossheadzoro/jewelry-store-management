@@ -38,6 +38,10 @@ model Branch {
   transfersFrom    InventoryTransfer[] @relation("TransferFrom")
   transfersTo      InventoryTransfer[] @relation("TransferTo")
   stockAudits      StockAudit[]
+
+  // Cost tracking relations
+  branchCosts      ProductBranchCost[]
+  costLayers       InventoryCostLayer[]
 }
 
 model User {
@@ -135,6 +139,8 @@ model ProductItem {
   image             String?
   description       String?
   reservedQty       Int         @default(0)
+  size              String?
+  allowNegativeStock Boolean    @default(false)
   branch            Branch      @relation(fields: [branchId], references: [id])
   branchId          Int
   subCategory       SubCategory @relation(fields: [subCategoryId], references: [id])
@@ -151,6 +157,10 @@ model ProductItem {
   inventoryLedger  InventoryLedger[]
   transferItems    InventoryTransferItem[]
   auditItems       StockAuditItem[]
+
+  // Cost tracking relations
+  branchCosts      ProductBranchCost[]
+  costLayers       InventoryCostLayer[]
 
   @@index([branchId])
   @@index([subCategoryId])
@@ -876,6 +886,26 @@ enum InventoryTxnType {
   RESERVE_OUT
   UNRESERVE_IN
   OLD_GOLD_IN
+  // Hallmarking workflow
+  HALLMARK_OUT
+  HALLMARK_IN
+  // Repair workflow
+  REPAIR_ISSUE_OUT
+  REPAIR_RECEIVE_IN
+  // Approval / memo stock
+  APPROVAL_OUT
+  APPROVAL_IN
+  // Consignment
+  CONSIGNMENT_OUT
+  CONSIGNMENT_IN
+  // Assay / purity testing
+  ASSAY_OUT
+  ASSAY_IN
+  // Metal lifecycle
+  REMELTING_IN
+  BREAKAGE_ADJUST
+  // Financial year
+  CLOSING_SNAPSHOT
 }
 
 enum InventoryRefType {
@@ -887,6 +917,12 @@ enum InventoryRefType {
   METAL_EXCHANGE
   TRANSFER
   SYSTEM
+  // New reference types
+  REPAIR_JOB
+  APPROVAL_MEMO
+  CONSIGNMENT
+  HALLMARK_BATCH
+  ASSAY_REPORT
 }
 
 model InventoryLedger {
@@ -926,11 +962,53 @@ model InventoryLedger {
 
   createdAt      DateTime         @default(now())
 
+  // ==============================
+  // JEWELRY-SPECIFIC FIELDS (v2)
+  // ==============================
+
+  // Metal purity tracking
+  karatage         Float?
+  purityPercent    Float?
+  fineWeightIn     Float?
+  fineWeightOut    Float?
+  balanceFineWt    Float            @default(0)
+
+  // Metal rate at time of transaction
+  metalRateAtEntry Float?
+  metalRateUnit    String?
+
+  // Cost breakdown
+  metalCost        Float?
+  stoneCost        Float?
+  makingCharges    Float?
+  otherCharges     Float?
+
+  // Stone / diamond fields
+  stoneQty         Int?
+  stoneWeightCt    Float?
+  stoneType        String?
+
+  // Compliance & traceability
+  huidNumber       String?
+  batchLotNo       String?
+  hallmarkCertNo   String?
+
+  // Audit integrity
+  sequenceNo       Int?
+  isLocked         Boolean          @default(false)
+
+  // Karigar wastage tracking
+  allowedWastageWt Float?
+  actualWastageWt  Float?
+
   @@index([productId])
   @@index([branchId])
   @@index([txnType])
   @@index([createdAt])
   @@index([refId])
+  @@index([productId, branchId, createdAt])
+  @@index([huidNumber])
+  @@index([sequenceNo])
 }
 
 model InventoryTransfer {
@@ -1018,3 +1096,88 @@ model StockAuditItem {
   @@index([auditId])
   @@index([productId])
 }
+
+// ==========================
+// COMPANY SETTINGS
+// ==========================
+
+model CompanySettings {
+  id                  String   @id @default(cuid())
+  companyName         String   @default("My Jewelry Store")
+  costingMethod       String   @default("WAC")     // "WAC" | "FIFO"
+  requireHuidForSales Boolean  @default(false)
+  defaultLockDays     Int      @default(90)
+  financialYearStart  Int      @default(4)          // Month number (4 = April)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// ==========================
+// METAL RATE HISTORY
+// ==========================
+
+model MetalRateHistory {
+  id        String   @id @default(cuid())
+  metalType String                // "GOLD" | "SILVER" | "PLATINUM"
+  karatage  Float?                // 22, 18, 14 etc.
+  rate      Float                 // price per unit
+  rateUnit  String   @default("PER_GRAM") // "PER_GRAM" | "PER_TOLA" | "PER_OZ"
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([metalType, date])
+  @@index([karatage])
+}
+
+// ==========================
+// PRODUCT BRANCH COST (WAC)
+// ==========================
+
+model ProductBranchCost {
+  id           String   @id @default(cuid())
+  productId    Int
+  product      ProductItem @relation(fields: [productId], references: [id])
+  branchId     Int
+  branch       Branch   @relation(fields: [branchId], references: [id])
+  avgCostPrice Float    @default(0)
+  totalQty     Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([productId, branchId])
+  @@index([productId])
+  @@index([branchId])
+}
+
+// ==========================
+// INVENTORY COST LAYER (FIFO)
+// ==========================
+
+model InventoryCostLayer {
+  id            String   @id @default(cuid())
+  productId     Int
+  product       ProductItem @relation(fields: [productId], references: [id])
+  branchId      Int
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  unitCost      Float
+  qtyRemaining  Int
+  createdAt     DateTime @default(now())
+  ledgerEntryId String?
+
+  @@index([productId, branchId])
+  @@index([createdAt])
+}
+
+// ==========================
+// SYSTEM BACKUP LOG
+// ==========================
+
+model BackupLog {
+  id          String   @id @default(cuid())
+  branchId    Int
+  format      String
+  sizeBytes   Int
+  includes    String[]
+  createdById Int
+  createdAt   DateTime @default(now())
+}
+

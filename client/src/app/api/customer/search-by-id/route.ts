@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const customer = await prisma.customer.findUnique({
+    const customerData = await prisma.customer.findUnique({
       where: { id: parseInt(id, 10) },
       select: {
         id: true,
@@ -18,14 +18,22 @@ export async function GET(req: Request) {
         mobile: true,
         address: true,
         gstin: true,
+        invoices: {
+          select: {
+            balanceAmount: true,
+          }
+        }
       },
     });
 
-    if (!customer) {
+    if (!customerData) {
       return NextResponse.json({ error: "Customer not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ customer });
+    const currentDue = customerData.invoices.reduce((acc: number, inv: any) => acc + (inv.balanceAmount || 0), 0);
+    const { invoices, ...customer } = customerData;
+
+    return NextResponse.json({ customer: { ...customer, currentDue } });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

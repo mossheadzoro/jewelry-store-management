@@ -56,6 +56,9 @@ export default function InventoryClient() {
 
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const fetchData = async () => {
     if (!selectedBranch?.id) return;
     setLoading(true);
@@ -65,7 +68,11 @@ export default function InventoryClient() {
         fetch(`/api/inventory/recent-activity?branchId=${selectedBranch.id}`)
       ]);
       if (overviewRes.ok) setData(await overviewRes.json());
-      if (recentRes.ok) setRecentActivity(await recentRes.json());
+      if (recentRes.ok) {
+        const activityData = await recentRes.json();
+        setRecentActivity(activityData);
+        setCurrentPage(1);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -81,6 +88,10 @@ export default function InventoryClient() {
     if (!search.trim() || !selectedBranch?.id) return;
     router.push(`/inventory/search?q=${encodeURIComponent(search)}&branchId=${selectedBranch.id}`);
   };
+
+  const totalPages = Math.ceil(recentActivity.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedActivity = recentActivity.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white p-8 w-full">
@@ -171,26 +182,67 @@ export default function InventoryClient() {
           {recentActivity.length === 0 ? (
             <div className="text-gray-500 text-sm py-4">No recent activity found.</div>
           ) : (
-            recentActivity.map((activity, idx) => (
-              <div key={idx} className="flex items-center gap-4 bg-[#141414] border border-gray-800/50 rounded-xl p-4 hover:bg-[#1a1a1a] transition-colors">
-                <div className="w-9 h-9 bg-emerald-900/40 rounded-full flex items-center justify-center shrink-0">
-                  <Plus size={16} className="text-emerald-400" />
+            <>
+              {paginatedActivity.map((activity, idx) => (
+                <div key={idx} className="flex items-center gap-4 bg-[#141414] border border-gray-800/50 rounded-xl p-4 hover:bg-[#1a1a1a] transition-colors">
+                  <div className="w-9 h-9 bg-emerald-900/40 rounded-full flex items-center justify-center shrink-0">
+                    <Plus size={16} className="text-emerald-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <span className="text-white">{activity.name}</span>
+                      <span className="text-xs bg-[#222] border border-[#333] px-2 py-0.5 rounded text-gray-400">{activity.barcode}</span>
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {activity.purity}% Purity • {activity.ntWeight}g Net Weight
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-semibold text-emerald-500">+ Added to Vault</p>
+                    <p className="text-[10px] text-gray-600 mt-1">{new Date(activity.createdAt).toLocaleDateString()}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium flex items-center gap-2">
-                    <span className="text-white">{activity.name}</span>
-                    <span className="text-xs bg-[#222] border border-[#333] px-2 py-0.5 rounded text-gray-400">{activity.barcode}</span>
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {activity.purity}% Purity • {activity.ntWeight}g Net Weight
-                  </p>
+              ))}
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 bg-[#141414] border border-gray-800/50 rounded-xl p-4">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:text-gray-400 bg-[#222] border border-[#333] rounded-lg transition-colors"
+                  >
+                    Previous
+                  </button>
+
+                  <div className="flex items-center gap-1.5">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center transition-all ${
+                          currentPage === page
+                            ? "bg-[#d4a843] text-black"
+                            : "bg-[#222] border border-[#333] text-gray-400 hover:text-white"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:text-gray-400 bg-[#222] border border-[#333] rounded-lg transition-colors"
+                  >
+                    Next
+                  </button>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs font-semibold text-emerald-500">+ Added to Vault</p>
-                  <p className="text-[10px] text-gray-600 mt-1">{new Date(activity.createdAt).toLocaleDateString()}</p>
-                </div>
-              </div>
-            ))
+              )}
+            </>
           )}
         </div>
       </div>

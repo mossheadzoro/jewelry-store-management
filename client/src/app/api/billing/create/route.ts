@@ -50,11 +50,68 @@ export async function POST(req: Request) {
       primaryMethod = payments[0].method.toUpperCase();
     }
     
-    // Generate Invoice Number
-    const invoiceNumber = `INV-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 100)}`;
+    // Fetch Branch to get its code (first 3 letters)
+    const branch = await prisma.branch.findUnique({
+      where: { id: branchId },
+      select: { name: true }
+    });
+    
+    if (!branch) {
+      return NextResponse.json({ error: "Branch not found." }, { status: 400 });
+    }
+    
+    const branchCode = branch.name.substring(0, 3).toUpperCase();
+    
+    // Calculate Financial Year
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-indexed: 0=Jan, 3=Apr
+    
+    let fyStartYear, fyEndYear;
+    if (month >= 3) { // April to December
+      fyStartYear = year;
+      fyEndYear = year + 1;
+    } else { // January to March
+      fyStartYear = year - 1;
+      fyEndYear = year;
+    }
+    const fyString = `${fyStartYear.toString().slice(-2)}-${fyEndYear.toString().slice(-2)}`;
+    
+    const startOfFY = new Date(fyStartYear, 3, 1); // April 1st
+    const endOfFY = new Date(fyEndYear, 2, 31, 23, 59, 59, 999); // March 31st
 
     // Create Invoice with Transaction
     const invoice = await prisma.$transaction(async (tx: any) => {
+      
+      // Determine next sequence number
+      const lastInvoice = await tx.invoice.findFirst({
+        where: {
+          branchId,
+          createdAt: {
+            gte: startOfFY,
+            lte: endOfFY,
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        },
+        select: { invoiceNumber: true }
+      });
+
+      let nextSeq = 1;
+      if (lastInvoice && lastInvoice.invoiceNumber) {
+        // Expected format: INV-KOL/25-26/000145
+        const parts = lastInvoice.invoiceNumber.split('/');
+        if (parts.length === 3) {
+          const lastSeq = parseInt(parts[2], 10);
+          if (!isNaN(lastSeq)) {
+            nextSeq = lastSeq + 1;
+          }
+        }
+      }
+      
+      const sequenceNumber = nextSeq.toString().padStart(6, '0');
+      const invoiceNumber = `INV-${branchCode}/${fyString}/${sequenceNumber}`;
       
       // 1. Create Invoice Container
       const newInvoice = await tx.invoice.create({

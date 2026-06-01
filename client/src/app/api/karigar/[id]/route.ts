@@ -19,7 +19,7 @@ export async function GET(
       orderBy: { createdAt: "desc" },
       include: { jewelleryItems: true },
     },
-    heldMetals: true,   // 👈 add this
+    KarigarHeldMetal: true,
   },
 })
 

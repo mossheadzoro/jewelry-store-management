@@ -4,10 +4,50 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
 const BILLING_STORAGE_KEY = "billing-session";
-const EXPIRY_MINUTES = 30;
+const EXPIRY_MINUTES = 60;
+
+/** Standalone helper — read draft without mounting the hook */
+export function getDraftInfo(): { hasValidDraft: boolean; customerId?: string | null; customerName?: string; savedAt?: number; expiry?: number } {
+  try {
+    const saved = localStorage.getItem(BILLING_STORAGE_KEY);
+    if (!saved) return { hasValidDraft: false };
+    const state = JSON.parse(saved);
+    if (state.expiry && Date.now() > state.expiry) {
+      // Auto-clean: unreserve all products from expired draft
+      const products: any[] = state.products ?? [];
+      products.forEach(p => {
+        fetch("/api/stock/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: p.id, action: "unreserve" }),
+        }).catch(() => {});
+      });
+      localStorage.removeItem(BILLING_STORAGE_KEY);
+      return { hasValidDraft: false };
+    }
+    const hasProducts = (state.products ?? []).length > 0;
+    return {
+      hasValidDraft: hasProducts,
+      customerId: state.customerId ?? null,
+      customerName: state.customerName ?? null,
+      savedAt: state.savedAt ?? null,
+      expiry: state.expiry ?? null,
+    };
+  } catch {
+    return { hasValidDraft: false };
+  }
+}
 
 export function useBillingLogic(isEditMode?: boolean) {
-  const restored = useRef(false);
+  const restored = useRef(false); // used only for addProduct guard
+
+  // isHydrated: TRUE only after restore completes + state update fires
+  // Using STATE (not ref) so the save effect re-evaluates reactively
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Restored customer — useState so BillingPage effect can react to changes
+  const [restoredCustomerId, setRestoredCustomerId] = useState<string | null>(null);
+  const [restoredCustomer, setRestoredCustomer] = useState<any>(null);
 
   const [products, setProducts] = useState<any[]>([]);
   const [metalRate, setMetalRate] = useState<number>(0);
@@ -58,12 +98,14 @@ export function useBillingLogic(isEditMode?: boolean) {
   useEffect(() => {
     if (isEditMode) {
       restored.current = true;
+      setIsHydrated(true); // Edit mode hydrates immediately (data loaded externally)
       return;
     }
 
     const saved = localStorage.getItem(BILLING_STORAGE_KEY);
     if (!saved) {
       restored.current = true;
+      setIsHydrated(true); // No draft — mark hydrated so new bills can save
       return;
     }
 
@@ -72,6 +114,7 @@ export function useBillingLogic(isEditMode?: boolean) {
     if (state.expiry && Date.now() > state.expiry) {
       clearSession();
       restored.current = true;
+      setIsHydrated(true);
       return;
     }
 
@@ -88,14 +131,30 @@ export function useBillingLogic(isEditMode?: boolean) {
     setAppliedAdvance(state.appliedAdvance ?? null);
     setExcessGoldMode(state.excessGoldMode ?? null);
     setCashOutReductionPercent(state.cashOutReductionPercent ?? 10);
+    // Restore customer info as STATE so BillingPage effect re-runs
+    setRestoredCustomerId(state.customerId ?? null);
+    setRestoredCustomer(state.customer ?? null);
 
     restored.current = true;
+    // setIsHydrated(true) fires AFTER all the above setX() calls settle,
+    // so the save effect only runs once with the correct restored values.
+    setIsHydrated(true);
   }, [isEditMode]);
 
   /* -------------------- SAVE SESSION -------------------- */
 
+  /** Called by BillingPage whenever customer changes, so draft includes customer */
+  const saveCustomerToDraft = (customerId: string | null, customer: any) => {
+    try {
+      const saved = localStorage.getItem(BILLING_STORAGE_KEY);
+      const state = saved ? JSON.parse(saved) : {};
+      localStorage.setItem(BILLING_STORAGE_KEY, JSON.stringify({ ...state, customerId, customerName: customer?.name, customer, savedAt: Date.now() }));
+    } catch {}
+  };
+
   useEffect(() => {
-    if (isEditMode || !restored.current) return;
+    // Only save AFTER hydration is complete to avoid overwriting restored data
+    if (isEditMode || !isHydrated) return;
 
     const saveData = {
       products,
@@ -109,11 +168,16 @@ export function useBillingLogic(isEditMode?: boolean) {
       appliedAdvance,
       excessGoldMode,
       cashOutReductionPercent,
+      savedAt: Date.now(),
       expiry: Date.now() + EXPIRY_MINUTES * 60 * 1000,
     };
 
-    localStorage.setItem(BILLING_STORAGE_KEY, JSON.stringify(saveData));
+    // Preserve customer info if already saved
+    const existing = localStorage.getItem(BILLING_STORAGE_KEY);
+    const existingState = existing ? JSON.parse(existing) : {};
+    localStorage.setItem(BILLING_STORAGE_KEY, JSON.stringify({ ...existingState, ...saveData }));
   }, [
+    isHydrated,
     products,
     metalRate,
     taxOnTotal,
@@ -312,6 +376,10 @@ export function useBillingLogic(isEditMode?: boolean) {
 
   /* -------------------- EXPORT -------------------- */
   return {
+    /** Customer info restored from draft — reactive state so BillingPage effect can watch it */
+    restoredCustomerId,
+    restoredCustomer,
+    saveCustomerToDraft,
     products,
     metalRate,
 

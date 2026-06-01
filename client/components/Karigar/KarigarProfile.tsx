@@ -1,4 +1,3 @@
-
 import Image from "next/image"
 import { notFound } from "next/navigation"
 import { prisma } from "../../libs/prisma"
@@ -10,9 +9,26 @@ export default async function KarigarProfile({
 }) {
   const karigar = await prisma.karigar.findUnique({
     where: { id: params.id },
+    include: {
+      jobs: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
+      KarigarHeldMetal: true,
+    },
   })
 
   if (!karigar) return notFound()
+
+  // Calculate wastage percent from latest job and metal balance from KarigarHeldMetal
+  const wastagePercent = karigar.jobs[0]?.wastagePercent !== null && karigar.jobs[0]?.wastagePercent !== undefined
+    ? `${karigar.jobs[0].wastagePercent}%`
+    : "N/A";
+  
+  const currentFineGoldBalance = karigar.KarigarHeldMetal.reduce(
+    (sum, m) => sum + m.weight,
+    0
+  );
 
   return (
     <div className="p-8 space-y-6">
@@ -40,8 +56,8 @@ export default async function KarigarProfile({
       {/* INFO GRID */}
       <div className="grid grid-cols-2 gap-6">
         <Info label="Department" value={karigar.department} />
-        <Info label="Wastage %" value={karigar.wastagePercent} />
-        <Info label="Metal Balance" value={`${karigar.currentFineGoldBalance} g`} />
+        <Info label="Wastage %" value={wastagePercent} />
+        <Info label="Metal Balance" value={`${currentFineGoldBalance.toFixed(3)} g`} />
         <Info label="Status" value={karigar.isActive ? "Active" : "Inactive"} />
       </div>
 

@@ -19,7 +19,7 @@ export async function GET(req: Request) {
     const products = await prisma.productItem.findMany({
       where: {
         branchId: branchId ? Number(branchId) : undefined,
-        reservedQty: 0,
+        quantity: { gt: 0 }, // only show items that are in stock
         OR: isNumeric
           ? [
               { barcode: { equals: q } },
