@@ -141,7 +141,12 @@ export default function CustomerTable({
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-[14px] font-semibold text-white truncate">{customer.name}</span>
+                    <button 
+                      onClick={() => onView(customer)}
+                      className="text-[14px] font-semibold text-white truncate hover:text-[#D4A843] transition-colors cursor-pointer text-left"
+                    >
+                      {customer.name}
+                    </button>
                     {customer.tier !== "REGULAR" && (
                       <span
                         className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${

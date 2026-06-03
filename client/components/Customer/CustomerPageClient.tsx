@@ -72,7 +72,7 @@ export default function CustomerPageClient() {
   const tagDefinitions = tagsData?.definitions ?? [];
 
   // React Query — cached, deduplicated, automatic background refresh
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ["customers", page, search, selectedTagId],
     queryFn: () => fetchCustomerList(page, search, selectedTagId),
     placeholderData: (prev) => prev, // keep showing previous data while loading next page
@@ -153,7 +153,11 @@ export default function CustomerPageClient() {
           <div className="flex items-center gap-3 pt-2">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#444]" />
+              {isFetching ? (
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-[#D4A843] border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#444]" />
+              )}
               <input
                 type="text"
                 value={searchInput}
@@ -179,8 +183,12 @@ export default function CustomerPageClient() {
                   </option>
                 ))}
               </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#555] text-[10px]">
-                ▼
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#555] text-[10px] flex items-center justify-center">
+                {isFetching ? (
+                  <div className="w-3 h-3 border-2 border-[#D4A843] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  "▼"
+                )}
               </div>
             </div>
             {/* Add Customer Button */}

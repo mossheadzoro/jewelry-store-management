@@ -18,8 +18,15 @@ export const SYSTEM_TAGS = [
   {
     name: "VIP",
     label: "VIP Client",
-    description: "Lifetime spent over ₹10,00,000",
+    description: "Lifetime spent ₹10,00,000 to ₹25,00,000",
     color: "purple",
+    type: "SYSTEM" as const,
+  },
+  {
+    name: "ELITE",
+    label: "Elite Client",
+    description: "Lifetime spent over ₹25,00,000",
+    color: "gold",
     type: "SYSTEM" as const,
   },
   {
@@ -130,8 +137,12 @@ export async function evaluateCustomerTags(customerId: number) {
       reason: `High value buyer with spent ₹${lifetimeSpent.toLocaleString("en-IN")} (Threshold: ₹5,00,000 to ₹10,00,000)`,
     },
     VIP: {
-      shouldHave: lifetimeSpent >= 1000000,
-      reason: `VIP status with spent ₹${lifetimeSpent.toLocaleString("en-IN")} (Threshold: >= ₹10,00,000)`,
+      shouldHave: lifetimeSpent >= 1000000 && lifetimeSpent < 2500000,
+      reason: `VIP status with spent ₹${lifetimeSpent.toLocaleString("en-IN")} (Threshold: ₹10,00,000 to ₹25,00,000)`,
+    },
+    ELITE: {
+      shouldHave: lifetimeSpent >= 2500000,
+      reason: `Elite status with spent ₹${lifetimeSpent.toLocaleString("en-IN")} (Threshold: >= ₹25,00,000)`,
     },
     CREDIT_RISK: {
       shouldHave: totalOutstanding > 200000,

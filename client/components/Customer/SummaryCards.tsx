@@ -53,6 +53,7 @@ export default function SummaryCards({ stats, loading }: SummaryCardsProps) {
       value: stats.vipCount.toString(),
       badge: null,
       badgePositive: true,
+      onClick: () => router.push("/vip"),
     },
     {
       icon: <IndianRupee className="w-5 h-5 text-[#D4A843]" />,

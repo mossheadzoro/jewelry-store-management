@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Edit2, Plus, MessageSquare, Download, ShoppingBag, Eye, MapPin, Mail, Phone, Loader2, Search } from "lucide-react";
+import { ArrowLeft, Edit2, Plus, MessageSquare, Download, ShoppingBag, Eye, MapPin, Mail, Phone, Loader2, Search, Shield, Trash2, Copy, Check, AlertTriangle, FileText, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import EditCustomerModal from "./EditCustomerModal";
@@ -23,7 +23,37 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
   
-  const [activeTab, setActiveTab] = useState<"ledger" | "orders" | "journey" | "wishlist">("ledger");
+  // KYC State
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [showShareLinkModal, setShowShareLinkModal] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState("");
+  const [uploadTokenLoading, setUploadTokenLoading] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  
+  // Manual upload form state
+  const [manualDocType, setManualDocType] = useState("AADHAR");
+  const [manualFile, setManualFile] = useState<File | null>(null);
+  const [manualNotes, setManualNotes] = useState("");
+  const [manualUploading, setManualUploading] = useState(false);
+  const [manualError, setManualError] = useState("");
+  
+  const [activeTab, setActiveTab] = useState<"ledger" | "orders" | "journey" | "kyc">("ledger");
+
+  const fetchDocs = useCallback(async () => {
+    setDocsLoading(true);
+    try {
+      const res = await fetch(`/api/customer/${customerId}/kyc/list`);
+      if (res.ok) {
+        const data = await res.json();
+        setDocuments(data.documents || []);
+      }
+    } catch (err) {
+      console.error("Error fetching documents:", err);
+    } finally {
+      setDocsLoading(false);
+    }
+  }, [customerId]);
 
   const fetchDetails = useCallback(async () => {
     setLoading(true);
@@ -32,12 +62,13 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setCustomer(data.customer);
+      await fetchDocs();
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [customerId]);
+  }, [customerId, fetchDocs]);
 
   const refreshDetails = useCallback(async () => {
     try {
@@ -45,13 +76,14 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
       if (res.ok) {
         const data = await res.json();
         setCustomer(data.customer);
+        await fetchDocs();
         return data.customer;
       }
     } catch (err) {
       console.error(err);
     }
     return null;
-  }, [customerId]);
+  }, [customerId, fetchDocs]);
 
   useEffect(() => {
     // Evaluate system tags first, then fetch details
@@ -65,6 +97,80 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
         fetchDetails();
       });
   }, [customerId, fetchDetails]);
+
+  const handleManualUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualFile) return;
+    setManualUploading(true);
+    setManualError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", manualFile);
+      formData.append("documentType", manualDocType);
+      formData.append("notes", manualNotes);
+
+      const res = await fetch(`/api/customer/${customerId}/kyc/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setManualError(data.error || "Failed to upload document");
+      } else {
+        setManualFile(null);
+        setManualNotes("");
+        setManualError("");
+        await fetchDocs();
+      }
+    } catch (err) {
+      console.error(err);
+      setManualError("Unexpected error occurred during upload");
+    } finally {
+      setManualUploading(false);
+    }
+  };
+
+  const handleDocDelete = async (docId: string) => {
+    if (!confirm("Are you sure you want to delete this document? This action is permanent and cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/customer/${customerId}/kyc/download/${docId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        await fetchDocs();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to delete document");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting document");
+    }
+  };
+
+  const handleGenerateLink = async () => {
+    setUploadTokenLoading(true);
+    setCopiedLink(false);
+    try {
+      const res = await fetch(`/api/customer/${customerId}/kyc/generate-link`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const link = `${window.location.origin}/public/kyc-upload?token=${data.token}`;
+        setGeneratedLink(link);
+        setShowShareLinkModal(true);
+      } else {
+        alert(data.error || "Failed to generate upload link");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error generating upload link");
+    } finally {
+      setUploadTokenLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -94,6 +200,28 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
     lifetimeValue += inv.paidAmount || (inv.totalAmount - inv.balanceAmount) || 0;
     currentDue += inv.balanceAmount || 0;
   });
+
+  // Dynamic KYC Compliance logic
+  const customerTags = customer.tags || [];
+  const isHighValue = customerTags.some((t: any) => t.tagDefinition?.name === "VIP" || t.tagDefinition?.name === "HIGH_VALUE") || 
+                      invoices.some((inv: any) => inv.totalAmount > 200000);
+  const isCorporate = customerTags.some((t: any) => t.tagDefinition?.name === "CORPORATE" || t.tagDefinition?.name === "WHOLESALE") || 
+                      !!customer.gstin;
+  const requiresKyc = isHighValue || isCorporate;
+
+  const hasPan = documents.some((d: any) => d.documentType === "PAN");
+  const hasAadhar = documents.some((d: any) => d.documentType === "AADHAR");
+  const hasGst = documents.some((d: any) => d.documentType === "GST_CERTIFICATE");
+
+  let isCompliant = true;
+  let missingReason = "";
+  if (isCorporate) {
+    isCompliant = hasGst || hasPan;
+    if (!isCompliant) missingReason = "B2B/Corporate customer requires a GST Certificate or PAN Document.";
+  } else if (isHighValue) {
+    isCompliant = hasPan || hasAadhar;
+    if (!isCompliant) missingReason = "High-value individual requires a PAN or Aadhar Document (PML Act transaction limit compliance).";
+  }
 
   const handleInvoiceClick = (invId: number) => {
     router.push(`/billing/invoice/${invId}`); // Assuming this route exists
@@ -188,6 +316,19 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
                     <div className="flex items-start gap-2 text-[13px] text-[#999] mt-1.5 leading-normal">
                       <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                       <span className="break-words">{customer.address}, {customer.city}, {customer.state} - {customer.pincode}</span>
+                    </div>
+                  )}
+                  {requiresKyc && (
+                    <div className="mt-3">
+                      {isCompliant ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          <Shield className="w-3 h-3 text-emerald-400" /> PML Compliant
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse" title={missingReason}>
+                          <AlertTriangle className="w-3 h-3 text-red-400" /> KYC Missing
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -326,7 +467,7 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
                 { id: "ledger", label: "Transaction Ledger", icon: "🧾" },
                 { id: "orders", label: "Commissioned Orders", icon: "💎" },
                 { id: "journey", label: "Purchase Journey", icon: "📈" },
-                { id: "wishlist", label: "Wishlist & Try-ons", icon: "❤️" },
+                { id: "kyc", label: "KYC & Documents", icon: "🔒" },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -508,10 +649,457 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
               </div>
             )}
 
+            {/* Journey Tab */}
+            {activeTab === "journey" && (() => {
+              // 1. Calculate Preferences from Invoice Items
+              const invoicesList = customer.invoices || [];
+              
+              const categoryCounts: Record<string, number> = {};
+              const subCategoryCounts: Record<string, number> = {};
+              const karatageCounts: Record<string, number> = {};
+              let totalSpentAmount = 0;
+              let itemTotalCount = 0;
+              let visitCount = invoicesList.length;
+
+              invoicesList.forEach((inv: any) => {
+                totalSpentAmount += inv.totalAmount;
+                
+                const items = inv.items || [];
+                items.forEach((item: any) => {
+                  const prod = item.product || {};
+                  const qty = item.quantity || 1;
+                  itemTotalCount += qty;
+                  
+                  // Category
+                  const catName = prod.subCategory?.category?.name;
+                  if (catName) {
+                    categoryCounts[catName] = (categoryCounts[catName] || 0) + qty;
+                  }
+                  
+                  // Sub-category
+                  const subCatName = prod.subCategory?.name;
+                  if (subCatName) {
+                    subCategoryCounts[subCatName] = (subCategoryCounts[subCatName] || 0) + qty;
+                  }
+                  
+                  // Karatage
+                  let karat = "Other";
+                  const purityVal = prod.purity;
+                  if (purityVal) {
+                    if (purityVal >= 90 || purityVal === 22) karat = "22K";
+                    else if (purityVal >= 70 || purityVal === 18) karat = "18K";
+                    else if (purityVal >= 50 || purityVal === 14) karat = "14K";
+                    else if (purityVal >= 35 || purityVal === 9) karat = "9K";
+                  }
+                  karatageCounts[karat] = (karatageCounts[karat] || 0) + qty;
+                });
+              });
+
+              // Sort helper
+              const getTopPreference = (counts: Record<string, number>) => {
+                const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+                return sorted.length > 0 ? sorted[0][0] : null;
+              };
+
+              const preferredCategory = getTopPreference(categoryCounts);
+              const preferredSubCategory = getTopPreference(subCategoryCounts);
+              const preferredKaratage = getTopPreference(karatageCounts);
+              const avgSpendPerVisit = visitCount > 0 ? Math.round(totalSpentAmount / visitCount) : 0;
+
+              // Recommendations Generator
+              const getRecommendations = () => {
+                const recs = [];
+                if (preferredCategory) {
+                  if (preferredCategory.toUpperCase().includes("GOLD")) {
+                    recs.push({
+                      title: "22K Bridal Heritage Collection",
+                      desc: "Curate a private viewing of our upcoming heavy antique necklace and bangle sets, featuring traditional kundan settings.",
+                      affinity: "High Gold Affinity",
+                    });
+                  } else if (preferredCategory.toUpperCase().includes("DIAMOND")) {
+                    recs.push({
+                      title: "Solitaire Gala Preview",
+                      desc: "Provide exclusive salon access to preview our certified VVS solitaire rings and drop earrings before launch.",
+                      affinity: "Solitaire Affinity",
+                    });
+                  } else if (preferredCategory.toUpperCase().includes("PLATINUM")) {
+                    recs.push({
+                      title: "Modern Minimalist Platinum Bands",
+                      desc: "Highlight our custom-engraved unisex platinum bands, catering to contemporary aesthetics.",
+                      affinity: "Platinum Affinity",
+                    });
+                  }
+                }
+
+                if (preferredSubCategory) {
+                  recs.push({
+                    title: `Elite Custom ${preferredSubCategory} Designing`,
+                    desc: `Our master designer is available to sketch personalized variations of ${preferredSubCategory.toLowerCase()} matching their taste.`,
+                    affinity: `${preferredSubCategory} Preference`,
+                  });
+                }
+
+                // Default recommendation if no purchases
+                if (recs.length === 0) {
+                  recs.push({
+                    title: "Welcome Consult & Starter Curation",
+                    desc: "Arrange a concierge walkthrough of the showroom category wings to establish initial style preferences.",
+                    affinity: "General Discovery",
+                  });
+                }
+
+                return recs;
+              };
+
+              const recommendations = getRecommendations();
+
+              return (
+                <div className="space-y-6">
+                  {/* Preferences Profile Header */}
+                  <div className="bg-[#141414] border border-[#222] rounded-2xl p-6">
+                    <h3 className="text-[16px] font-bold text-white mb-1.5 flex items-center gap-2">
+                      <span>✨</span> Client Taste Profile
+                    </h3>
+                    <p className="text-[13px] text-[#666] mb-6">
+                      Automatically calculated from historical invoice logs to drive personalization and elite concierge actions.
+                    </p>
+
+                    {visitCount === 0 ? (
+                      <div className="text-center py-10">
+                        <p className="text-[#555] text-[14px] italic">No transaction history found to compute preferences yet.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-4">
+                        {/* Preferred Category Card */}
+                        <div className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl p-4.5">
+                          <span className="text-[10px] font-bold text-[#555] uppercase tracking-widest block mb-2">Preferred Category</span>
+                          <span className="text-[20px] font-bold text-white block capitalize">{preferredCategory || "None"}</span>
+                          <span className="text-[11px] text-[#D4A843] block mt-1.5 font-medium">
+                            {categoryCounts[preferredCategory || ''] || 0} items purchased
+                          </span>
+                        </div>
+
+                        {/* Preferred Karatage Card */}
+                        <div className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl p-4.5">
+                          <span className="text-[10px] font-bold text-[#555] uppercase tracking-widest block mb-2">Preferred Karatage</span>
+                          <span className="text-[20px] font-bold text-white block">{preferredKaratage || "None"}</span>
+                          <span className="text-[11px] text-[#555] block mt-1.5">
+                            {karatageCounts[preferredKaratage || ''] || 0} items with this purity
+                          </span>
+                        </div>
+
+                        {/* Preferred Articles Card */}
+                        <div className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl p-4.5">
+                          <span className="text-[10px] font-bold text-[#555] uppercase tracking-widest block mb-2">Preferred Articles</span>
+                          <span className="text-[20px] font-bold text-white block capitalize">{preferredSubCategory || "None"}</span>
+                          <span className="text-[11px] text-[#D4A843] block mt-1.5 font-medium">
+                            {subCategoryCounts[preferredSubCategory || ''] || 0} items purchased
+                          </span>
+                        </div>
+
+                        {/* Typical Spend Card */}
+                        <div className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl p-4.5">
+                          <span className="text-[10px] font-bold text-[#555] uppercase tracking-widest block mb-2">Typical Spend / Visit</span>
+                          <span className="text-[20px] font-bold text-white block">₹ {avgSpendPerVisit.toLocaleString("en-IN")}</span>
+                          <span className="text-[11px] text-[#555] block mt-1.5">
+                            Across {visitCount} invoice{visitCount > 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {visitCount > 0 && (
+                    <div className="grid grid-cols-[1.2fr_1fr] gap-6">
+                      {/* Left: Preferences breakdown list */}
+                      <div className="bg-[#141414] border border-[#222] rounded-2xl p-6 space-y-6">
+                        <div>
+                          <h4 className="text-[14px] font-bold text-white mb-4 uppercase tracking-wider text-[#D4A843]">Metal & Category Share</h4>
+                          <div className="space-y-3.5">
+                            {Object.entries(categoryCounts).map(([cat, count]) => {
+                              const percent = Math.round((count / itemTotalCount) * 100);
+                              return (
+                                <div key={cat} className="space-y-1.5">
+                                  <div className="flex justify-between text-[13px]">
+                                    <span className="text-white capitalize">{cat}</span>
+                                    <span className="text-[#888] font-medium">{percent}% ({count} pcs)</span>
+                                  </div>
+                                  <div className="h-1.5 w-full bg-[#0a0a0a] rounded-full overflow-hidden border border-[#222]">
+                                    <div className="h-full bg-[#D4A843] rounded-full" style={{ width: `${percent}%` }} />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="border-t border-[#222] pt-6">
+                          <h4 className="text-[14px] font-bold text-white mb-4 uppercase tracking-wider text-[#D4A843]">Sub-category Share</h4>
+                          <div className="space-y-3.5">
+                            {Object.entries(subCategoryCounts).map(([sub, count]) => {
+                              const percent = Math.round((count / itemTotalCount) * 100);
+                              return (
+                                <div key={sub} className="space-y-1.5">
+                                  <div className="flex justify-between text-[13px]">
+                                    <span className="text-white capitalize">{sub}</span>
+                                    <span className="text-[#888] font-medium">{percent}% ({count} pcs)</span>
+                                  </div>
+                                  <div className="h-1.5 w-full bg-[#0a0a0a] rounded-full overflow-hidden border border-[#222]">
+                                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${percent}%` }} />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Curated Recommendations */}
+                      <div className="bg-[#141414] border border-[#222] rounded-2xl p-6">
+                        <h4 className="text-[14px] font-bold text-white mb-1.5 uppercase tracking-wider text-[#D4A843]">Concierge Recommendations</h4>
+                        <p className="text-[12px] text-[#555] mb-5">Generated recommendations to personalize client relationship touchpoints.</p>
+                        
+                        <div className="space-y-4">
+                          {recommendations.map((rec, index) => (
+                            <div key={index} className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl p-4.5 relative overflow-hidden group hover:border-[#D4A843]/30 transition-all duration-200">
+                              <span className="absolute top-0 right-0 px-2 py-0.5 rounded-bl bg-[#D4A843]/10 text-[#D4A843] text-[9px] font-bold uppercase tracking-wider">
+                                {rec.affinity}
+                              </span>
+                              <h5 className="text-[14px] font-bold text-white mb-1.5">{rec.title}</h5>
+                              <p className="text-[12px] text-[#888] leading-relaxed">{rec.desc}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* KYC Tab */}
+            {activeTab === "kyc" && (
+              <div className="space-y-6">
+                {/* Compliance Banner */}
+                {requiresKyc ? (
+                  isCompliant ? (
+                    <div className="bg-emerald-950/15 border border-emerald-500/20 rounded-2xl p-5 flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 flex-shrink-0">
+                        <Shield className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-[14px] font-bold text-white mb-0.5">PML Compliance Met</h4>
+                        <p className="text-[12.5px] text-emerald-400/80 leading-normal">
+                          This customer is marked as compliant. The required verification documents are present in their encrypted profile store.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-red-950/15 border border-red-500/20 rounded-2xl p-5 flex items-start gap-4 animate-pulse">
+                      <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 flex-shrink-0">
+                        <AlertTriangle className="w-5 h-5 text-red-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-[14px] font-bold text-white mb-0.5">KYC Compliance Missing</h4>
+                        <p className="text-[12.5px] text-red-400/85 leading-normal">
+                          {missingReason} Transactions above ₹2,00,000 require valid KYC documents under the Prevention of Money Laundering (PML) Act.
+                        </p>
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  <div className="bg-[#141414] border border-[#222] rounded-2xl p-5 flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#222] border border-[#333] flex items-center justify-center text-[#999] flex-shrink-0">
+                      <Shield className="w-5 h-5 text-[#999]" />
+                    </div>
+                    <div>
+                      <h4 className="text-[14px] font-bold text-white mb-0.5">KYC Check (Optional)</h4>
+                      <p className="text-[12.5px] text-[#888] leading-normal">
+                        This client's current spending threshold is below the ₹2,00,000 regulatory compliance limit. Uploading KYC documents is currently optional.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Primary KYC Grid */}
+                <div className="grid grid-cols-[1.3fr_1fr] gap-6">
+                  {/* Left: Document List */}
+                  <div className="bg-[#141414] border border-[#222] rounded-2xl p-6">
+                    <div className="flex items-center justify-between mb-5">
+                      <div>
+                        <h3 className="text-[15px] font-bold text-white mb-0.5">Secure Vault Documents</h3>
+                        <p className="text-[12px] text-[#666]">End-to-end encrypted storage nodes</p>
+                      </div>
+                      <button
+                        onClick={handleGenerateLink}
+                        disabled={uploadTokenLoading}
+                        className="h-9 px-4 rounded-xl border border-[#D4A843]/30 text-[#D4A843] text-[12px] font-bold hover:bg-[#D4A843]/10 hover:border-[#D4A843] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 animate-fade-in"
+                      >
+                        {uploadTokenLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                        Share Upload Link
+                      </button>
+                    </div>
+
+                    {docsLoading ? (
+                      <div className="flex flex-col items-center justify-center py-12 space-y-2">
+                        <Loader2 className="w-6 h-6 text-[#D4A843] animate-spin" />
+                        <p className="text-[12px] text-[#555]">Querying vault registry...</p>
+                      </div>
+                    ) : documents.length === 0 ? (
+                      <div className="text-center py-16 border border-dashed border-[#222] rounded-xl bg-[#0a0a0a]">
+                        <FileText className="w-8 h-8 text-[#444] mx-auto mb-3" />
+                        <p className="text-[13px] text-[#555] italic">No KYC documents stored in secure vault</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {documents.map((doc: any) => {
+                          const docLabels: Record<string, string> = {
+                            AADHAR: "Aadhar Card",
+                            PAN: "PAN Card",
+                            GST_CERTIFICATE: "GST Certificate",
+                            OTHER: "Other Proof",
+                          };
+                          return (
+                            <div key={doc.id} className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-4 flex items-center justify-between hover:border-[#D4A843]/20 transition-all duration-200">
+                              <div className="flex items-center gap-3.5 min-w-0">
+                                <div className="w-10 h-10 rounded-lg bg-[#D4A843]/5 border border-[#D4A843]/15 flex items-center justify-center text-[#D4A843]">
+                                  <FileText className="w-5 h-5 text-[#D4A843]" />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[13px] font-bold text-white">{docLabels[doc.documentType] || doc.documentType}</span>
+                                    {doc.verified && (
+                                      <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 text-[9px] font-bold px-1.5 py-0.2 rounded uppercase tracking-wider">
+                                        Verified
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[12px] text-[#666] truncate max-w-[280px] mt-0.5">{doc.fileName}</p>
+                                  {doc.notes && <p className="text-[11px] text-[#444] mt-1 italic">"{doc.notes}"</p>}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={`/api/customer/${customerId}/kyc/download/${doc.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="h-8 w-8 rounded-lg border border-[#222] text-[#888] hover:text-[#D4A843] hover:border-[#D4A843]/30 flex items-center justify-center transition-all"
+                                  title="Download / View Decrypted File"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </a>
+                                <button
+                                  onClick={() => handleDocDelete(doc.id)}
+                                  className="h-8 w-8 rounded-lg border border-[#222] text-[#888] hover:text-red-400 hover:border-red-500/30 flex items-center justify-center transition-all cursor-pointer"
+                                  title="Delete Document"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right: Manual Uploader */}
+                  <div className="bg-[#141414] border border-[#222] rounded-2xl p-6">
+                    <h3 className="text-[15px] font-bold text-white mb-1.5">Manual Vault Upload</h3>
+                    <p className="text-[12px] text-[#666] mb-5">Manually encrypt and append documents</p>
+
+                    <form onSubmit={handleManualUpload} className="space-y-4">
+                      {manualError && (
+                        <div className="bg-red-500/5 border border-red-500/25 rounded-xl p-3 text-[12px] text-red-400 flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                          <span>{manualError}</span>
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-[#666] uppercase tracking-wider block">Document Type</label>
+                        <select
+                          value={manualDocType}
+                          onChange={(e) => setManualDocType(e.target.value)}
+                          className="w-full h-10 px-3 rounded-xl border border-[#222] bg-[#0a0a0a] text-white text-[12.5px] font-medium outline-none focus:border-[#D4A843] transition-all cursor-pointer"
+                        >
+                          <option value="AADHAR">Aadhar Card</option>
+                          <option value="PAN">PAN Card</option>
+                          <option value="GST_CERTIFICATE">GST Certificate</option>
+                          <option value="OTHER">Other Identification Proof</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-[#666] uppercase tracking-wider block">Select File</label>
+                        <div className="border border-dashed border-[#222] rounded-xl p-5 bg-[#0a0a0a] text-center relative hover:border-[#D4A843]/20 transition-all cursor-pointer flex flex-col items-center justify-center">
+                          <input
+                            type="file"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                setManualFile(e.target.files[0]);
+                              }
+                            }}
+                            accept=".pdf,image/*"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                          <Upload className="w-5 h-5 text-[#444] mb-2" />
+                          {manualFile ? (
+                            <div>
+                              <p className="text-[12px] font-semibold text-[#D4A843] truncate max-w-[200px]">{manualFile.name}</p>
+                              <p className="text-[10px] text-[#555]">{(manualFile.size / 1024).toFixed(1)} KB</p>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-[12px] text-[#888] font-medium">Select PDF or Image</p>
+                              <p className="text-[10px] text-[#555] mt-0.5">Maximum size 10MB</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-[#666] uppercase tracking-wider block">Notes</label>
+                        <textarea
+                          value={manualNotes}
+                          onChange={(e) => setManualNotes(e.target.value)}
+                          placeholder="e.g. Scanned copy of original PAN card"
+                          rows={2}
+                          className="w-full p-2.5 rounded-xl border border-[#222] bg-[#0a0a0a] text-white text-[12px] outline-none focus:border-[#D4A843] transition-all resize-none placeholder-[#333]"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={!manualFile || manualUploading}
+                        className={`w-full h-10 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 transition-all ${
+                          manualFile && !manualUploading
+                            ? "bg-[#D4A843] text-black hover:bg-[#e6bc5a] cursor-pointer"
+                            : "bg-[#1f1f1f] text-[#555] cursor-not-allowed"
+                        }`}
+                      >
+                        {manualUploading ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Encrypting...
+                          </>
+                        ) : (
+                          <>
+                            <Shield className="w-3.5 h-3.5" />
+                            Encrypt & Upload
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Placeholders for other tabs */}
-            {activeTab !== "ledger" && activeTab !== "orders" && (
+            {activeTab !== "ledger" && activeTab !== "orders" && activeTab !== "journey" && activeTab !== "kyc" && (
               <div className="bg-[#141414] border border-[#222] rounded-2xl py-20 flex flex-col items-center justify-center text-center px-4">
-                <span className="text-4xl mb-4">{activeTab === "journey" ? "📈" : "❤️"}</span>
+                <span className="text-4xl mb-4">❤️</span>
                 <h3 className="text-white font-semibold text-lg mb-2">Module in Development</h3>
                 <p className="text-[#777] text-sm max-w-sm">This section is currently being designed for the next iteration of the Atelier ERP.</p>
               </div>
@@ -520,6 +1108,52 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
 
         </div>
       </div>
+
+
+      {/* Share Upload Link Modal */}
+      {showShareLinkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowShareLinkModal(false)} />
+          <div className="relative bg-[#111] border border-[#222] rounded-2xl p-6 max-w-md w-full shadow-2xl z-50 animate-scale-up">
+            <h3 className="text-[17px] font-bold text-white mb-1.5 flex items-center gap-2">
+              <Shield className="w-4.5 h-4.5 text-[#D4A843]" />
+              Secure Self-Upload Link
+            </h3>
+            <p className="text-[12.5px] text-[#666] mb-5 leading-normal">
+              Copy and send this unique single-use link to the customer. It enables uploading KYC documents securely to Atelier vaults and expires in 24 hours.
+            </p>
+
+            <div className="flex items-center gap-2 mb-6">
+              <input
+                type="text"
+                readOnly
+                value={generatedLink}
+                className="flex-1 h-10 px-3 rounded-xl border border-[#222] bg-[#0a0a0a] text-white text-[12px] outline-none"
+              />
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(generatedLink);
+                  setCopiedLink(true);
+                  setTimeout(() => setCopiedLink(false), 2000);
+                }}
+                className="h-10 px-4 rounded-xl bg-[#D4A843] text-black text-[12px] font-bold hover:bg-[#e6bc5a] transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copiedLink ? "Copied" : "Copy"}
+              </button>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-[#222]">
+              <button
+                onClick={() => setShowShareLinkModal(false)}
+                className="h-9 px-4 rounded-lg text-[13px] text-white bg-[#1a1a1a] border border-[#252525] hover:bg-[#222] transition-all cursor-pointer"
+              >
+                Close Portal Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <EditCustomerModal

@@ -45,6 +45,7 @@ export async function GET(
                 product: {
                   select: {
                     name: true,
+                    purity: true,
                     subCategory: {
                       select: {
                         name: true,

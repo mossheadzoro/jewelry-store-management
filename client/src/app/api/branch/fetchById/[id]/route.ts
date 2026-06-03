@@ -2,8 +2,9 @@ import { NextResponse } from "next/dist/server/web/spec-extension/response";
 import { prisma } from "../../../../../../libs/prisma";
 import { NextRequest } from "next/server";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const paramsId =  params.id;
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const paramsId = resolvedParams.id;
   const id = Number(paramsId);
 
   if (!id) {
