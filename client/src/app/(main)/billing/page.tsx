@@ -7,13 +7,7 @@ import { getDraftInfo } from "@/hooks/useBillingLogic";
 export default function BillingPage() {
   const router = useRouter();
 
-  useEffect(() => {
-    // If there's a valid saved draft, skip customer selection and go straight to billing
-    const info = getDraftInfo();
-    if (info.hasValidDraft) {
-      router.replace("/billing/create");
-    }
-  }, [router]);
+  // Removed auto-redirect for drafts. Drafts are now displayed in AddCustomer component.
 
   return <AddCustomer />;
 }

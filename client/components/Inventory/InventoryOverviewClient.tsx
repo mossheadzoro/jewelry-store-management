@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, ArrowUpRight, Hash, Gem, CircleDollarSign, Diamond } from "lucide-react";
+import { Search, Plus, Minus, ArrowUpRight, ArrowDownLeft, Hash, Gem, CircleDollarSign, Diamond } from "lucide-react";
 import { useBranchStore } from "@/lib/store/useBranchStore";
 
 import AddCategoryForm from "./Category/AddCategoryForm";
@@ -183,26 +183,44 @@ export default function InventoryClient() {
             <div className="text-gray-500 text-sm py-4">No recent activity found.</div>
           ) : (
             <>
-              {paginatedActivity.map((activity, idx) => (
+              {paginatedActivity.map((activity, idx) => {
+                const isOut = activity.qtyOut > 0 || activity.netWeightOut > 0 || (activity.txnType && activity.txnType.endsWith('_OUT'));
+                const isIn = activity.qtyIn > 0 || activity.netWeightIn > 0 || (activity.txnType && activity.txnType.endsWith('_IN'));
+                
+                const iconBg = isOut ? "bg-rose-900/40" : "bg-emerald-900/40";
+                const iconColor = isOut ? "text-rose-400" : "text-emerald-400";
+                const IconComponent = isOut ? ArrowUpRight : ArrowDownLeft;
+                const actionText = isOut ? "- Removed from Vault" : "+ Added to Vault";
+                const textColor = isOut ? "text-rose-500" : "text-emerald-500";
+                
+                const txnLabel = activity.txnType ? activity.txnType.replace(/_/g, ' ') : "TRANSACTION";
+                const weight = isOut ? activity.netWeightOut : activity.netWeightIn;
+
+                return (
                 <div key={idx} className="flex items-center gap-4 bg-[#141414] border border-gray-800/50 rounded-xl p-4 hover:bg-[#1a1a1a] transition-colors">
-                  <div className="w-9 h-9 bg-emerald-900/40 rounded-full flex items-center justify-center shrink-0">
-                    <Plus size={16} className="text-emerald-400" />
+                  <div className={`w-9 h-9 ${iconBg} rounded-full flex items-center justify-center shrink-0`}>
+                    <IconComponent size={16} className={iconColor} />
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium flex items-center gap-2">
-                      <span className="text-white">{activity.name}</span>
-                      <span className="text-xs bg-[#222] border border-[#333] px-2 py-0.5 rounded text-gray-400">{activity.barcode}</span>
+                      <span className="text-white">{activity.product?.name || 'Unknown Product'}</span>
+                      <span className="text-xs bg-[#222] border border-[#333] px-2 py-0.5 rounded text-gray-400">{activity.product?.barcode || 'N/A'}</span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-white/5 text-gray-400">
+                        {txnLabel}
+                      </span>
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {activity.purity}% Purity • {activity.ntWeight}g Net Weight
+                      {activity.product?.purity ? `${activity.product.purity}% Purity • ` : ''} 
+                      {weight}g Net Weight
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-semibold text-emerald-500">+ Added to Vault</p>
-                    <p className="text-[10px] text-gray-600 mt-1">{new Date(activity.createdAt).toLocaleDateString()}</p>
+                    <p className={`text-xs font-semibold ${textColor}`}>{actionText}</p>
+                    <p className="text-[10px] text-gray-600 mt-1">{new Date(activity.createdAt).toLocaleString()}</p>
                   </div>
                 </div>
-              ))}
+                );
+              })}
 
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-6 bg-[#141414] border border-gray-800/50 rounded-xl p-4">

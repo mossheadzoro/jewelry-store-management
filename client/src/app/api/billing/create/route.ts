@@ -38,11 +38,13 @@ export async function POST(req: Request) {
       excessGoldReturnedWeight,
       exchangeGoldWeight,
       exchangeGoldValue,
+      appliedSchemes,
     } = billingData;
 
-    // Calculate totals
+    // Calculate totals using rounded totalAmount for consistency with UI
+    const roundedTotalAmount = Math.round(totalAmount);
     const totalPaid = payments.reduce((acc: number, p: any) => acc + (Number(p.amount) || 0), 0);
-    const balanceAmount = totalAmount - totalPaid;
+    const balanceAmount = roundedTotalAmount - totalPaid;
     const isFullyPaid = balanceAmount <= 0;
 
     // Find primary payment method
@@ -168,16 +170,7 @@ export async function POST(req: Request) {
           }
         });
 
-        // Deduct Stock
-        await tx.productItem.update({
-          where: { id: p.id },
-          data: {
-            quantity: { decrement: p.quantity || 1 },
-            reservedQty: { decrement: p.quantity || 1 }, // Assuming it was reserved
-          }
-        });
-
-        // 📒 Auto Ledger: SALE_OUT
+        // 📒 Auto Ledger: SALE_OUT (Must be BEFORE Deduct Stock)
         await insertLedgerEntry(tx, {
           productId: p.id,
           branchId,
@@ -190,6 +183,15 @@ export async function POST(req: Request) {
           unitCost: metalRate,
           totalValue: itemTotal,
           remarks: `Sale - Invoice ${invoiceNumber}`,
+        });
+
+        // Deduct Stock
+        await tx.productItem.update({
+          where: { id: p.id },
+          data: {
+            quantity: { decrement: p.quantity || 1 },
+            reservedQty: { decrement: p.quantity || 1 }, // Assuming it was reserved
+          }
         });
       }
 
@@ -230,7 +232,58 @@ export async function POST(req: Request) {
         }
       }
 
-      // 5. Excess Old Gold — Record Return Gold info
+      // 6. Process Saving Scheme Redemptions
+      if (appliedSchemes && appliedSchemes.length > 0) {
+        for (const scheme of appliedSchemes) {
+          if (!scheme.amountUsed || scheme.amountUsed <= 0) continue;
+
+          // Create SchemeRedemption
+          await tx.schemeRedemption.create({
+            data: {
+              schemeId: scheme.id,
+              invoiceId: newInvoice.id,
+              amountUsed: scheme.amountUsed,
+              goldWeightUsed: scheme.goldWeightUsed,
+              remarks: `Redeemed ₹${scheme.amountUsed} against invoice ${invoiceNumber}`,
+            }
+          });
+
+          // Fetch fresh scheme to calculate remaining
+          const dbScheme = await tx.savingScheme.findUnique({
+            where: { id: scheme.id },
+            select: { totalCashDeposited: true, totalBonusAmount: true, totalRedeemed: true, redeemedInvoiceIds: true, status: true }
+          });
+
+          if (dbScheme) {
+            const newTotalRedeemed = dbScheme.totalRedeemed + scheme.amountUsed;
+            const availableBalance = (dbScheme.totalCashDeposited + dbScheme.totalBonusAmount) - dbScheme.totalRedeemed;
+            const remainingBalance = availableBalance - scheme.amountUsed;
+
+            let newStatus = dbScheme.status;
+            if (remainingBalance <= 0) {
+              newStatus = "REDEEMED";
+            } else if (newTotalRedeemed > 0) {
+              newStatus = "PARTIALLY_REDEEMED";
+            }
+
+            const existingInvoiceIds = dbScheme.redeemedInvoiceIds || "";
+            const newInvoiceIds = existingInvoiceIds
+                ? `${existingInvoiceIds},${newInvoice.id}`
+                : String(newInvoice.id);
+
+            await tx.savingScheme.update({
+              where: { id: scheme.id },
+              data: {
+                totalRedeemed: newTotalRedeemed,
+                redeemedInvoiceIds: newInvoiceIds,
+                status: newStatus,
+              }
+            });
+          }
+        }
+      }
+
+      // 7. Excess Old Gold — Record Return Gold info
       if (excessGoldMode === 'RETURN_GOLD' && excessGoldReturnedWeight > 0) {
         await tx.invoicePayment.create({
           data: {

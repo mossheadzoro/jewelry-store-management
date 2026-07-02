@@ -25,6 +25,11 @@ export async function GET(req: NextRequest) {
         subCategory: {
           include: { category: true },
         },
+        inventoryLedger: {
+          where: { txnType: 'RESERVE_OUT' },
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        },
       },
     });
 

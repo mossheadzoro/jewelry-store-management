@@ -67,6 +67,11 @@ export async function GET(
         orderBy,
         include: {
           stoneDetails: true,
+          inventoryLedger: {
+            where: { txnType: 'RESERVE_OUT' },
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          }
         },
       }),
       prisma.productItem.count({ where: whereClause }),

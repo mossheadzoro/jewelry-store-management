@@ -186,10 +186,15 @@ export async function insertLedgerEntry(
   const prevFineWt = Number(lastEntry?.balanceFineWt ?? 0);
   const prevSeqNo = Number(lastEntry?.sequenceNo ?? 0);
 
+  const product = await tx.productItem.findUnique({
+    where: { id: productId },
+    select: { allowNegativeStock: true, quantity: true, ntWeight: true, gsWeight: true },
+  });
+
   // ── Existing balance calculations (UNCHANGED) ──
-  const balanceQty = prevQty + qtyIn - qtyOut;
-  const balanceGrossWt = round3(prevGrossWt + grossWeightIn - grossWeightOut);
-  const balanceNetWt = round3(prevNetWt + netWeightIn - netWeightOut);
+  let balanceQty = prevQty + qtyIn - qtyOut;
+  let balanceGrossWt = round3(prevGrossWt + grossWeightIn - grossWeightOut);
+  let balanceNetWt = round3(prevNetWt + netWeightIn - netWeightOut);
 
   // ── NEW: Fine weight balance (only computed if purity is provided) ──
   const fineWeightIn =
@@ -209,17 +214,21 @@ export async function insertLedgerEntry(
 
   // ── NEW: Negative balance guard ──
   if (balanceQty < 0 || balanceNetWt < 0) {
-    const product = await tx.productItem.findUnique({
-      where: { id: productId },
-      select: { allowNegativeStock: true },
-    });
-    if (!product?.allowNegativeStock) {
+    // If the actual product table has enough stock, the ledger is out of sync.
+    const productHasEnoughStock = product && (product.quantity >= qtyOut);
+
+    if (!product?.allowNegativeStock && !productHasEnoughStock) {
       throw new InsufficientStockError({
         productId,
         branchId,
         requested: { qty: qtyOut, netWt: netWeightOut },
-        available: { qty: prevQty, netWt: prevNetWt },
+        available: { qty: Math.max(prevQty, product?.quantity || 0), netWt: Math.max(prevNetWt, product?.ntWeight || 0) },
       });
+    } else if (productHasEnoughStock) {
+      // Ledger was out of sync but product has stock. Force the ledger balances to align with the successful deduction from actual stock.
+      balanceQty = product.quantity - qtyOut;
+      balanceNetWt = round3(product.ntWeight - netWeightOut);
+      balanceGrossWt = round3(product.gsWeight - grossWeightOut);
     }
   }
 

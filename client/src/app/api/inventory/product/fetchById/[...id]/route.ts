@@ -83,7 +83,35 @@ export async function GET(
       },
     };
 
-    return NextResponse.json(formattedProduct);
+    let activeBookingDetails = null;
+    if (product.reservedQty > 0) {
+      try {
+        const activeBookingItem = await prisma.productBookingItem.findFirst({
+          where: {
+            productId: product.id,
+            booking: {
+              status: "ACTIVE"
+            }
+          },
+          include: {
+            booking: {
+              include: { customer: true }
+            }
+          }
+        });
+        if (activeBookingItem && activeBookingItem.booking) {
+           activeBookingDetails = {
+             bookingNumber: activeBookingItem.booking.bookingNumber,
+             customerName: activeBookingItem.booking.customer?.name || "Customer",
+             bookingId: activeBookingItem.booking.id
+           };
+        }
+      } catch (e) {
+        console.error("Error fetching active booking details", e);
+      }
+    }
+
+    return NextResponse.json({ ...formattedProduct, activeBookingDetails });
   } catch (error: any) {
     console.error("Error fetching product:", error.message || error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

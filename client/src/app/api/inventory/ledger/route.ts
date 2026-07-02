@@ -63,6 +63,23 @@ export async function GET(req: Request) {
       },
     });
 
+    // Enhance entries with booking details if refType is ORDER
+    const bookingIds = entries.filter((e: any) => e.refType === "ORDER" && e.refId).map((e: any) => e.refId);
+    if (bookingIds.length > 0) {
+      const bookings = await prisma.productBooking.findMany({
+        where: { id: { in: bookingIds } },
+        select: { id: true, bookingNumber: true, Customer: { select: { name: true } } }
+      });
+      const bookingMap = new Map(bookings.map((b: any) => [b.id, b]));
+      
+      entries.forEach((e: any) => {
+        if (e.refType === "ORDER" && e.refId && bookingMap.has(e.refId)) {
+          const b: any = bookingMap.get(e.refId);
+          e.refDetails = `${b.bookingNumber} (${b.Customer?.name || "Customer"})`;
+        }
+      });
+    }
+
     return NextResponse.json({
       entries,
       pagination: {

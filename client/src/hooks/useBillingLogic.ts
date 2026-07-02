@@ -69,6 +69,9 @@ export function useBillingLogic(isEditMode?: boolean) {
   // 🔥 Advance
   const [appliedAdvance, setAppliedAdvance] = useState<any>(null);
 
+  // 🔥 Saving Schemes
+  const [appliedSchemes, setAppliedSchemes] = useState<any[]>([]);
+
   // 🔥 Excess Old Gold Handling
   const [excessGoldMode, setExcessGoldMode] = useState<null | 'CASH_OUT' | 'RETURN_GOLD'>(null);
   const [cashOutReductionPercent, setCashOutReductionPercent] = useState<number>(10);
@@ -129,6 +132,7 @@ export function useBillingLogic(isEditMode?: boolean) {
       setPayments(state.payments);
     }
     setAppliedAdvance(state.appliedAdvance ?? null);
+    setAppliedSchemes(state.appliedSchemes ?? []);
     setExcessGoldMode(state.excessGoldMode ?? null);
     setCashOutReductionPercent(state.cashOutReductionPercent ?? 10);
     // Restore customer info as STATE so BillingPage effect re-runs
@@ -166,6 +170,7 @@ export function useBillingLogic(isEditMode?: boolean) {
       exchangeGoldWeight,
       payments,
       appliedAdvance,
+      appliedSchemes,
       excessGoldMode,
       cashOutReductionPercent,
       savedAt: Date.now(),
@@ -244,6 +249,46 @@ export function useBillingLogic(isEditMode?: boolean) {
         return isFirstEmpty ? [newPayment] : [...prev, newPayment];
       });
     }
+  };
+
+  /* -------------------- SAVING SCHEME HANDLERS -------------------- */
+  const applyScheme = (
+    scheme: any,
+    amountUsed: number,
+    goldWeightUsed: number,
+    redemptionType: 'PREMATURE' | 'MATURED' | 'SPLIT' | 'MATURED_PART1' | 'STANDARD' = 'STANDARD'
+  ) => {
+    setAppliedSchemes((prev) => [...prev, { ...scheme, amountUsed, goldWeightUsed, redemptionType }]);
+    
+    if (goldWeightUsed > 0) {
+      setExchangeGoldWeight((prev) => prev + goldWeightUsed);
+    }
+    
+    if (amountUsed > 0) {
+      setPayments((prev) => {
+        const isFirstEmpty = prev.length === 1 && prev[0].method === "CASH" && !prev[0].amount;
+        const newPayment = {
+          method: "SCHEME",
+          amount: amountUsed.toString(),
+          metalWeight: "",
+          narration: scheme.schemeNumber,
+          schemeId: scheme.id,
+          isLocked: true, // Specific field to prevent removal in UI
+        };
+        return isFirstEmpty ? [newPayment] : [...prev, newPayment];
+      });
+    }
+  };
+
+  const removeScheme = (schemeId: string) => {
+    setAppliedSchemes((prev) => {
+      const schemeToRemove = prev.find((s) => s.id === schemeId);
+      if (schemeToRemove && schemeToRemove.goldWeightUsed > 0) {
+        setExchangeGoldWeight((goldPrev) => Math.max(0, goldPrev - schemeToRemove.goldWeightUsed));
+      }
+      return prev.filter((s) => s.id !== schemeId);
+    });
+    setPayments((prev) => prev.filter((p) => p.schemeId !== schemeId));
   };
 
   /* -------------------- EXCESS GOLD HANDLERS -------------------- */
@@ -438,6 +483,11 @@ export function useBillingLogic(isEditMode?: boolean) {
     appliedAdvance,
     setAppliedAdvance,
     applyAdvance,
+
+    appliedSchemes,
+    setAppliedSchemes,
+    applyScheme,
+    removeScheme,
 
     // 🔥 Excess Old Gold
     isOldGoldExcess,

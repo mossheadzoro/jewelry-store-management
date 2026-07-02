@@ -40,6 +40,12 @@ export async function GET(
       where: { appliedInvoiceId: invoiceId },
     });
 
+    // Fetch scheme redemptions separately since the relation might not be defined on Invoice model
+    const schemeRedemptions = await prisma.schemeRedemption.findMany({
+      where: { invoiceId },
+      include: { scheme: true },
+    });
+
     // Determine tax settings from the saved invoice values
     const taxOnTotal = invoice.taxOnGold === 0 && invoice.taxOnMaking === 0 && invoice.cgst > 0;
     const taxOnMetal = invoice.taxOnGold > 0;
@@ -129,11 +135,22 @@ export async function GET(
         if (p.method === "METAL" && metalRate > 0) {
           metalWeight = (p.amount / metalRate).toString();
         }
+        
+        const isScheme = p.method === "SCHEME";
+        // Attempt to find the matching redemption to get the schemeId
+        let schemeId = undefined;
+        if (isScheme) {
+            const redemption = schemeRedemptions.find(r => p.paymentRef?.includes(r.scheme.schemeNumber));
+            if (redemption) schemeId = redemption.schemeId;
+        }
+
         return {
           method: p.method,
           amount: p.amount.toString(),
           metalWeight,
           narration: p.paymentRef || "",
+          isLocked: isScheme,
+          ...(schemeId ? { schemeId } : {})
         };
       });
 
@@ -142,6 +159,14 @@ export async function GET(
       regularPayments.length > 0
         ? regularPayments
         : [{ method: "CASH", amount: "", metalWeight: "", narration: "" }];
+
+    // Map scheme redemptions to appliedSchemes
+    const appliedSchemes = schemeRedemptions.map((r) => ({
+      ...r.scheme,
+      amountUsed: r.amountUsed,
+      goldWeightUsed: r.goldWeightUsed,
+      redemptionType: 'STANDARD', // Or try to infer from amount
+    }));
 
     return NextResponse.json({
       invoiceId: invoice.id,
@@ -158,6 +183,7 @@ export async function GET(
       hallmarkCharge,
       exchangeGoldWeight: parseFloat(exchangeGoldWeight.toFixed(3)),
       appliedAdvance,
+      appliedSchemes,
       excessGoldMode: invoice.excessGoldMode,
       cashOutReductionPercent: invoice.cashOutReductionPct || 10,
     });
@@ -213,11 +239,13 @@ export async function PUT(
       excessGoldReturnedWeight,
       exchangeGoldWeight,
       exchangeGoldValue,
+      appliedSchemes,
     } = billingData;
 
-    // Calculate totals
+    // Calculate totals using rounded totalAmount for consistency with UI
+    const roundedTotalAmount = Math.round(totalAmount);
     const totalPaid = payments.reduce((acc: number, p: any) => acc + (Number(p.amount) || 0), 0);
-    const balanceAmount = totalAmount - totalPaid;
+    const balanceAmount = roundedTotalAmount - totalPaid;
     const isFullyPaid = balanceAmount <= 0;
 
     // Find primary payment method
@@ -264,6 +292,40 @@ export async function PUT(
         },
       });
 
+      // 4b. Revert Scheme Redemptions
+      const oldRedemptions = await tx.schemeRedemption.findMany({
+        where: { invoiceId },
+      });
+      for (const red of oldRedemptions) {
+        const dbScheme = await tx.savingScheme.findUnique({
+          where: { id: red.schemeId }
+        });
+        if (dbScheme) {
+          const newTotalRedeemed = Math.max(0, dbScheme.totalRedeemed - red.amountUsed);
+          let newStatus = dbScheme.status;
+          
+          if (newTotalRedeemed === 0) {
+            newStatus = "ACTIVE";
+          } else {
+            newStatus = "PARTIALLY_REDEEMED";
+          }
+
+          let newInvoiceIds = dbScheme.redeemedInvoiceIds || "";
+          if (newInvoiceIds) {
+             newInvoiceIds = newInvoiceIds.split(",").filter((id: string) => id !== String(invoiceId)).join(",");
+          }
+          await tx.savingScheme.update({
+            where: { id: dbScheme.id },
+            data: {
+              totalRedeemed: newTotalRedeemed,
+              status: newStatus,
+              redeemedInvoiceIds: newInvoiceIds,
+            }
+          });
+        }
+      }
+      await tx.schemeRedemption.deleteMany({ where: { invoiceId } });
+
       // 5. Create new items, deduct stock, and create ledger entries
       for (const p of products) {
         const metalValue = p.ntWeight * metalRate;
@@ -291,16 +353,7 @@ export async function PUT(
           },
         });
 
-        // Deduct Stock
-        await tx.productItem.update({
-          where: { id: p.id },
-          data: {
-            quantity: { decrement: p.quantity || 1 },
-            reservedQty: { decrement: p.quantity || 1 },
-          },
-        });
-
-        // Auto Ledger entry
+        // Auto Ledger entry (Must be BEFORE Deduct Stock)
         await insertLedgerEntry(tx, {
           productId: p.id,
           branchId,
@@ -313,6 +366,15 @@ export async function PUT(
           unitCost: metalRate,
           totalValue: itemTotal,
           remarks: `Sale (Updated) - Invoice ${oldInvoice.invoiceNumber}`,
+        });
+
+        // Deduct Stock
+        await tx.productItem.update({
+          where: { id: p.id },
+          data: {
+            quantity: { decrement: p.quantity || 1 },
+            reservedQty: { decrement: p.quantity || 1 },
+          },
         });
       }
 
@@ -384,6 +446,55 @@ export async function PUT(
             appliedInvoiceId: invoiceId,
           },
         });
+      }
+
+      // 8b. Re-apply Saving Schemes
+      if (appliedSchemes && appliedSchemes.length > 0) {
+        for (const scheme of appliedSchemes) {
+          if (!scheme.amountUsed || scheme.amountUsed <= 0) continue;
+
+          await tx.schemeRedemption.create({
+            data: {
+              schemeId: scheme.id,
+              invoiceId: invoiceId,
+              amountUsed: scheme.amountUsed,
+              goldWeightUsed: scheme.goldWeightUsed,
+              remarks: `Redeemed ₹${scheme.amountUsed} against invoice ${oldInvoice.invoiceNumber}`,
+            }
+          });
+
+          const dbScheme = await tx.savingScheme.findUnique({
+            where: { id: scheme.id },
+            select: { totalCashDeposited: true, totalBonusAmount: true, totalRedeemed: true, redeemedInvoiceIds: true, status: true }
+          });
+
+          if (dbScheme) {
+            const newTotalRedeemed = dbScheme.totalRedeemed + scheme.amountUsed;
+            const availableBalance = (dbScheme.totalCashDeposited + dbScheme.totalBonusAmount) - dbScheme.totalRedeemed;
+            const remainingBalance = availableBalance - scheme.amountUsed;
+
+            let newStatus = dbScheme.status;
+            if (remainingBalance <= 0) {
+              newStatus = "REDEEMED";
+            } else if (newTotalRedeemed > 0) {
+              newStatus = "PARTIALLY_REDEEMED";
+            }
+
+            const existingInvoiceIds = dbScheme.redeemedInvoiceIds || "";
+            const newInvoiceIds = existingInvoiceIds
+                ? `${existingInvoiceIds},${invoiceId}`
+                : String(invoiceId);
+
+            await tx.savingScheme.update({
+              where: { id: scheme.id },
+              data: {
+                totalRedeemed: newTotalRedeemed,
+                redeemedInvoiceIds: newInvoiceIds,
+                status: newStatus,
+              }
+            });
+          }
+        }
       }
 
       // 9. Update the Invoice container with the new calculations

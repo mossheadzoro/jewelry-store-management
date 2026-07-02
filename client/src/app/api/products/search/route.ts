@@ -9,16 +9,24 @@ const prisma = new PrismaClient();
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("search")?.trim();
-  const branchId = searchParams.get("branchId");
+  const branchIdParam = searchParams.get("branchId");
   if (!q) {
     return NextResponse.json({ products: [] });
+  }
+
+  let branchId: number | undefined = undefined;
+  if (branchIdParam && branchIdParam !== "undefined" && branchIdParam !== "null") {
+    const parsed = Number(branchIdParam);
+    if (!isNaN(parsed)) {
+      branchId = parsed;
+    }
   }
 
   const isNumeric = /^\d+$/.test(q); // ✅ check if query is only digits
   try {
     const products = await prisma.productItem.findMany({
       where: {
-        branchId: branchId ? Number(branchId) : undefined,
+        branchId: branchId,
         quantity: { gt: 0 }, // only show items that are in stock
         OR: isNumeric
           ? [

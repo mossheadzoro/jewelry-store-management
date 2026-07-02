@@ -9,14 +9,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Plus, Banknote, RotateCcw } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Trash2, Plus, Banknote, RotateCcw, Sparkles } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
-const BillingPaymentSection = ({ billing }: any) => {
-  const { 
-    grandTotal, 
-    metalRate, 
-    payments, 
+const BillingPaymentSection = ({ billing, customer }: any) => {
+  const {
+    grandTotal,
+    metalRate,
+    payments,
     setPayments,
     // Excess gold
     isOldGoldExcess,
@@ -27,7 +28,14 @@ const BillingPaymentSection = ({ billing }: any) => {
     cashSettlementRate,
     cashOutReductionPercent,
     effectiveExchangeWeight,
+    
+    // Saving Schemes
+    appliedSchemes = [],
+    applyScheme,
+    removeScheme,
   } = billing;
+
+  const [focusedPaymentIndex, setFocusedPaymentIndex] = useState<number | null>(null);
 
   /* ---------------- HANDLERS ---------------- */
 
@@ -67,26 +75,40 @@ const BillingPaymentSection = ({ billing }: any) => {
     setPayments(updated);
   };
 
+  const handleFocus = (index: number) => setFocusedPaymentIndex(index);
+  const handleBlur = () => setFocusedPaymentIndex(null);
+
   /* ---------------- PAYMENT CALCULATIONS ---------------- */
 
-  const totalPaid = useMemo(() => {
+  const displayTotalPaid = useMemo(() => {
     return payments.reduce(
-      (acc: number, p: any) => acc + (Number(p.amount) || 0),
+      (acc: number, p: any, i: number) => {
+        // Exclude the currently focused input from calculation unless it's a locked scheme payment
+        if (i === focusedPaymentIndex && !p.isLocked) {
+           return acc;
+        }
+        return acc + (Number(p.amount) || 0);
+      },
       0
     );
-  }, [payments]);
+  }, [payments, focusedPaymentIndex]);
 
-  const balance = totalPaid - grandTotal;
+  /* ---------------- SAVING SCHEME LOGIC ---------------- */
+  
+  const customerSchemes = customer?.savingSchemes || [];
+  
+  const availableSchemes = customerSchemes.filter((scheme: any) => {
+     // A scheme is available if it hasn't been applied to this bill yet
+     // AND it has a balance
+     const isApplied = appliedSchemes.some((s: any) => s.id === scheme.id);
+     if (isApplied) return false;
+     
+     const totalDeposited = (scheme.totalCashDeposited || 0) + (scheme.totalBonusAmount || 0);
+     const remainingBalance = totalDeposited - (scheme.totalRedeemed || 0);
+     return remainingBalance > 0 && scheme.status !== 'REDEEMED';
+  });
 
-  const status =
-    balance === 0
-      ? "SETTLED"
-      : balance > 0
-      ? "CR"
-      : "DR";
-
-  const creditAmount = balance > 0 ? balance : 0;
-  const dueAmount = balance < 0 ? Math.abs(balance) : 0;
+  const redeemedSchemes = appliedSchemes;
 
   /* ---------------- UI ---------------- */
 
@@ -100,6 +122,114 @@ const BillingPaymentSection = ({ billing }: any) => {
       </div>
 
       <div className="p-5">
+        
+        {/* SAVING SCHEMES */}
+        {customerSchemes.length > 0 && (
+          <div className="mb-6 p-4 rounded-xl border border-[#d4a843]/20 bg-[#d4a843]/5">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-[#d4a843]" />
+              <h4 className="text-[#d4a843] font-semibold">Saving Schemes</h4>
+            </div>
+
+            <Tabs defaultValue="available" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="available">Available ({availableSchemes.length})</TabsTrigger>
+                <TabsTrigger value="redeemed">Redeemed ({redeemedSchemes.length})</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="available" className="space-y-3">
+                {availableSchemes.length === 0 ? (
+                  <p className="text-sm text-[#888]">No available schemes to redeem.</p>
+                ) : (
+                  availableSchemes.map((scheme: any) => {
+                    const totalDeposited = (scheme.totalCashDeposited || 0) + (scheme.totalBonusAmount || 0);
+                    const remainingBalance = totalDeposited - (scheme.totalRedeemed || 0);
+                    const isMatured = scheme.maturityDate && new Date(scheme.maturityDate) <= new Date();
+
+                    return (
+                      <div key={scheme.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 rounded-lg border border-[#333] bg-[#1a1a1a]">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white">{scheme.schemeName}</span>
+                            <span className="text-xs bg-[#333] px-2 py-0.5 rounded text-[#aaa]">{scheme.schemeNumber}</span>
+                            {isMatured && <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded border border-green-500/30 uppercase tracking-wider font-bold">Matured</span>}
+                          </div>
+                          <div className="text-sm text-[#888] mt-1">
+                            Balance: <span className="text-[#d4a843] font-mono">₹{remainingBalance.toFixed(2)}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                           {scheme.schemeType === 'FIXED_MONTHLY' ? (
+                             <>
+                               {isMatured ? (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => applyScheme(scheme, remainingBalance, 0, 'MATURED')}
+                                    className="border-green-500/50 text-green-400 hover:bg-green-500/20 w-full sm:w-auto"
+                                  >
+                                    Redeem (Matured)
+                                  </Button>
+                               ) : (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => applyScheme(scheme, remainingBalance, 0, 'PRE_MATURE')}
+                                    className="border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20 w-full sm:w-auto"
+                                  >
+                                    Redeem (Pre-mature)
+                                  </Button>
+                               )}
+                             </>
+                           ) : (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => applyScheme(scheme, remainingBalance, 0, 'STANDARD')}
+                                className="border-[#d4a843]/50 text-[#d4a843] hover:bg-[#d4a843]/20 w-full sm:w-auto"
+                              >
+                                Redeem
+                              </Button>
+                           )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </TabsContent>
+
+              <TabsContent value="redeemed" className="space-y-3">
+                {redeemedSchemes.length === 0 ? (
+                  <p className="text-sm text-[#888]">No schemes redeemed in this bill.</p>
+                ) : (
+                  redeemedSchemes.map((scheme: any) => (
+                    <div key={scheme.id} className="flex justify-between items-center p-3 rounded-lg border border-green-500/20 bg-green-500/5">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white">{scheme.schemeName}</span>
+                          <span className="text-xs bg-[#333] px-2 py-0.5 rounded text-[#aaa]">{scheme.schemeNumber}</span>
+                        </div>
+                        <div className="text-sm text-green-400 mt-1">
+                          Redeemed: <span className="font-mono font-bold">₹{scheme.amountUsed?.toFixed(2)}</span>
+                          {scheme.redemptionType === 'PRE_MATURE' && <span className="ml-2 text-yellow-500 text-xs">(Pre-mature)</span>}
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => removeScheme(scheme.id)}
+                        className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                      >
+                        Undo
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+
         <div className="flex flex-col gap-3">
           {payments.map((p: any, i: number) => (
             <div
@@ -107,8 +237,8 @@ const BillingPaymentSection = ({ billing }: any) => {
               className="grid grid-cols-[140px_1fr_1fr_40px] gap-3 items-center bg-[#1a1a1a] p-2.5 rounded-lg border border-[#2a2a2a]"
             >
               {/* METHOD */}
-              <Select value={p.method} onValueChange={(v) => updateMethod(i, v)}>
-                <SelectTrigger className="bg-[#0a0a0a] border-[#333] text-white focus-visible:ring-[#d4a843]">
+              <Select value={p.method} onValueChange={(v) => updateMethod(i, v)} disabled={p.isLocked}>
+                <SelectTrigger className={`bg-[#0a0a0a] border-[#333] text-white focus-visible:ring-[#d4a843] ${p.isLocked ? 'opacity-70' : ''}`}>
                   <SelectValue placeholder="Method" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#1e1e1e] border-[#333] text-white">
@@ -119,6 +249,7 @@ const BillingPaymentSection = ({ billing }: any) => {
                   <SelectItem value="NEFT">NEFT</SelectItem>
                   <SelectItem value="RTGS">RTGS</SelectItem>
                   <SelectItem value="METAL">Metal</SelectItem>
+                  {p.method === "SCHEME" && <SelectItem value="SCHEME">Scheme</SelectItem>}
                 </SelectContent>
               </Select>
 
@@ -146,7 +277,10 @@ const BillingPaymentSection = ({ billing }: any) => {
                   placeholder="Amount ₹"
                   value={p.amount}
                   onChange={(e) => updatePayment(i, "amount", e.target.value)}
-                  className="bg-[#0a0a0a] border-[#333] text-white focus-visible:ring-[#d4a843]"
+                  onFocus={() => handleFocus(i)}
+                  onBlur={handleBlur}
+                  readOnly={p.isLocked}
+                  className={`bg-[#0a0a0a] border-[#333] text-white focus-visible:ring-[#d4a843] ${p.isLocked ? 'text-[#aaa] cursor-not-allowed opacity-70' : ''}`}
                 />
               )}
 
@@ -155,13 +289,16 @@ const BillingPaymentSection = ({ billing }: any) => {
                 placeholder="Narration / Ref No"
                 value={p.narration}
                 onChange={(e) => updatePayment(i, "narration", e.target.value)}
-                className="bg-[#0a0a0a] border-[#333] text-white focus-visible:ring-[#d4a843]"
+                onFocus={() => handleFocus(i)}
+                onBlur={handleBlur}
+                readOnly={p.isLocked}
+                className={`bg-[#0a0a0a] border-[#333] text-white focus-visible:ring-[#d4a843] ${p.isLocked ? 'text-[#aaa] cursor-not-allowed opacity-70' : ''}`}
               />
 
               {/* REMOVE */}
               <button
                 onClick={() => removeMethod(i)}
-                disabled={payments.length === 1}
+                disabled={payments.length === 1 || p.isLocked}
                 className="h-10 w-10 flex items-center justify-center text-[#555] hover:text-[#ff4a4a] hover:bg-[#ff4a4a]/10 rounded disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#555] transition-colors"
                 title="Remove method"
               >
@@ -240,10 +377,19 @@ const BillingPaymentSection = ({ billing }: any) => {
             </span>
           </div>
 
+          {Math.abs(Math.round(grandTotal) - grandTotal) > 0.001 && (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-[#888]">Round Off</span>
+              <span className={`font-mono font-semibold ${Math.round(grandTotal) - grandTotal > 0 ? "text-green-400" : "text-[#e55]"}`}>
+                {Math.round(grandTotal) - grandTotal > 0 ? "+" : "-"} ₹{Math.abs(Math.round(grandTotal) - grandTotal).toFixed(2)}
+              </span>
+            </div>
+          )}
+
           <div className="flex justify-between items-center text-sm">
             <span className="text-[#888]">Total Paid</span>
             <span className="font-semibold text-white">
-              ₹{totalPaid.toFixed(2)}
+              ₹{displayTotalPaid.toFixed(2)}
             </span>
           </div>
 
@@ -253,28 +399,26 @@ const BillingPaymentSection = ({ billing }: any) => {
             <span className="text-[#888]">Status</span>
             <span
               className={`px-3 py-1 rounded bg-[#1a1a1a] border ${
-                status === "CR"
+                displayTotalPaid >= Math.round(grandTotal)
                   ? "text-green-400 border-green-400/20"
-                  : status === "DR"
-                  ? "text-[#e55] border-[#e55]/20"
-                  : "text-blue-400 border-blue-400/20"
+                  : "text-[#e55] border-[#e55]/20"
               }`}
             >
-              {status}
+              {displayTotalPaid >= Math.round(grandTotal) ? "Sufficient" : "Insufficient"}
             </span>
           </div>
 
-          {status === "CR" && (
+          {displayTotalPaid < Math.round(grandTotal) && (
             <div className="flex justify-between items-center text-sm">
-              <span className="text-green-400">Credit Balance</span>
-              <span className="font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded">₹{creditAmount.toFixed(2)}</span>
+              <span className="text-[#e55]">Due Amount</span>
+              <span className="font-bold text-[#e55] bg-[#e55]/10 px-2 py-0.5 rounded">₹{(Math.round(grandTotal) - displayTotalPaid).toFixed(2)}</span>
             </div>
           )}
 
-          {status === "DR" && (
+          {displayTotalPaid > Math.round(grandTotal) && (
             <div className="flex justify-between items-center text-sm">
-              <span className="text-[#e55]">Due Amount</span>
-              <span className="font-bold text-[#e55] bg-[#e55]/10 px-2 py-0.5 rounded">₹{dueAmount.toFixed(2)}</span>
+              <span className="text-green-400">Credit Balance</span>
+              <span className="font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded">₹{(displayTotalPaid - Math.round(grandTotal)).toFixed(2)}</span>
             </div>
           )}
         </div>

@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ProductDetailsModal } from "../../../../../components/Inventory/Product/ProductDetailsModal";
 import { printBarcodes } from "@/lib/barcodePrinter";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Product {
   id: number;
@@ -24,6 +25,7 @@ interface Product {
   otherCharges: string | null;
   otherChargesPrice: number | null;
   size: string | null;
+  inventoryLedger?: { refType: string; refId: string; remarks: string }[];
 }
 
 interface SubCategoryData {
@@ -264,10 +266,28 @@ export default function SubcategoryDetailPage() {
                       <p className="text-xs text-gray-400">{p.ntWeight}g • {p.gsWeight}g GS</p>
                     </td>
                     <td className="p-4">
-                      <span className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${status.dot}`}></span>
-                        <span className={`text-xs font-medium ${status.color}`}>{status.label}</span>
-                      </span>
+                      {status.label === "Reserved" && p.inventoryLedger && p.inventoryLedger.length > 0 ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="flex items-center gap-2 cursor-help">
+                                <span className={`w-2 h-2 rounded-full ${status.dot}`}></span>
+                                <span className={`text-xs font-medium ${status.color} underline decoration-dashed underline-offset-2`}>{status.label}</span>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-[#1a1a1a] border border-gray-800 text-gray-200">
+                              <p className="font-semibold text-yellow-500 mb-1">Reservation Details</p>
+                              <p>Type: <span className="text-white">{p.inventoryLedger[0].refType}</span></p>
+                              {p.inventoryLedger[0].refId && <p>Ref ID: <span className="text-white font-mono">{p.inventoryLedger[0].refId}</span></p>}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${status.dot}`}></span>
+                          <span className={`text-xs font-medium ${status.color}`}>{status.label}</span>
+                        </span>
+                      )}
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex justify-end gap-3 items-center">

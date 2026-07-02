@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Edit2, Plus, MessageSquare, Download, ShoppingBag, Eye, MapPin, Mail, Phone, Loader2, Search, Shield, Trash2, Copy, Check, AlertTriangle, FileText, Upload } from "lucide-react";
+import { ArrowLeft, Edit2, Plus, MessageSquare, Download, ShoppingBag, Eye, MapPin, Mail, Phone, Loader2, Search, Shield, Trash2, Copy, Check, AlertTriangle, FileText, Upload, PiggyBank, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import EditCustomerModal from "./EditCustomerModal";
@@ -39,6 +39,43 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
   const [manualError, setManualError] = useState("");
   
   const [activeTab, setActiveTab] = useState<"ledger" | "orders" | "journey" | "kyc">("ledger");
+  
+  // Scheme Edit State
+  const [editingScheme, setEditingScheme] = useState<any>(null);
+  const [editingCardNumber, setEditingCardNumber] = useState("");
+  const [editingDuration, setEditingDuration] = useState("");
+  const [schemeUpdating, setSchemeUpdating] = useState(false);
+
+  const handleUpdateScheme = async () => {
+    if (!editingScheme) return;
+    setSchemeUpdating(true);
+    try {
+      // If we are updating card number
+      if (editingCardNumber !== editingScheme.physicalCardNumber) {
+        await fetch(`/api/schemes/${editingScheme.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "UPDATE_CARD", physicalCardNumber: editingCardNumber })
+        });
+      }
+      
+      // If we are updating maxDurationMonths
+      const newDuration = parseInt(editingDuration, 10);
+      if (!isNaN(newDuration) && newDuration > editingScheme.maxDurationMonths) {
+        await fetch(`/api/schemes/${editingScheme.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "EXTEND", maxDurationMonths: newDuration })
+        });
+      }
+
+      setEditingScheme(null);
+      await fetchDetails();
+    } catch (e) {
+      alert("Failed to update scheme details.");
+    }
+    setSchemeUpdating(false);
+  };
 
   const fetchDocs = useCallback(async () => {
     setDocsLoading(true);
@@ -442,6 +479,68 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
                 <p className="text-[24px] font-bold text-[#D4A843]">₹{lifetimeValue.toLocaleString("en-IN")}</p>
               </div>
             </div>
+
+            {/* Wallet Balances */}
+            {customer.CustomerWallet && (
+              <div className="bg-[#141414] border border-[#222] rounded-2xl p-5">
+                <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest mb-4">Customer Wallet</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] text-[#888] mb-1">Cash Balance</span>
+                    <span className="text-[20px] font-bold text-white">₹{customer.CustomerWallet.cashBalance?.toLocaleString("en-IN") || "0"}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[11px] text-[#888] mb-1">24K Metal Balance</span>
+                    <span className="text-[20px] font-bold text-[#D4A843]">{customer.CustomerWallet.metal24KBalance?.toFixed(3) || "0.000"} g</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Saving Schemes */}
+            {customer.savingSchemes && customer.savingSchemes.length > 0 && (
+              <div className="bg-[#141414] border border-[#222] rounded-2xl p-5 mt-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <PiggyBank className="w-4 h-4 text-[#D4A843]" />
+                  <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest">Saving Schemes</p>
+                </div>
+                <div className="space-y-3">
+                  {customer.savingSchemes.map((scheme: any) => {
+                    const isActive = scheme.status === "ACTIVE";
+                    const isMatured = scheme.status === "MATURED";
+                    
+                    return (
+                      <div key={scheme.id} className="p-3 border border-[#222] bg-[#0a0a0a] rounded-xl flex items-center justify-between">
+                        <div>
+                           <div className="flex items-center gap-2">
+                             <span className="text-sm font-bold text-[#D4A843]">{scheme.schemeNumber}</span>
+                             {isActive && <span className="px-2 py-0.5 rounded text-[9px] bg-emerald-500/10 text-emerald-500 font-bold uppercase">Active</span>}
+                             {isMatured && <span className="px-2 py-0.5 rounded text-[9px] bg-[#C9943A]/10 text-[#C9943A] font-bold uppercase">Matured</span>}
+                           </div>
+                           <p className="text-xs text-[#888] mt-1 flex items-center gap-2">
+                             <span>{scheme.type.replace('_', ' ')}</span>
+                             {scheme.physicalCardNumber && (
+                               <span className="flex items-center gap-1 text-[10px] text-[#555]">
+                                 Card: {scheme.physicalCardNumber}
+                               </span>
+                             )}
+                           </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => {
+                            setEditingCardNumber(scheme.physicalCardNumber || "");
+                            setEditingDuration(scheme.maxDurationMonths?.toString() || "");
+                            setEditingScheme(scheme);
+                          }} className="p-2 rounded-lg bg-[#141414] border border-[#222] text-[#888] hover:text-[#D4A843] hover:border-[#D4A843]/30 transition-all cursor-pointer">
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Concierge Notes */}
             <div className="bg-[#141414] border border-[#222] rounded-2xl p-5">
@@ -1193,8 +1292,63 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
         onClose={() => setShowManageTagsModal(false)}
         customerId={customer.id}
         currentTags={customer.tags || []}
-        onSuccess={() => fetchDetails()}
+        onOrderUpdated={fetchDetails}
       />
+
+      {/* Edit Scheme Modal */}
+      {editingScheme && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setEditingScheme(null)} />
+          <div className="relative w-full max-w-sm bg-[#0D0D0F] border border-[#1F1F24] rounded-2xl shadow-2xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-sm font-semibold text-[#F0EBE0]">Edit Scheme</h3>
+                <p className="text-xs text-[#C9943A] mt-0.5">{editingScheme.schemeNumber}</p>
+              </div>
+              <button onClick={() => setEditingScheme(null)} className="p-1.5 rounded-lg hover:bg-[#1A1A1D] text-[#6B6560] cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="text-xs font-medium text-[#F0EBE0] mb-2 block">Physical Card Number</label>
+                <input
+                  type="text"
+                  value={editingCardNumber}
+                  onChange={(e) => setEditingCardNumber(e.target.value)}
+                  placeholder="Enter card number"
+                  className="w-full px-3 py-2 rounded-lg bg-[#111113] border border-[#1F1F24] text-sm text-[#F0EBE0] focus:border-[#C9943A]/50 outline-none"
+                />
+              </div>
+
+              {editingScheme.type !== "ANONYMOUS_DEPOSIT" && (
+                <div>
+                  <label className="text-xs font-medium text-[#F0EBE0] mb-2 block">Duration (Months)</label>
+                  <input
+                    type="number"
+                    value={editingDuration}
+                    onChange={(e) => setEditingDuration(e.target.value)}
+                    placeholder="Extend duration"
+                    min={editingScheme.maxDurationMonths}
+                    className="w-full px-3 py-2 rounded-lg bg-[#111113] border border-[#1F1F24] text-sm text-[#F0EBE0] focus:border-[#C9943A]/50 outline-none"
+                  />
+                  <p className="text-[10px] text-[#6B6560] mt-1">Note: You can only extend the duration.</p>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={handleUpdateScheme}
+              disabled={schemeUpdating}
+              className="w-full py-2.5 rounded-xl bg-[#C9943A] text-black text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              {schemeUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              Save Changes
+            </button>
+          </div>
+        </div>
+      )}
 
     </main>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,6 +23,7 @@ import GSTDetails from "./GSTDetails";
 import { toast } from "sonner";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { getDraftInfo } from "@/hooks/useBillingLogic";
 
 // ─── Zod Schema ────────────────────────────────────────────────
 const customerSchema = z.object({
@@ -480,6 +481,12 @@ const AddCustomer = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<SearchResult | null>(null);
 
+  const [draftInfo, setDraftInfo] = useState<{ hasValidDraft: boolean; customerName?: string; savedAt?: number } | null>(null);
+
+  useEffect(() => {
+    setDraftInfo(getDraftInfo());
+  }, []);
+
   const gstinValue = watch("gstin");
 
   // ─── Search Handler ───
@@ -667,7 +674,7 @@ const AddCustomer = () => {
                                 orange: "bg-orange-500/10 text-orange-400 border-orange-500/25",
                                 purple: "bg-purple-500/10 text-purple-400 border-purple-500/25",
                               };
-                              const colorClass = colorMap[tag.color.toLowerCase()] || "bg-gray-500/10 text-gray-400 border-gray-500/25";
+                              const colorClass = colorMap[tag.color?.toLowerCase() || 'gray'] || "bg-gray-500/10 text-gray-400 border-gray-500/25";
                               return (
                                 <span
                                   key={tag.id}
@@ -738,6 +745,43 @@ const AddCustomer = () => {
                   </p>
                 </div>
               )}
+
+            {/* Draft Card */}
+            {draftInfo?.hasValidDraft && (
+              <div style={{
+                marginTop: "16px",
+                padding: "16px",
+                borderRadius: "12px",
+                background: "rgba(212, 168, 67, 0.05)",
+                border: "1px solid rgba(212, 168, 67, 0.2)",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <h3 style={{ fontSize: "14px", color: "#d4a843", fontWeight: 600, marginBottom: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Sparkles size={14} /> Active Draft Found
+                    </h3>
+                    <p style={{ fontSize: "12px", color: "#a0a0a0" }}>
+                      {draftInfo.customerName ? `Billing paused for ${draftInfo.customerName}` : 'Billing was paused recently'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => router.push("/billing/create")}
+                    style={{
+                      background: "#d4a843",
+                      color: "#000",
+                      border: "none",
+                      padding: "8px 16px",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Continue Draft
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Proceed button when customer is selected */}
             {selectedCustomer && (

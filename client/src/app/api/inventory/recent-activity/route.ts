@@ -19,21 +19,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "branchId is required" }, { status: 400 });
     }
 
-    const recentProducts = await prisma.productItem.findMany({
+    const recentLedgerEntries = await prisma.inventoryLedger.findMany({
       where: { branchId: parseInt(branchId) },
       orderBy: { createdAt: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        name: true,
-        barcode: true,
-        purity: true,
-        ntWeight: true,
-        createdAt: true,
-      },
+      take: 50,
+      include: {
+        product: {
+          select: {
+            name: true,
+            barcode: true,
+            purity: true,
+          }
+        }
+      }
     });
 
-    return NextResponse.json(recentProducts, { status: 200 });
+    return NextResponse.json(recentLedgerEntries, { status: 200 });
   } catch (error) {
     console.error("Recent Activity Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

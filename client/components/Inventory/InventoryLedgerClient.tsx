@@ -22,6 +22,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { useUserStore } from "@/lib/store/useUserStore";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Transaction styling mappings
 const TXN_COLORS: Record<string, { bg: string; text: string; label: string }> = {
@@ -619,13 +620,30 @@ export default function InventoryLedgerClient() {
                       {/* Type / Ref */}
                       <div className="flex flex-col gap-1">
                         <div>
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase ${style.bg} ${style.text}`}>
-                            {style.label}
-                          </span>
+                          {entry.txnType === 'RESERVE_OUT' ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase ${style.bg} ${style.text} cursor-help underline decoration-dashed underline-offset-2`}>
+                                    {style.label}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-[#1a1a1a] border border-gray-800 text-gray-200">
+                                  <p className="font-semibold text-amber-500 mb-1">Reservation Details</p>
+                                  <p>Type: <span className="text-white">{entry.refType}</span></p>
+                                  {entry.refId && <p>Ref ID: <span className="text-white font-mono">{entry.refId}</span></p>}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase ${style.bg} ${style.text}`}>
+                              {style.label}
+                            </span>
+                          )}
                         </div>
                         {entry.refType !== "MANUAL" && (
-                          <span className="text-[11px] text-zinc-500 font-mono truncate" title={`${entry.refType}: ${entry.refId || ""}`}>
-                            {entry.refType}{entry.refId ? `: ${entry.refId}` : ""}
+                          <span className="text-[11px] text-zinc-500 font-mono truncate" title={entry.refDetails || `${entry.refType}: ${entry.refId || ""}`}>
+                            {entry.refDetails ? entry.refDetails : `${entry.refType}${entry.refId ? `: ${entry.refId}` : ""}`}
                           </span>
                         )}
                       </div>

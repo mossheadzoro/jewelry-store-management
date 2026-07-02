@@ -6,7 +6,7 @@ import { X, UserPlus, Loader2 } from "lucide-react";
 interface AddCustomerModalProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (customer?: any) => void;
 }
 
 const GENDER_OPTIONS = [
@@ -155,7 +155,7 @@ export default function AddCustomerModal({ open, onClose, onSuccess }: AddCustom
         pan: "", gstin: "", aadhar: "", dob: "", anniversary: "",
       });
       setSelectedTagIds([]);
-      onSuccess();
+      onSuccess(newCustomer);
       onClose();
     } catch {
       setError("Network error. Please try again.");

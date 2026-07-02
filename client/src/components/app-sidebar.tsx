@@ -15,6 +15,7 @@ import {
   IconHelp,
   IconInnerShadowTop,
   IconListDetails,
+  IconPigMoney,
   IconReport,
   IconSearch,
   IconSettings,
@@ -50,21 +51,21 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Billing",
-      url: "/billing",
-      icon: IconListDetails,
-    },
-    {
       title: "Inventory",
       url: "/inventory",
       icon: IconChartBar,
     },
-    {
+     {
       title: "Stock Ledger",
       url: "/inventory/ledger",
       icon: IconDatabase,
     },
     {
+      title: "Billing",
+      url: "/billing",
+      icon: IconListDetails,
+    },
+     {
       title: "Sales",
       url: "/sales",
       icon: IconFolder,
@@ -73,6 +74,11 @@ const data = {
       title: "Customers",
       url: "/customer",
       icon: IconUsers,
+    },
+    {
+      title: "Saving Schemes",
+      url: "/saving-schemes",
+      icon: IconPigMoney,
     },
   ],
   navClouds: [
@@ -142,8 +148,8 @@ const data = {
   ],
   documents: [
     {
-      name: "Book items",
-      url: "#",
+      name: "Book Products",
+      url: "/book-products",
       icon: IconDatabase,
     },
     {

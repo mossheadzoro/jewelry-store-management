@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Search, ArrowLeft, Edit } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Product {
   id: number;
@@ -19,6 +20,7 @@ interface Product {
   quantity: number;
   reservedQty: number;
   subCategory?: { name: string; category?: { name: string } };
+  inventoryLedger?: { refType: string; refId: string; remarks: string }[];
 }
 
 export default function SearchPage() {
@@ -121,9 +123,26 @@ function SearchPageContent() {
                     </td>
                     <td className="p-4 text-xs text-gray-400">{p.ntWeight}g • {p.purity}K</td>
                     <td className="p-4">
-                      <span className={`text-xs font-medium ${sold ? "text-red-400" : reserved ? "text-yellow-400" : "text-emerald-400"}`}>
-                        {sold ? "Sold" : reserved ? "Reserved" : "In Stock"}
-                      </span>
+                      {reserved && p.inventoryLedger && p.inventoryLedger.length > 0 ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-xs font-medium text-yellow-400 cursor-help underline decoration-dashed underline-offset-2">
+                                Reserved
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-[#1a1a1a] border border-gray-800 text-gray-200">
+                              <p className="font-semibold text-yellow-500 mb-1">Reservation Details</p>
+                              <p>Type: <span className="text-white">{p.inventoryLedger[0].refType}</span></p>
+                              {p.inventoryLedger[0].refId && <p>Ref ID: <span className="text-white font-mono">{p.inventoryLedger[0].refId}</span></p>}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span className={`text-xs font-medium ${sold ? "text-red-400" : reserved ? "text-yellow-400" : "text-emerald-400"}`}>
+                          {sold ? "Sold" : reserved ? "Reserved" : "In Stock"}
+                        </span>
+                      )}
                     </td>
                     <td className="p-4 text-right">
                       <button onClick={() => router.push(`/inventory/product/${p.id}`)} className="text-gray-500 hover:text-yellow-500 text-xs inline-flex items-center gap-1">

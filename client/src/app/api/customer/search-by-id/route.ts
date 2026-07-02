@@ -23,6 +23,15 @@ export async function GET(req: Request) {
             tagDefinition: true,
           },
         },
+        savingSchemes: {
+          include: {
+            redemptions: true,
+            deposits: {
+              where: { isBonus: false },
+              select: { id: true, cashAmount: true, monthNumber: true }
+            }
+          }
+        },
         invoices: {
           select: {
             balanceAmount: true,

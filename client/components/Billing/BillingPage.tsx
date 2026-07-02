@@ -28,12 +28,13 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
   const { selectedBranch } = useBranchStore();
   const searchParams = useSearchParams();
   const customerIdParam = searchParams.get("customerId");
+  const draftIdParam = searchParams.get("draftId");
 
   const [activeCustomerId, setActiveCustomerId] = useState<string | null>(null);
   const [customer, setCustomer] = useState<any>(null);
   const [isLoadingInvoice, setIsLoadingInvoice] = useState(false);
 
-  // Draft state — no blocking modal, restore is automatic
+  // Draft state
   const [draftRestored, setDraftRestored] = useState(false);
   const customerSyncedRef = useRef(false);
 
@@ -42,20 +43,56 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
 
   const { customer: queryCustomer } = useBillingCustomer(activeCustomerId || "");
 
-  // ─── Check for draft on first load (new bill only) — auto-restore ───────────
+  // ─── Load Draft from URL ─────────────────────────────────────────────────────
   useEffect(() => {
-    if (isEditMode) return;
+    if (draftIdParam && !isEditMode && !draftRestored) {
+      const loadDraft = async () => {
+        setIsLoadingInvoice(true);
+        try {
+          const res = await fetch(`/api/sales/draft/${draftIdParam}`);
+          if (res.ok) {
+            const data = await res.json();
+            const draftData = JSON.parse(data.draft.billingData);
+            
+            // Restore cart data
+            billing.setProducts(draftData.products || []);
+            billing.setPayments(draftData.payments || []);
+            billing.updateMetalRate(draftData.metalRate || 0);
+            
+            if (data.draft.customerId) {
+              setActiveCustomerId(data.draft.customerId.toString());
+              setCustomer(data.draft.customer);
+            }
+            
+            setDraftRestored(true);
+            
+            // Immediately delete the draft from DB so it's active again
+            // and releases the 'DRAFT_BILL' reservation lock
+            fetch(`/api/sales/draft/${draftIdParam}`, { method: "DELETE" });
+          }
+        } catch (e) {
+          console.error("Failed to load draft", e);
+        } finally {
+          setIsLoadingInvoice(false);
+        }
+      };
+      loadDraft();
+    }
+  }, [draftIdParam, isEditMode, draftRestored]);
+
+  // ─── Check for local draft on first load (fallback) ───────────
+  useEffect(() => {
+    if (isEditMode || draftIdParam || draftRestored) return;
     const info = getDraftInfo();
     if (info.hasValidDraft) {
       setDraftRestored(true);
-      // Show a small non-blocking toast so user knows the draft was loaded
       const savedAgo = info.savedAt
         ? Math.floor((Date.now() - info.savedAt) / 60000)
         : 0;
       const agoLabel = savedAgo < 1 ? "just now" : `${savedAgo}m ago`;
       toast(
         <div className="flex flex-col gap-0.5">
-          <span className="font-semibold text-white text-sm">Draft restored ⚡</span>
+          <span className="font-semibold text-white text-sm">Local draft restored ⚡</span>
           <span className="text-xs text-[#aaa]">
             {info.customerName ? `Bill for ${info.customerName}` : "Previous bill"} · saved {agoLabel}
           </span>
@@ -68,7 +105,6 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
               billing.clearSession();
               setDraftRestored(false);
               customerSyncedRef.current = true;
-              // Reset customer
               setCustomer(null);
               setActiveCustomerId(null);
             },
@@ -77,9 +113,9 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
       );
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditMode]);
+  }, [isEditMode, draftIdParam, draftRestored]);
 
-  // ─── Auto-restore customer from draft when billing hook hydrates ─────────────
+  // ─── Auto-restore customer from local draft ─────────────
   useEffect(() => {
     if (isEditMode || customerSyncedRef.current) return;
     if (!customerIdParam && billing.restoredCustomerId && billing.restoredCustomer) {
@@ -89,12 +125,12 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
     }
   }, [billing.restoredCustomerId, billing.restoredCustomer, customerIdParam, isEditMode]);
 
-  // ─── Initialize customer from URL param (new bill with pre-selected customer) ─
+  // ─── Initialize customer from URL param ─
   useEffect(() => {
-    if (!isEditMode && customerIdParam) {
+    if (!isEditMode && customerIdParam && !draftIdParam) {
       setActiveCustomerId(customerIdParam);
     }
-  }, [customerIdParam, isEditMode]);
+  }, [customerIdParam, isEditMode, draftIdParam]);
 
   useEffect(() => {
     if (!isEditMode && queryCustomer) {
@@ -109,6 +145,17 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customer, activeCustomerId, isEditMode]);
+
+  // ─── Auto-Pause on Unmount (Mis-pressed back button or navigate away) ────────
+  const isCheckingOutRef = useRef(false);
+  const billingStateRef = useRef(billing);
+  const customerIdRef = useRef(activeCustomerId);
+
+  useEffect(() => {
+    billingStateRef.current = billing;
+    customerIdRef.current = activeCustomerId;
+  }, [billing, activeCustomerId]);
+  // Auto-save on unmount removed to prevent phantom drafts and stock reservations
 
   // ─── Router + misc state ─────────────────────────────────────────────────────
   const router = useRouter();
@@ -165,6 +212,7 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
         billing.setProducts(data.products || []);
         billing.setPayments(data.payments || []);
         billing.setAppliedAdvance(data.appliedAdvance || null);
+        billing.setAppliedSchemes(data.appliedSchemes || []);
         billing.setExcessGoldMode(data.excessGoldMode || null);
         billing.setCashOutReductionPercent(data.cashOutReductionPercent || 10);
 
@@ -190,13 +238,46 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
   // (No modal needed — draft restores automatically. Discard is via toast action.)
 
   // ─── Pause billing (save & go to dashboard) ──────────────────────────────────
-  const handlePauseBilling = () => {
-    // Draft auto-saves continuously — just toast and navigate
-    toast.success("Billing paused. Your draft is saved for 1 hour.", {
-      duration: 4000,
-      icon: "⏸️",
-    });
-    setTimeout(() => router.push("/dashboard"), 1200);
+  const handlePauseBilling = async () => {
+    const payload = {
+      branchId: selectedBranch?.id || selectedBranch,
+      customerId: activeCustomerId,
+      billingData: {
+        products: billing.products,
+        payments: billing.payments,
+        metalRate: billing.metalRate,
+        netGoldValue: billing.netGoldValue,
+        totalMaking: billing.totalMaking,
+        hallmarkFee: billing.hallmarkFee,
+        grandTotal: billing.grandTotal,
+        taxOnGold: billing.goldCgst * 2,
+        taxOnMaking: billing.makingCgst * 2,
+        taxOnHallmarking: billing.hallmarkingCGST * 2,
+        cgst: billing.cgst + billing.goldCgst + billing.makingCgst + billing.hallmarkingCGST,
+        sgst: billing.sgst + billing.goldSgst + billing.makingSgst + billing.hallmarkingSGST,
+      }
+    };
+    
+    try {
+      const res = await fetch("/api/sales/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Failed");
+      
+      toast.success("Draft is saved now you can visit other pages", {
+        duration: 4000,
+        icon: "⏸️",
+      });
+      billing.clearSession();
+      setCustomer(null);
+      setActiveCustomerId(null);
+      setDraftRestored(false);
+      // We explicitly DO NOT router.push("/dashboard") per user request.
+    } catch (e) {
+      toast.error("Failed to pause billing to server.");
+    }
   };
 
   // ─── Checkout ────────────────────────────────────────────────────────────────
@@ -205,6 +286,7 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
     if (!finalCustomerId) return alert("Please select a customer first.");
     if (billing.products.length === 0) return alert("Your cart is empty.");
 
+    isCheckingOutRef.current = true; // Prevent auto-pause on unmount
     setIsSubmitting(true);
     try {
       const url = isEditMode ? `/api/billing/${invoiceId}` : "/api/billing/create";
@@ -238,6 +320,7 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
              excessGoldReturnedWeight: billing.excessGoldWeight,
              exchangeGoldWeight: billing.exchangeGoldWeight,
              exchangeGoldValue: billing.exchangeGoldValue,
+             appliedSchemes: billing.appliedSchemes,
           }
         }),
       });
@@ -381,7 +464,7 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
           />
 
           {/* PAYMENT BREAKDOWN */}
-          <BillingPaymentSection billing={billing} />
+          <BillingPaymentSection billing={billing} customer={customer} />
 
         </div>
 

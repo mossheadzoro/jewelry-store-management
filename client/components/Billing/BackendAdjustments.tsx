@@ -151,23 +151,6 @@ const BillingAdjustments = ({ billing }: { billing: any }) => {
         icon={<Wallet className="w-4 h-4" />}
       />
 
-      <AdjustmentCard
-        title="Add Coupon"
-        subtitle="Promotional discounts"
-        placeholder="Enter Coupon Code"
-        onApply={async () => 1500}
-        onClear={() => {}}
-        icon={<Ticket className="w-4 h-4" />}
-      />
-
-      <AdjustmentCard
-        title="Savings Scheme"
-        subtitle="Redeem plan maturity"
-        placeholder="Enter Scheme Number"
-        onApply={async () => 12000}
-        onClear={() => {}}
-        icon={<PiggyBank className="w-4 h-4" />}
-      />
     </div>
   );
 };

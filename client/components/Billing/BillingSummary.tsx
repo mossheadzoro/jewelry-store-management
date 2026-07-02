@@ -48,8 +48,10 @@ const BillingSummary = ({ billing, customer, onCheckout, isSubmitting, isEditMod
   const isReturnGoldBlocked = isOldGoldExcess && excessGoldMode === 'RETURN_GOLD' && isDR;
   // Block checkout if excess detected but no mode selected
   const isExcessUnresolved = isOldGoldExcess && !excessGoldMode;
+  // Block checkout if payment is less than rounded grand total
+  const isPaymentInsufficient = totalPaid < Math.round(grandTotal);
 
-  const canCheckout = !isSubmitting && !isReturnGoldBlocked && !isExcessUnresolved;
+  const canCheckout = !isSubmitting && !isReturnGoldBlocked && !isExcessUnresolved && !isPaymentInsufficient;
 
   const Row = ({ label, value, isNegative = false, isAccent = false, isHighlight = false, className = "" }: any) => (
     <div className={`flex justify-between items-center py-2.5 ${className}`}>
@@ -200,6 +202,19 @@ const BillingSummary = ({ billing, customer, onCheckout, isSubmitting, isEditMod
             </div>
           </>
         )}
+
+        {/* ROUND OFF */}
+        {Math.abs(Math.round(grandTotal) - grandTotal) > 0.001 && (
+          <>
+            <div className="my-2 border-t border-white/5"></div>
+            <div className="flex justify-between items-center py-1">
+              <span className="text-sm text-[#888]">Round Off</span>
+              <span className={`font-mono text-sm tracking-wide ${Math.round(grandTotal) - grandTotal > 0 ? "text-green-400" : "text-[#e55]"}`}>
+                {Math.round(grandTotal) - grandTotal > 0 ? "+" : "-"} ₹ {Math.abs(Math.round(grandTotal) - grandTotal).toFixed(2)}
+              </span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* GRAND TOTAL */}
@@ -235,6 +250,16 @@ const BillingSummary = ({ billing, customer, onCheckout, isSubmitting, isEditMod
           <AlertTriangle className="w-4 h-4 text-[#e55] flex-shrink-0" />
           <p className="text-xs text-[#e55]">
             Clear all dues (DR) before completing payment with excess gold return.
+          </p>
+        </div>
+      )}
+
+      {/* PAYMENT INSUFFICIENT WARNING */}
+      {isPaymentInsufficient && !isReturnGoldBlocked && (
+        <div className="mb-4 bg-[#e55]/5 border border-[#e55]/20 rounded-lg p-3 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-[#e55] flex-shrink-0" />
+          <p className="text-xs text-[#e55]">
+            Insufficient payment. Please add payments to cover the grand total.
           </p>
         </div>
       )}

@@ -66,6 +66,10 @@ export default function EditProductPage({ id }: EditProductPageProps) {
 
   const [loading, setLoading] = useState(false);
   const [subCategories, setSubCategories] = useState<any[]>([]);
+  const [reservedInfo, setReservedInfo] = useState<{
+    reservedQty: number;
+    activeBookingDetails: any;
+  } | null>(null);
 
   const [form, setForm] = useState<ProductForm>({
     name: '',
@@ -107,6 +111,12 @@ export default function EditProductPage({ id }: EditProductPageProps) {
         const subCats = subCategoryRes.data;
 
         setSubCategories(subCats);
+        if (product.reservedQty > 0) {
+          setReservedInfo({
+            reservedQty: product.reservedQty,
+            activeBookingDetails: product.activeBookingDetails
+          });
+        }
 
         setForm({
           name: product.name || '',
@@ -251,6 +261,23 @@ export default function EditProductPage({ id }: EditProductPageProps) {
           {/* LEFT COLUMN */}
           <div className="space-y-8">
             
+            {reservedInfo && reservedInfo.reservedQty > 0 && (
+              <div className="bg-[#d4a843]/10 border border-[#d4a843]/30 rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-[#d4a843] font-semibold text-sm">Item Reserved</h3>
+                  <p className="text-gray-400 text-xs mt-1">
+                    {reservedInfo.reservedQty} unit(s) of this item are currently reserved.
+                    {reservedInfo.activeBookingDetails && (
+                      <span className="ml-1">
+                        Booked by <strong>{reservedInfo.activeBookingDetails.customerName}</strong> 
+                        (Booking #{reservedInfo.activeBookingDetails.bookingNumber}).
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* BASIC DETAILS */}
             <div>
               <div className="flex items-center gap-4 mb-6">

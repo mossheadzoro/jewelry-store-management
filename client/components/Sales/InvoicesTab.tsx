@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { SlidersHorizontal, Download, FileSpreadsheet, FileText, ChevronDown } from "lucide-react";
 import { useSalesFilters } from "@/hooks/useSalesFilters";
 import { downloadFile } from "@/lib/invoice-export";
+import DraftBillsList from "./DraftBillsList";
 
 function getDateRange(preset: DatePreset): { from: Date; to: Date } {
   const now = new Date();
@@ -268,6 +269,8 @@ export default function InvoicesTab({
           </div>
         </div>
       </div>
+
+      <DraftBillsList />
 
       {/* Table */}
       <InvoiceTable
