@@ -62,14 +62,18 @@ export default function AllOrdersView({
   onCreateOrder,
   onRefresh,
 }: AllOrdersViewProps) {
-  const { selectedBranch } = useBranchStore();
   const [stats, setStats] = useState<OrderStats | null>(null);
+  const [settings, setSettings] = useState<any>(null);
 
   useEffect(() => {
     if (!selectedBranch?.id) return;
     axios
       .get(`/api/order/stats?branchId=${selectedBranch.id}`)
       .then((res) => setStats(res.data))
+      .catch(console.error);
+    axios
+      .get(`/api/settings/order-book?branchId=${selectedBranch.id}`)
+      .then((res) => setSettings(res.data))
       .catch(console.error);
   }, [selectedBranch]);
 
@@ -112,6 +116,7 @@ export default function AllOrdersView({
       {activeTab === "all" && stats && (
         <div className="grid grid-cols-4 gap-4 mb-8">
           {/* Total Value */}
+          {(!settings?.dashboardSettings?.enableCards || settings.dashboardSettings.enableCards.includes("Total Booking Value")) && (
           <div className="bg-[#141414] border border-[#222] rounded-2xl p-5">
             <p className="text-[10px] font-bold text-[#666] uppercase tracking-[0.15em] mb-2">
               Total Value
@@ -121,8 +126,10 @@ export default function AllOrdersView({
             </p>
             <div className="w-16 h-1 bg-[#D4A843] rounded-full mt-3" />
           </div>
+          )}
 
           {/* Active Karigars */}
+          {(!settings?.dashboardSettings?.enableCards || settings.dashboardSettings.enableCards.includes("Karigar Workload")) && (
           <div className="bg-[#141414] border border-[#222] rounded-2xl p-5">
             <p className="text-[10px] font-bold text-[#666] uppercase tracking-[0.15em] mb-2">
               Active Karigars
@@ -138,8 +145,10 @@ export default function AllOrdersView({
               <span className="text-[11px] text-[#555]">Workshop artisans</span>
             </div>
           </div>
+          )}
 
           {/* Metal in Process */}
+          {(!settings?.dashboardSettings?.enableCards || settings.dashboardSettings.enableCards.includes("Metal In Process")) && (
           <div className="bg-[#141414] border border-[#222] rounded-2xl p-5">
             <p className="text-[10px] font-bold text-[#666] uppercase tracking-[0.15em] mb-2">
               Metal in Process
@@ -152,8 +161,10 @@ export default function AllOrdersView({
               Active deposits
             </p>
           </div>
+          )}
 
           {/* Pending Deliveries */}
+          {(!settings?.dashboardSettings?.enableCards || settings.dashboardSettings.enableCards.includes("Pending Delivery")) && (
           <div className="bg-[#141414] border border-[#222] rounded-2xl p-5">
             <p className="text-[10px] font-bold text-[#666] uppercase tracking-[0.15em] mb-2">
               Pending Deliveries
@@ -167,6 +178,7 @@ export default function AllOrdersView({
               </p>
             )}
           </div>
+          )}
         </div>
       )}
 

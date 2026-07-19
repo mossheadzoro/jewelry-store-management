@@ -17,11 +17,13 @@ interface Branch {
 interface BranchState {
   branches: Branch[];
   selectedBranch: Branch | null;
+  branchSettings: any | null;
   setBranches: (branches: Branch[]) => void;
   selectBranch: (branch: Branch) => void;
   clearBranchData: () => void;
   fetchAllBranches: () => Promise<void>;
   fetchBranchById: (id: number) => Promise<void>;
+  fetchBranchSettings: (id: number) => Promise<void>;
 }
 
 export const useBranchStore = create<BranchState>()(
@@ -29,9 +31,10 @@ export const useBranchStore = create<BranchState>()(
     (set) => ({
       branches: [],
       selectedBranch: null,
+      branchSettings: null,
       setBranches: (branches) => set({ branches }),
       selectBranch: (branch) => set({ selectedBranch: branch }),
-      clearBranchData: () => set({ branches: [], selectedBranch: null }),
+      clearBranchData: () => set({ branches: [], selectedBranch: null, branchSettings: null }),
 
       // Fetch all branch names (lightweight)
       fetchAllBranches: async () => {
@@ -51,6 +54,15 @@ export const useBranchStore = create<BranchState>()(
           set({ selectedBranch: res.data });
         } catch (err) {
           console.error('Failed to fetch branch details', err);
+        }
+      },
+
+      fetchBranchSettings: async (id) => {
+        try {
+          const res = await axios.get(`/api/branch/settings?branchId=${id}`);
+          set({ branchSettings: res.data });
+        } catch (err) {
+          console.error('Failed to fetch branch settings', err);
         }
       },
     }),

@@ -33,6 +33,9 @@ console.log('Creating branch with data:', body);
         country,
         phone,
         email,
+        settings: {
+          create: {}
+        }
       },
     });
 console.log('Branch created:', newBranch);

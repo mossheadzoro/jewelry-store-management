@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "../../../../../libs/prisma";
+import { requireAuth } from "@/lib/authGuard";
 
 const getKaratage = (purity: number) => {
   if (!purity) return 22;
@@ -10,11 +11,14 @@ const getKaratage = (purity: number) => {
   return Math.round(val * 24);
 };
 
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   try {
+    const auth = await requireAuth(req, { module: "BILLING", requireBranch: true });
+    if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+    const branchId = auth.branchId!;
     const { searchParams } = new URL(req.url);
 
-    const branchId = parseInt(searchParams.get("branchId") || "0");
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "10")));
     const search = searchParams.get("search") || "";
@@ -26,10 +30,6 @@ export async function GET(req: NextRequest) {
     const huidStatus = searchParams.get("huidStatus");
     const amountMin = searchParams.get("amountMin") ? parseFloat(searchParams.get("amountMin")!) : undefined;
     const amountMax = searchParams.get("amountMax") ? parseFloat(searchParams.get("amountMax")!) : undefined;
-
-    if (!branchId) {
-      return NextResponse.json({ error: "branchId is required" }, { status: 400 });
-    }
 
     // Build where clause
     const where: any = { branchId };

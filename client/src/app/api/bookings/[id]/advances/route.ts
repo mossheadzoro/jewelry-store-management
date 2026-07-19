@@ -3,7 +3,7 @@ import { PrismaClient, RateLockStatus } from "@prisma/client";
 import { advanceSchema } from "@/schemas/booking";
 import { getRateLockStatus, metalAdvanceValue } from "@/lib/booking-logic";
 
-const prisma = new PrismaClient();
+import { prisma } from "@libs/prisma";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

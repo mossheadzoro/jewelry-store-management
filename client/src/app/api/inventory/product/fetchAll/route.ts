@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+import { prisma } from "@libs/prisma";
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -21,18 +20,36 @@ export async function GET(req: NextRequest) {
         ...(searchTerm && {
           name: {
             contains: searchTerm,
-            mode: "insensitive", // case-insensitive search
+            mode: "insensitive",
           },
         }),
       },
-      include: {
-        branch: true,
-        subCategory: {
-          include: {
-            category: true, // include parent category
-          },
+      select: {
+        id: true,
+        name: true,
+        gsWeight: true,
+        ntWeight: true,
+        purity: true,
+        barcode: true,
+        branch: {
+          select: {
+            id: true,
+            name: true,
+          }
         },
-      },
+        subCategory: {
+          select: {
+            id: true,
+            name: true,
+            category: {
+              select: {
+                id: true,
+                name: true,
+              }
+            }
+          }
+        }
+      }
     });
 
     const formattedProducts = products.map((product) => ({
@@ -60,7 +77,5 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     console.error("Fetch error:", error.message || error);
     return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
-  }
+  } 
 }

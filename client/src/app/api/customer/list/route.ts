@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../libs/prisma";
+import { requireAuth } from "@/lib/authGuard";
 
 export async function GET(req: Request) {
+  const auth = await requireAuth(req, { module: "CUSTOMERS", requireBranch: true });
+  if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+  const branchId = auth.branchId!;
+
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = parseInt(searchParams.get("limit") || "20", 10);
@@ -57,6 +63,7 @@ export async function GET(req: Request) {
           },
         },
         invoices: {
+          where: { branchId },
           select: {
             id: true,
             invoiceNumber: true,
@@ -155,7 +162,7 @@ export async function GET(req: Request) {
     // Total outstanding — use Prisma aggregation
     const outstandingAgg = await prisma.invoice.aggregate({
       _sum: { balanceAmount: true },
-      where: { isFullyPaid: false },
+      where: { isFullyPaid: false, branchId },
     });
     const totalOutstanding = outstandingAgg._sum.balanceAmount || 0;
 
@@ -165,6 +172,7 @@ export async function GET(req: Request) {
         SELECT c.id
         FROM "Customer" c
         JOIN "Invoice" i ON i."customerId" = c.id
+        WHERE i."branchId" = ${branchId}
         GROUP BY c.id
         HAVING COUNT(i.id) >= 10 OR SUM(i."totalAmount") >= 1000000
       ) vips

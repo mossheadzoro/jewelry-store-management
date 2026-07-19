@@ -40,39 +40,9 @@ async function main() {
 
   console.log("✅ Admin seeded successfully.");
 
-  // Seed CompanySettings if not exists
-  const existingSettings = await prisma.companySettings.findFirst();
-  if (!existingSettings) {
-    await prisma.companySettings.create({
-      data: {
-        companyName: "Main Jewelry Store",
-        costingMethod: "WAC",
-        requireHuidForSales: false,
-        defaultLockDays: 90,
-        financialYearStart: 4,
-      },
-    });
-    console.log("✅ Company settings seeded successfully.");
-  } else {
-    console.log("ℹ️ Company settings already exist.");
-  }
 
-  // Seed MetalRateHistory if empty
-  const rateCount = await prisma.metalRateHistory.count();
-  if (rateCount === 0) {
-    await prisma.metalRateHistory.createMany({
-      data: [
-        { metalType: "GOLD", karatage: 22, rate: 65.5, rateUnit: "PER_GRAM" },
-        { metalType: "GOLD", karatage: 18, rate: 54.0, rateUnit: "PER_GRAM" },
-        { metalType: "GOLD", karatage: 14, rate: 43.0, rateUnit: "PER_GRAM" },
-        { metalType: "SILVER", karatage: null, rate: 0.85, rateUnit: "PER_GRAM" },
-        { metalType: "PLATINUM", karatage: null, rate: 32.0, rateUnit: "PER_GRAM" },
-      ],
-    });
-    console.log("✅ Metal rate history seeded successfully.");
-  } else {
-    console.log("ℹ️ Metal rate history already exists.");
-  }
+
+
 }
 
 main()

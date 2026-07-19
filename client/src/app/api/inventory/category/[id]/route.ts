@@ -1,12 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "../../../../../../libs/prisma";
-
+import { requireAuth } from "@/lib/authGuard";
 
 export async function GET(
-  req: NextRequest,
+  req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAuth(req, { module: "INVENTORY", requireBranch: false });
+    if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
     const { id } = await context.params;
     const categoryId = parseInt(id);
 
@@ -25,6 +28,18 @@ export async function GET(
 
     if (!category) {
       return NextResponse.json({ error: "Category not found" }, { status: 404 });
+    }
+
+    // Branch Authorization Check
+    if (auth.user!.systemRole !== "ADMIN") {
+      const allowedBranchIds = [
+        auth.user!.branchId,
+        ...auth.user!.userBranches.map(ub => ub.branchId)
+      ].filter(Boolean);
+      
+      if (!allowedBranchIds.includes(category.branchId)) {
+        return NextResponse.json({ error: "Forbidden: You do not have access to this branch" }, { status: 403 });
+      }
     }
 
     let totalWeight = 0;

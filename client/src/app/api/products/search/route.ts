@@ -1,9 +1,8 @@
 // /app/api/products/search/route.ts
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { Console } from "console";
 
-const prisma = new PrismaClient();
+import { prisma } from "@libs/prisma";
 
 // GET /api/products/search?q=ring&branchId=1
 export async function GET(req: Request) {

@@ -1,11 +1,10 @@
 // app/api/users/create/route.ts
-import { PrismaClient } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+import { prisma } from "@libs/prisma";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -44,7 +43,7 @@ export async function POST(req: NextRequest) {
       name: body.name,
       email: body.email,
       password: hashed,
-      role: body.role,
+      systemRole: body.role,
       gender:body.gender,
       phone:body.phone,
       address:body.address,

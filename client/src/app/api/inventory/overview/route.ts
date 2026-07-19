@@ -1,42 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "../../../../../libs/prisma";
+import { requireAuth } from "@/lib/authGuard";
 
-export async function GET(req: NextRequest) {
-  const branchId = parseInt(req.nextUrl.searchParams.get("branchId") || "1");
+export async function GET(req: Request) {
+  const auth = await requireAuth(req, { module: "INVENTORY", requireBranch: true });
+  if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+  const branchId = auth.branchId!;
 
   try {
     const categories = await prisma.category.findMany({
       where: { branchId },
-      include: {
-        subCategories: {
-          include: {
-            products: {
-              select: { ntWeight: true, gsWeight: true, quantity: true, reservedQty: true },
-            },
-          },
-        },
-      },
+      select: {
+        id: true,
+        name: true,
+        _count: {
+          select: { subCategories: true }
+        }
+      }
     });
 
-    const result = categories.map((cat) => {
-      let totalWeight = 0;
-      let itemCount = 0;
-
-      cat.subCategories.forEach((sub) => {
-        sub.products.forEach((p) => {
-          totalWeight += p.ntWeight ?? 0;
-          itemCount += p.quantity ?? 1;
+    const result = await Promise.all(
+      categories.map(async (cat) => {
+        const stats = await prisma.productItem.aggregate({
+          where: { branchId, subCategory: { categoryId: cat.id } },
+          _sum: { ntWeight: true, quantity: true }
         });
-      });
-
-      return {
-        id: cat.id,
-        name: cat.name,
-        totalWeight: parseFloat(totalWeight.toFixed(2)),
-        itemCount,
-        subCategoryCount: cat.subCategories.length,
-      };
-    });
+        return {
+          id: cat.id,
+          name: cat.name,
+          totalWeight: parseFloat((stats._sum.ntWeight || 0).toFixed(2)),
+          itemCount: stats._sum.quantity || 0,
+          subCategoryCount: cat._count.subCategories,
+        };
+      })
+    );
 
     const totalVaultWeight = result.reduce((s, c) => s + c.totalWeight, 0);
     const totalItems = result.reduce((s, c) => s + c.itemCount, 0);

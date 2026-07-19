@@ -425,7 +425,7 @@ export default function InventoryLedgerClient() {
                 <p className="text-[14px] text-zinc-500 mt-1">Complete immutable audit trail of all inventory movements</p>
               </div>
               <div className="flex items-center gap-3">
-                {user?.role === "ADMIN" && (
+                {(user?.systemRole === "ADMIN" || user?.role === "ADMIN") && (
                   <button
                     disabled={locking}
                     onClick={handleLockEntries}

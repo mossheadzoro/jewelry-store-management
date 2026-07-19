@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { cancelBookingSchema } from "@/schemas/booking";
 
-const prisma = new PrismaClient();
+import { prisma } from "@libs/prisma";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

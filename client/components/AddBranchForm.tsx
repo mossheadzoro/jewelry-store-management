@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import axios from "axios";
 import { useState } from "react";
 
+import { useBranchStore } from "@/lib/store/useBranchStore";
+
 export default function AddBranchForm() {
   const [formData, setFormData] = useState({
     name: "",
@@ -31,6 +33,7 @@ export default function AddBranchForm() {
        console.log(response)
       if (response.status === 201) {
         alert(`✅ Branch "${formData.name}" created!`);
+        useBranchStore.getState().fetchAllBranches(); // refresh branches
         setFormData({
           name: "",
           address: "",

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+import { prisma } from "@libs/prisma";
 
 export async function PATCH(
   req: NextRequest,
@@ -79,7 +78,5 @@ export async function PATCH(
   } catch (error: any) {
     console.error("Error updating product:", error.message || error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
-  }
+  } 
 }

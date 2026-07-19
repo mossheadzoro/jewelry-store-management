@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient, Gender, Prisma } from '@prisma/client';
 
-const prisma = new PrismaClient();
+import { prisma } from "@libs/prisma";
 
 function parseDate(value?: string): Date | null {
   if (!value || value.trim() === "") return null;

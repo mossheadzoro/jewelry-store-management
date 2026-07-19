@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+import { prisma } from "@libs/prisma";
 
 export async function GET() {
   try {
@@ -14,24 +13,24 @@ export async function GET() {
       rateLocked,
       deliveryDueThisWeek,
       expired,
-      bookings,
-      advances,
+      bookingsAgg,
+      advanceCollectedAgg,
+      goldAdvanceWeightAgg,
       customers
     ] = await Promise.all([
       prisma.productBooking.count({ where: { status: { in: ["ACTIVE", "PARTIAL_LOCK", "RATE_LOCKED"] } } }),
       prisma.productBooking.count({ where: { rateLockStatus: "FULL_LOCK" } }),
       prisma.productBooking.count({ where: { deliveryDueDate: { gte: now, lte: nextWeek } } }),
       prisma.productBooking.count({ where: { status: "EXPIRED" } }),
-      prisma.productBooking.findMany({ where: { status: { not: "CANCELLED" } }, select: { grandTotal: true } }),
-      prisma.bookingAdvance.findMany({ select: { netValue: true, advanceType: true, metalWeight: true, metalPurity: true, createdAt: true } }),
+      prisma.productBooking.aggregate({ _sum: { grandTotal: true }, where: { status: { not: "CANCELLED" } } }),
+      prisma.bookingAdvance.aggregate({ _sum: { netValue: true } }),
+      prisma.bookingAdvance.aggregate({ _sum: { metalWeight: true }, where: { advanceType: { in: ["METAL_22K", "METAL_24K"] } } }),
       prisma.customer.aggregate({ _sum: { walletBalance: true } })
     ]);
 
-    const bookingRevenue = bookings.reduce((sum, b) => sum + b.grandTotal, 0);
-    const advanceCollected = advances.reduce((sum, a) => sum + a.netValue, 0);
-    const goldAdvanceWeight = advances
-      .filter(a => a.advanceType === "METAL_22K" || a.advanceType === "METAL_24K")
-      .reduce((sum, a) => sum + (a.metalWeight || 0), 0);
+    const bookingRevenue = bookingsAgg._sum.grandTotal || 0;
+    const advanceCollected = advanceCollectedAgg._sum.netValue || 0;
+    const goldAdvanceWeight = goldAdvanceWeightAgg._sum.metalWeight || 0;
     const walletLiability = customers._sum.walletBalance || 0;
 
     return NextResponse.json({

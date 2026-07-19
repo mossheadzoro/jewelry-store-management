@@ -19,6 +19,7 @@ import type {
 export const useBookingDashboard = () =>
   useQuery<{ stats: BookingDashboardStats; charts: BookingChartData }>({
     queryKey: ["booking-dashboard"],
+    staleTime: 60000, // 1 minute client-side cache
     queryFn: async () => {
       const res = await fetch("/api/bookings/dashboard");
       if (!res.ok) throw new Error("Failed to fetch dashboard data");
@@ -53,6 +54,7 @@ export const useBookingDashboard = () =>
 export const useBookingList = (params: BookingListParams) =>
   useQuery<BookingListResponse>({
     queryKey: ["bookings", params],
+    staleTime: 30000, // 30 seconds cache for lists
     queryFn: async () => {
       const searchParams = new URLSearchParams();
       searchParams.set("page", String(params.page));
@@ -254,7 +256,22 @@ export const useCreateBooking = () => {
       if (!res.ok) throw new Error("Failed to create booking");
       return res.json();
     },
-    onSuccess: () => {
+    onMutate: async (newBooking) => {
+      await queryClient.cancelQueries({ queryKey: ["bookings"] });
+      const previousBookings = queryClient.getQueryData(["bookings"]);
+      queryClient.setQueryData(["bookings"], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          bookings: [{ ...newBooking, id: 'temp-id', status: 'ACTIVE', bookingDate: new Date().toISOString() }, ...(old.bookings || [])]
+        };
+      });
+      return { previousBookings };
+    },
+    onError: (err, newBooking, context) => {
+      queryClient.setQueryData(["bookings"], context?.previousBookings);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       queryClient.invalidateQueries({ queryKey: ["booking-dashboard"] });
     },
@@ -306,7 +323,19 @@ export const useCancelBooking = () => {
       if (!res.ok) throw new Error("Failed to cancel booking");
       return res.json();
     },
-    onSuccess: (_data, variables) => {
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ["booking", variables.bookingId] });
+      const previousBooking = queryClient.getQueryData(["booking", variables.bookingId]);
+      queryClient.setQueryData(["booking", variables.bookingId], (old: any) => {
+        if (!old) return old;
+        return { ...old, status: "CANCELLED" };
+      });
+      return { previousBooking };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(["booking", variables.bookingId], context?.previousBooking);
+    },
+    onSettled: (data, err, variables) => {
       queryClient.invalidateQueries({ queryKey: ["booking", variables.bookingId] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
     },

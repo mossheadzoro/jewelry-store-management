@@ -17,7 +17,8 @@ interface User {
   image:string | null; // Optional image field
   name: string;
   email: string;
-  role: string;
+  role?: string;
+  systemRole?: string;
   branchId: number | null;
 }
 interface Branch {

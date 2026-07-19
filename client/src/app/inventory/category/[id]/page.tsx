@@ -70,6 +70,17 @@ export default function CategoryDetailPage() {
     );
   }
 
+  if ('error' in data) {
+    return (
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="min-h-screen bg-[#0a0a0a] text-white p-8 w-full flex items-center justify-center text-red-500">
+          {(data as any).error}
+        </div>
+      </SidebarProvider>
+    );
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar />

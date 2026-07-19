@@ -21,7 +21,7 @@ export default function SalesHeader({ dateRange }: SalesHeaderProps) {
   const user = useUserStore((state) => state.user);
 
   useEffect(() => {
-    if (user?.role === "ADMIN") {
+    if (user?.systemRole === "ADMIN" || user?.role === "ADMIN") {
       fetchAllBranches();
     }
   }, [user, fetchAllBranches]);
@@ -59,7 +59,7 @@ export default function SalesHeader({ dateRange }: SalesHeaderProps) {
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#3A2E18] bg-[#111113] text-sm text-[#F0EBE0]">
           <Building className="w-4 h-4 text-[#C9943A]" />
           <span className="text-xs text-[#6B6560] uppercase font-semibold">Branch:</span>
-          {user?.role === "ADMIN" && branches.length > 0 ? (
+          {(user?.systemRole === "ADMIN" || user?.role === "ADMIN") && branches.length > 0 ? (
             <Select
               onValueChange={handleBranchChange}
               value={selectedBranch?.id?.toString() || ""}

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+import { prisma } from "@libs/prisma";
 
 export async function GET(
   req: NextRequest,
@@ -86,24 +85,24 @@ export async function GET(
     let activeBookingDetails = null;
     if (product.reservedQty > 0) {
       try {
-        const activeBookingItem = await prisma.productBookingItem.findFirst({
+        const activeBookingItem = await prisma.bookingItem.findFirst({
           where: {
             productId: product.id,
-            booking: {
+            ProductBooking: {
               status: "ACTIVE"
             }
           },
           include: {
-            booking: {
-              include: { customer: true }
+            ProductBooking: {
+              include: { Customer: true }
             }
           }
         });
-        if (activeBookingItem && activeBookingItem.booking) {
+        if (activeBookingItem && activeBookingItem.ProductBooking) {
            activeBookingDetails = {
-             bookingNumber: activeBookingItem.booking.bookingNumber,
-             customerName: activeBookingItem.booking.customer?.name || "Customer",
-             bookingId: activeBookingItem.booking.id
+             bookingNumber: activeBookingItem.ProductBooking.bookingNumber,
+             customerName: activeBookingItem.ProductBooking.Customer?.name || "Customer",
+             bookingId: activeBookingItem.ProductBooking.id
            };
         }
       } catch (e) {
@@ -115,7 +114,5 @@ export async function GET(
   } catch (error: any) {
     console.error("Error fetching product:", error.message || error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
-  }
+  } 
 }

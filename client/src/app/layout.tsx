@@ -33,6 +33,8 @@ export const metadata: Metadata = {
   description: "Premium jewellery store management — billing, inventory, customers, orders, and more.",
 };
 
+import { LiveGoldRatesWidget } from "@/components/ui/LiveGoldRatesWidget";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -41,9 +43,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${cormorant.variable} ${inter.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${cormorant.variable} ${inter.variable} antialiased relative min-h-screen`}
       >
-        <ReactQueryProvider>{children}</ReactQueryProvider>
+        <ReactQueryProvider>
+          {children}
+          <LiveGoldRatesWidget />
+        </ReactQueryProvider>
       </body>
     </html>
   );

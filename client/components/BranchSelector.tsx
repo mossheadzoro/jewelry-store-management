@@ -17,12 +17,12 @@ export default function BranchSelector() {
   const user = useUserStore((state) => state.user);
 
   useEffect(() => {
-    if (user?.role === 'ADMIN') {
+    if (user?.systemRole === 'ADMIN' || user?.role === 'ADMIN') {
       fetchAllBranches();
     }
   }, [user, fetchAllBranches]);
 
-  if (user?.role !== 'ADMIN') {
+  if (user?.systemRole !== 'ADMIN' && user?.role !== 'ADMIN') {
     return (
       <div className="px-4 py-2 text-sm text-gray-50">
         Branch: <strong>{selectedBranch?.name || 'Your Branch'}</strong>

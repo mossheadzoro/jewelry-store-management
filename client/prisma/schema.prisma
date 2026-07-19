@@ -41,6 +41,30 @@ model Branch {
   users                                                User[]
   wholesalers                                          Wholesaler[]
   savingSchemes                                        SavingScheme[]
+  settings                                             BranchSettings?
+  userBranches                                         UserBranch[]
+  orderBookSettings                                    OrderBookSettings?
+  branchApprovalMatrix                                 BranchApprovalMatrix[]
+}
+
+model BranchSettings {
+  id                  Int      @id @default(autoincrement())
+  branchId            Int      @unique
+  shopName            String?
+  gstNumber           String?
+  pan                 String?
+  currency            String   @default("INR")
+  address             String?
+  phoneNumbers        String?
+  email               String?
+  website             String?
+  invoiceHeaderText   String?
+  termsAndConditions  String?
+  logoUrl             String?
+  qrCodeUrl           String?
+  branch              Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model User {
@@ -49,7 +73,9 @@ model User {
   name                 String
   email                String                 @unique
   password             String
-  role                 Role
+  systemRole           SystemRole             @default(SALESMAN) // Renamed from role to preserve legacy
+  roleId               Int?
+  role                 Role?                  @relation(fields: [roleId], references: [id])
   gender               Gender?
   branchId             Int?
   createdById          Int?
@@ -84,6 +110,29 @@ model User {
   createdBy            User?                  @relation("CreatedUsers", fields: [createdById], references: [id])
   createdUsers         User[]                 @relation("CreatedUsers")
   savingSchemes        SavingScheme[]
+
+  // Extended Profile
+  photo                String?
+  signature            String?
+  emergencyContact     String?
+  department           String?
+  joiningDate          DateTime               @default(now())
+  status               UserStatus             @default(ACTIVE)
+
+  // Security
+  lastLogin            DateTime?
+  twoFactorEnabled     Boolean                @default(false)
+  forcePasswordReset   Boolean                @default(false)
+  loginTimeStart       String?   
+  loginTimeEnd         String?   
+  allowedIps           String[]
+  maxFailedAttempts    Int                    @default(5)
+
+  // Relations for new modules
+  userBranches         UserBranch[]
+  UserActivityLog      UserActivityLog[]
+  orderVersionsCreated OrderVersion[]
+  orderDelaysReported  OrderDelayReason[]
 
   @@index([branchId])
   @@index([createdById])
@@ -346,6 +395,9 @@ model Order {
   User           User?         @relation(fields: [userId], references: [id])
   Wholesaler     Wholesaler?   @relation(fields: [wholesalerId], references: [id])
   items          OrderItem[]
+  versions       OrderVersion[]
+  approvals      OrderApproval[]
+  delayReasons   OrderDelayReason[]
 
   @@index([customerId])
   @@index([karigarId])
@@ -413,6 +465,7 @@ model Karigar {
   KarigarHeldMetal KarigarHeldMetal[]
   jobs             KarigarJob[]
   Order            Order[]
+  capacity         KarigarCapacity?
 }
 
 model KarigarJob {
@@ -1136,11 +1189,16 @@ enum PaymentMethod {
   OTHER
 }
 
-enum Role {
+enum SystemRole {
   ADMIN
   MANAGER
   SALESMAN
   VIEWER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
 }
 
 enum Gender {
@@ -1385,4 +1443,147 @@ model SchemeRedemption {
 
   @@index([schemeId])
   @@index([invoiceId])
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  permissions Json
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+  ApprovalMatrix ApprovalMatrix[]
+}
+
+model UserBranch {
+  userId   Int
+  branchId Int
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([userId, branchId])
+  @@index([userId])
+  @@index([branchId])
+}
+
+model UserActivityLog {
+  id        String   @id @default(cuid())
+  userId    Int
+  action    String
+  module    String   
+  branchId  Int?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model ApprovalMatrix {
+  id             Int      @id @default(autoincrement())
+  action         String   @unique 
+  requiredRoleId Int
+  role           Role     @relation(fields: [requiredRoleId], references: [id])
+}
+
+model GlobalProductSettings {
+  id              String   @id @default(cuid())
+  branchId        Int?     @unique
+  metalConfig     Json?
+  codeConfig      Json?
+  weightConfig    Json?
+  pricingConfig   Json?
+  stoneConfig     Json?
+  hallmarkConfig  Json?
+  mediaConfig     Json?
+  inventoryConfig Json?
+  printConfig     Json?
+  customFields    Json?
+  validationRules Json?
+  financialConfig Json?
+  schemeConfig    Json?
+  goldRateConfig  Json?
+  customerConfig  Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model OrderBookSettings {
+  id                   String   @id @default(cuid())
+  branchId             Int      @unique
+  numberingSettings    Json?    // Prefix, Auto Gen, Slip Numbering
+  lifecycleSettings    Json?    // Default Status, Reopen completed orders
+  customerSettings     Json?    // Mandatory fields, Duplicate Merge
+  multiItemSettings    Json?    // Max Items, Allow duplicates
+  designSettings       Json?    // Max images, size, formats, Voice notes
+  deliverySettings     Json?    // Default days, Priority Levels, Overdue alerts
+  karigarAssignment    Json?    // Auto assignment, track history
+  advanceSettings      Json?    // Cash enable, min/max, Metal Advance
+  financialRules       Json?    // Min booking %, max advance %
+  cancellationRules    Json?    // Cancellation charges, Refund rules
+  orderNotesSettings   Json?    // Visibility of notes
+  printingSettings     Json?    // Customer Slip, Workshop Slip elements
+  dashboardSettings    Json?    // Enable/disable cards
+  notifications        Json?    // Settings for when to notify
+  documentSettings     Json?    // Required documents
+  rbacSettings         Json?    // Enforcing Manager vs Admin roles
+  auditSettings        Json?    // Which actions to track
+  reportsSettings      Json?    // Enable specific reports
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  branch               Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+}
+
+model OrderVersion {
+  id            String   @id @default(cuid())
+  orderId       String
+  versionNumber Int
+  snapshot      Json     // Snapshot of order and items
+  createdAt     DateTime @default(now())
+  createdById   Int?
+  Order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  User          User?    @relation(fields: [createdById], references: [id])
+}
+
+model OrderApproval {
+  id                String   @id @default(cuid())
+  orderId           String
+  status            String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  remarks           String?
+  customerSignature String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  Order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrderDelayReason {
+  id            String   @id @default(cuid())
+  orderId       String
+  reason        String   // Customer Request, Karigar Delay, Stone Delay, Gold Not Available
+  remarks       String?
+  reportedById  Int?
+  createdAt     DateTime @default(now())
+  Order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  User          User?    @relation(fields: [reportedById], references: [id])
+}
+
+model KarigarCapacity {
+  id             String   @id @default(cuid())
+  karigarId      String   @unique
+  maxActiveJobs  Int      @default(5)
+  maxTotalWeight Float    @default(500) // grams
+  Karigar        Karigar  @relation(fields: [karigarId], references: [id], onDelete: Cascade)
+}
+
+model BranchApprovalMatrix {
+  id                    String   @id @default(cuid())
+  branchId              Int
+  actionName            String   // CHANGE_DELIVERY_DATE, CANCEL_HIGH_VALUE, EDIT_ADVANCE
+  requiresAdminApproval Boolean  @default(true)
+  branch                Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, actionName])
 }

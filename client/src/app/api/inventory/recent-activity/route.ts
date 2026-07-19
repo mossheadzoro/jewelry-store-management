@@ -1,26 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { PrismaClient } from "@prisma/client";
-import { authOptions } from "@/lib/authOptions";
+import { NextResponse } from "next/server";
+import { prisma } from "@libs/prisma";
+import { requireAuth } from "@/lib/authGuard";
 
-const prisma = new PrismaClient();
-
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { searchParams } = new URL(req.url);
-    const branchId = searchParams.get("branchId");
-
-    if (!branchId) {
-      return NextResponse.json({ error: "branchId is required" }, { status: 400 });
-    }
+    const auth = await requireAuth(req, { module: "INVENTORY", requireBranch: true });
+    if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
     const recentLedgerEntries = await prisma.inventoryLedger.findMany({
-      where: { branchId: parseInt(branchId) },
+      where: { branchId: auth.branchId },
       orderBy: { createdAt: "desc" },
       take: 50,
       include: {

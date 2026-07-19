@@ -44,6 +44,7 @@ export default function CreateOrderView({ onOrderCreated }: { onOrderCreated: (o
   const [categories, setCategories] = useState<Category[]>([]);
   const [karigars, setKarigars] = useState<Karigar[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
 
   // Customer
   const [searchQuery, setSearchQuery] = useState("");
@@ -74,6 +75,7 @@ export default function CreateOrderView({ onOrderCreated }: { onOrderCreated: (o
     if (!selectedBranch?.id) return;
     axios.get("/api/karigar/available").then((r) => setKarigars(r.data)).catch(console.error);
     axios.get(`/api/inventory/category/fetchAll?branchId=${selectedBranch.id}`).then((r) => setCategories(r.data)).catch(console.error);
+    axios.get(`/api/settings/order-book?branchId=${selectedBranch.id}`).then((r) => setSettings(r.data)).catch(console.error);
   }, [selectedBranch]);
 
   // Customer search
@@ -94,7 +96,13 @@ export default function CreateOrderView({ onOrderCreated }: { onOrderCreated: (o
     return () => clearTimeout(t);
   }, [searchQuery]);
 
-  const addItem = () => setItems([...items, emptyItem()]);
+  const addItem = () => {
+    if (settings?.multiItemSettings?.maxItemsPerOrder > 0 && items.length >= settings.multiItemSettings.maxItemsPerOrder) {
+      alert(`Maximum of ${settings.multiItemSettings.maxItemsPerOrder} items allowed per order based on settings.`);
+      return;
+    }
+    setItems([...items, emptyItem()]);
+  };
   const removeItem = (i: number) => { if (items.length > 1) setItems(items.filter((_, idx) => idx !== i)); };
   const updateItem = (i: number, field: keyof ItemDraft, value: any) => {
     const copy = [...items]; (copy[i] as any)[field] = value; setItems(copy);
@@ -214,7 +222,7 @@ export default function CreateOrderView({ onOrderCreated }: { onOrderCreated: (o
                         <p className="text-[11px] text-[#666]">{c.mobile}</p>
                       </div>
                     ))}
-                    {!searching && customerResults.length === 0 && (
+                    {!searching && customerResults.length === 0 && settings?.customerSettings?.quickCreation !== false && (
                       <div className="px-4 py-3 text-[#D4A843] cursor-pointer hover:bg-[#2a2a2a] text-[12px]" onClick={() => { setShowCustomerModal(true); setShowDropdown(false); }}>
                         ➕ Create new customer with "{searchQuery}"
                       </div>

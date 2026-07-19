@@ -302,7 +302,7 @@ export default function EditProductPage({ id }: EditProductPageProps) {
                     name="productCode"
                     value={form.productCode}
                     onChange={handleChange}
-                    disabled={!(user?.role === "ADMIN" || user?.role === "MANAGER")}
+                    disabled={!(user?.systemRole === "ADMIN" || user?.role === "ADMIN" || user?.systemRole === "MANAGER" || user?.role === "MANAGER")}
                     className="bg-[#1a1a1a] border-gray-800 text-white h-11 disabled:opacity-50"
                   />
                 </div>
@@ -312,7 +312,7 @@ export default function EditProductPage({ id }: EditProductPageProps) {
                     name="barcode"
                     value={form.barcode}
                     onChange={handleChange}
-                    disabled={!(user?.role === "ADMIN" || user?.role === "MANAGER")}
+                    disabled={!(user?.systemRole === "ADMIN" || user?.role === "ADMIN" || user?.systemRole === "MANAGER" || user?.role === "MANAGER")}
                     className="bg-[#1a1a1a] border-gray-800 text-white h-11 disabled:opacity-50"
                   />
                 </div>
@@ -322,7 +322,7 @@ export default function EditProductPage({ id }: EditProductPageProps) {
                     name="huidNumber"
                     value={form.huidNumber}
                     onChange={handleChange}
-                    disabled={!(user?.role === "ADMIN" || user?.role === "MANAGER")}
+                    disabled={!(user?.systemRole === "ADMIN" || user?.role === "ADMIN" || user?.systemRole === "MANAGER" || user?.role === "MANAGER")}
                     placeholder="Hallmark ID..."
                     className="bg-[#1a1a1a] border-gray-800 text-white h-11 disabled:opacity-50"
                   />

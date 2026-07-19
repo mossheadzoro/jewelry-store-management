@@ -22,23 +22,19 @@ export async function GET() {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  let branch = null;
-
-if (user.role !== "ADMIN") {
-  branch = await prisma.branch.findUnique({
+  const branchPromise = user.systemRole !== "ADMIN" ? prisma.branch.findUnique({
     where: { id: user.branchId! },
+  }) : Promise.resolve(null);
+
+  const managerPromise = prisma.user.findFirst({
+    where: { branchId: user.branchId, systemRole: 'MANAGER' },
+    select: { id: true, name: true, image: true }
   });
-}
 
-
-  const manager = await prisma.user.findFirst({
-    where: { branchId: user.branchId, role: 'MANAGER' },
-  });
-
-  const salesmen = await prisma.user.findMany({
+  const salesmenPromise = prisma.user.findMany({
     where: {
       branchId: user.branchId!,
-      role: 'SALESMAN',
+      systemRole: 'SALESMAN',
     },
     select: {
       id: true,
@@ -46,6 +42,12 @@ if (user.role !== "ADMIN") {
       branchId: true,
     },
   });
+
+  const [branch, manager, salesmen] = await Promise.all([
+    branchPromise,
+    managerPromise,
+    salesmenPromise
+  ]);
 
   return NextResponse.json({
     user,

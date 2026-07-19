@@ -38,7 +38,7 @@ const AddCategoryDialog = ({ open, setOpen }: Props) => {
     setLoading(true)
     try {
       const branchId =
-        user?.role === 'ADMIN'
+        (user?.systemRole === 'ADMIN' || user?.role === 'ADMIN')
           ? selectedBranch?.id
           : user?.branchId
 
@@ -100,7 +100,7 @@ const AddCategoryDialog = ({ open, setOpen }: Props) => {
           </div>
 
           {/* Optional: show branch name if not admin */}
-          {user?.role !== 'ADMIN' && (
+          {user?.systemRole !== 'ADMIN' && user?.role !== 'ADMIN' && (
             <p className="text-sm text-muted-foreground">
               Branch: <strong>{user?.branchId}</strong>
             </p>

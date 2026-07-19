@@ -227,7 +227,6 @@ export default function BookingsDashboard() {
         </div>
       )}
 
-      )}
     </div>
   );
 }
