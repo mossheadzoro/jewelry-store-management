@@ -8,6 +8,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export function NavMain({
@@ -19,7 +20,7 @@ export function NavMain({
     icon?: Icon;
   }[];
 }) {
-  const router=useRouter()
+  const router = useRouter();
 
   return (
     <SidebarGroup>
@@ -27,12 +28,15 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                tooltip={item.title}
-                onClick={() => router.push(item.url)} // ✅ navigate
+              <SidebarMenuButton 
+                tooltip={item.title} 
+                asChild 
+                onMouseEnter={() => router.prefetch(item.url)}
               >
-                {item.icon && <item.icon />}
-                <span>{item.title}</span>
+                <Link href={item.url}>
+                  {item.icon && <item.icon />}
+                  <span>{item.title}</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

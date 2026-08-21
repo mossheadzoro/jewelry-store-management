@@ -136,11 +136,11 @@ export default function CategoriesTab({ branchId }: { branchId: number | undefin
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm p-4">
           <div className="bg-onyx-surface border border-onyx-border rounded-xl w-full max-w-lg shadow-2xl">
             <div className="flex items-center justify-between p-6 border-b border-onyx-border">
               <h2 className="text-[16px] font-semibold text-platinum">{editingCat ? "Edit Category" : "New Category"}</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-platinum-muted hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setIsModalOpen(false)} className="text-platinum-muted hover:text-foreground"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSave} className="p-6 space-y-4">
               <div>

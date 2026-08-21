@@ -23,7 +23,17 @@ export async function GET(req: NextRequest) {
     });
     const branchName = branch?.name || "Main Atelier";
 
-    // 1. Calculate stock value (WAC cost) from ProductBranchCost
+    // 1. Calculate stock value (WAC cost) & stock weights from current branch inventory
+    const branchProducts = await prisma.productItem.findMany({
+      where: { branchId, quantity: { gt: 0 } }
+    });
+    let closingGrossWeight = 0;
+    let closingFineWeight = 0;
+    for (const prod of branchProducts) {
+      closingGrossWeight += (prod.gsWeight || 0) * prod.quantity;
+      closingFineWeight += (prod.ntWeight || 0) * (prod.purity || 1.0) * prod.quantity;
+    }
+
     const branchCosts = await prisma.productBranchCost.findMany({
       where: { branchId }
     });
@@ -114,9 +124,10 @@ export async function GET(req: NextRequest) {
       topProduct = sortedProducts[0];
     }
 
-    // 5. Back-calculate opening stock value
-    // Opening = Closing + Cost of Items Sold Today - Cost of Purchases Today
-    // (We will approximate cost of items sold today as 80% of today's taxable revenue if exact cost layers aren't fully resolved)
+    // 5. Back-calculate opening stock value & weights
+    // Opening = Closing + Cost / Weight of Items Sold Today
+    const openingGrossWeight = closingGrossWeight + totalWeightSold;
+    const openingFineWeight = closingFineWeight + fineWeightSold;
     const todaySalesRevenue = invoices.reduce((s, inv) => s + (inv.totalMetalAmount + inv.totalMakingAmount + inv.totalStoneAmount), 0);
     const estimatedCostOfSales = todaySalesRevenue * 0.85; 
     const openingStockValue = Math.max(0, closingStockValue + estimatedCostOfSales);
@@ -126,6 +137,10 @@ export async function GET(req: NextRequest) {
       branch: branchName,
       openingStockValue: parseFloat(openingStockValue.toFixed(2)),
       closingStockValue: parseFloat(closingStockValue.toFixed(2)),
+      openingGrossWeight: parseFloat(openingGrossWeight.toFixed(3)),
+      openingFineWeight: parseFloat(openingFineWeight.toFixed(3)),
+      closingGrossWeight: parseFloat(closingGrossWeight.toFixed(3)),
+      closingFineWeight: parseFloat(closingFineWeight.toFixed(3)),
       invoicesRaised,
       itemsSold,
       totalWeightSold: parseFloat(totalWeightSold.toFixed(3)),

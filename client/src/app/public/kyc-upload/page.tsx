@@ -112,7 +112,7 @@ function KycUploadContent() {
 
   if (loading || verifying) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center flex-col space-y-4 px-6 text-center">
+      <div className="min-h-screen bg-onyx flex items-center justify-center flex-col space-y-4 px-6 text-center">
         <Loader2 className="w-8 h-8 text-[#D4A843] animate-spin" />
         <p className="text-[14px] text-[#888]">Establishing secure encrypted channel...</p>
       </div>
@@ -120,8 +120,8 @@ function KycUploadContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 py-16 selection:bg-[#D4A843]/20">
-      <div className="w-full max-w-[500px] bg-[#141414] border border-[#222] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+    <div className="min-h-screen bg-onyx flex items-center justify-center px-4 py-16 selection:bg-[#D4A843]/20">
+      <div className="w-full max-w-[500px] bg-onyx-surface border border-[#222] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
         {/* Decorative subtle backdrop gradient */}
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#D4A843]/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -132,7 +132,7 @@ function KycUploadContent() {
             <Shield className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-[17px] font-bold text-white tracking-wide uppercase">Atelier Secure Curation</h1>
+            <h1 className="text-[17px] font-bold text-foreground tracking-wide uppercase">Atelier Secure Curation</h1>
             <p className="text-[12px] text-[#666]">End-to-End Encrypted KYC Node</p>
           </div>
         </div>
@@ -141,7 +141,7 @@ function KycUploadContent() {
           <div className="bg-red-500/5 border border-red-500/25 rounded-2xl p-4.5 mb-6 flex items-start gap-3">
             <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
             <div>
-              <h3 className="text-[13px] font-bold text-white mb-0.5">Upload Restrained</h3>
+              <h3 className="text-[13px] font-bold text-foreground mb-0.5">Upload Restrained</h3>
               <p className="text-[12px] text-red-400/80 leading-normal">{errorMsg}</p>
             </div>
           </div>
@@ -153,7 +153,7 @@ function KycUploadContent() {
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <div>
-              <h2 className="text-[20px] font-bold text-white">Upload Encrypted</h2>
+              <h2 className="text-[20px] font-bold text-foreground">Upload Encrypted</h2>
               <p className="text-[13px] text-[#888] mt-2 max-w-sm mx-auto leading-relaxed">
                 Your document has been encrypted on-the-fly with AES-256-CBC and stored in our secure vault. The verification token is now invalidated.
               </p>
@@ -165,9 +165,9 @@ function KycUploadContent() {
         ) : customer ? (
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Context Card */}
-            <div className="bg-[#0a0a0a] border border-[#1f1f1f] rounded-2xl p-5">
+            <div className="bg-onyx border border-[#1f1f1f] rounded-2xl p-5">
               <span className="text-[10px] font-semibold text-[#555] uppercase tracking-widest block mb-1">Authenticated Client</span>
-              <span className="text-[16px] font-bold text-white block capitalize">{customer.name}</span>
+              <span className="text-[16px] font-bold text-foreground block capitalize">{customer.name}</span>
               <span className="text-[12px] text-[#666] block mt-0.5">+91 {customer.mobile}</span>
             </div>
 
@@ -177,7 +177,7 @@ function KycUploadContent() {
               <select
                 value={documentType}
                 onChange={(e) => setDocumentType(e.target.value)}
-                className="w-full h-11 px-4 rounded-xl border border-[#222] bg-[#0a0a0a] text-white text-[13px] font-medium outline-none focus:border-[#D4A843] transition-all cursor-pointer"
+                className="w-full h-11 px-4 rounded-xl border border-[#222] bg-onyx text-foreground text-[13px] font-medium outline-none focus:border-[#D4A843] transition-all cursor-pointer"
               >
                 <option value="AADHAR">Aadhar Card</option>
                 <option value="PAN">PAN Card</option>
@@ -199,7 +199,7 @@ function KycUploadContent() {
                     ? "border-[#D4A843] bg-[#D4A843]/5" 
                     : file 
                       ? "border-[#D4A843]/40 bg-[#0d0d0d]" 
-                      : "border-[#222] bg-[#0a0a0a] hover:border-[#D4A843]/30"
+                      : "border-[#222] bg-onyx hover:border-[#D4A843]/30"
                 }`}
               >
                 <input
@@ -216,21 +216,21 @@ function KycUploadContent() {
                       <FileText className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-[13px] font-semibold text-white truncate max-w-[280px] mx-auto">{file.name}</p>
+                      <p className="text-[13px] font-semibold text-foreground truncate max-w-[280px] mx-auto">{file.name}</p>
                       <p className="text-[11px] text-[#555] mt-0.5">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
                     </div>
                     <span className="text-[11px] text-[#D4A843] hover:underline block pointer-events-none mt-1">Change File</span>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <div className="w-10 h-10 bg-[#222] rounded-xl flex items-center justify-center text-[#666] mx-auto">
+                    <div className="w-10 h-10 bg-secondary rounded-xl flex items-center justify-center text-[#666] mx-auto">
                       <Upload className="w-4.5 h-4.5 animate-pulse" />
                     </div>
                     <div>
-                      <p className="text-[13px] text-white font-medium">Drag & drop your file here</p>
+                      <p className="text-[13px] text-foreground font-medium">Drag & drop your file here</p>
                       <p className="text-[11px] text-[#555] mt-1">Supports PDF or Image (up to 10MB)</p>
                     </div>
-                    <span className="inline-block px-3 py-1.5 rounded-lg border border-[#222] text-[#888] text-[11px] font-semibold hover:border-[#333]">
+                    <span className="inline-block px-3 py-1.5 rounded-lg border border-[#222] text-[#888] text-[11px] font-semibold hover:border-border">
                       Browse Files
                     </span>
                   </div>
@@ -246,7 +246,7 @@ function KycUploadContent() {
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="e.g. Self-attested copy of Aadhar card"
                 rows={2}
-                className="w-full p-3 rounded-xl border border-[#222] bg-[#0a0a0a] text-white text-[13px] outline-none focus:border-[#D4A843] transition-all resize-none placeholder-[#333]"
+                className="w-full p-3 rounded-xl border border-[#222] bg-onyx text-foreground text-[13px] outline-none focus:border-[#D4A843] transition-all resize-none placeholder-[#333]"
               />
             </div>
 
@@ -256,7 +256,7 @@ function KycUploadContent() {
               disabled={!file || uploading}
               className={`w-full h-11 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2 transition-all ${
                 file && !uploading
-                  ? "bg-[#D4A843] text-black hover:bg-[#e6bc5a] active:scale-[0.98] cursor-pointer"
+                  ? "bg-[#D4A843] text-foreground hover:bg-[#e6bc5a] active:scale-[0.98] cursor-pointer"
                   : "bg-[#1f1f1f] text-[#555] cursor-not-allowed"
               }`}
             >
@@ -276,7 +276,7 @@ function KycUploadContent() {
         ) : (
           <div className="text-center py-6">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-lg font-bold text-white">Access Denied</h2>
+            <h2 className="text-lg font-bold text-foreground">Access Denied</h2>
             <p className="text-[#666] text-sm mt-2">
               This KYC upload portal could not establish verification.
             </p>
@@ -290,7 +290,7 @@ function KycUploadContent() {
 export default function KycUploadPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center flex-col space-y-4 text-center">
+      <div className="min-h-screen bg-onyx flex items-center justify-center flex-col space-y-4 text-center">
         <Loader2 className="w-8 h-8 text-[#D4A843] animate-spin" />
         <p className="text-[14px] text-[#888]">Loading portal node...</p>
       </div>

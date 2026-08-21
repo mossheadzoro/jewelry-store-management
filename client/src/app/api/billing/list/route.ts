@@ -34,8 +34,8 @@ export async function GET(req: Request) {
     // Build where clause
     const where: any = { branchId };
 
-    // Date filtering
-    if (dateFrom || dateTo) {
+    // Date filtering (only apply if no search query is typed)
+    if (!search.trim() && (dateFrom || dateTo)) {
       where.createdAt = {};
       if (dateFrom) where.createdAt.gte = new Date(dateFrom);
       if (dateTo) {
@@ -45,12 +45,27 @@ export async function GET(req: Request) {
       }
     }
 
-    // Search filtering (invoice number or customer name)
+    // Search filtering (invoice number, customer name, mobile, gstin, product name/code)
     if (search.trim()) {
+      const term = search.trim();
       where.OR = [
-        { invoiceNumber: { contains: search, mode: "insensitive" } },
-        { customer: { name: { contains: search, mode: "insensitive" } } },
-        { customer: { mobile: { contains: search } } },
+        { invoiceNumber: { contains: term, mode: "insensitive" } },
+        { customer: { name: { contains: term, mode: "insensitive" } } },
+        { customer: { mobile: { contains: term, mode: "insensitive" } } },
+        { customer: { gstin: { contains: term, mode: "insensitive" } } },
+        {
+          items: {
+            some: {
+              product: {
+                OR: [
+                  { name: { contains: term, mode: "insensitive" } },
+                  { productCode: { contains: term, mode: "insensitive" } },
+                  { barcode: { contains: term, mode: "insensitive" } },
+                ],
+              },
+            },
+          },
+        },
       ];
     }
 
@@ -64,6 +79,8 @@ export async function GET(req: Request) {
       } else if (status === "PARTIAL") {
         where.isFullyPaid = false;
         where.paidAmount = { gt: 0 };
+      } else if (status === "OUTSTANDING" || status === "BALANCE") {
+        where.isFullyPaid = false;
       }
     }
 

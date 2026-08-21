@@ -204,7 +204,7 @@ export default function BackupTab() {
         <button
           onClick={handleDownloadBackup}
           disabled={isExporting}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-[#C9943A] hover:bg-[#E8B84B] text-black text-sm font-bold disabled:opacity-50 transition-colors cursor-pointer border-0"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-[#C9943A] hover:bg-[#E8B84B] text-foreground text-sm font-bold disabled:opacity-50 transition-colors cursor-pointer border-0"
         >
           {isExporting ? (
             <Loader2 className="w-4 h-4 animate-spin" />

@@ -132,7 +132,7 @@ export default function GoldRateSettingsPanel() {
             <button 
               onClick={() => handleSave(false)} 
               disabled={saving || savingAll} 
-              className="bg-[#C9943A] text-black px-4 py-2 rounded-lg text-[13px] font-semibold hover:bg-[#E8B84B] transition-colors flex items-center gap-2"
+              className="bg-[#C9943A] text-foreground px-4 py-2 rounded-lg text-[13px] font-semibold hover:bg-[#E8B84B] transition-colors flex items-center gap-2"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {saving ? "Saving..." : "Save for this branch"}
@@ -154,7 +154,7 @@ export default function GoldRateSettingsPanel() {
                 <button
                   onClick={() => isAdmin && setConfig((prev: any) => ({ ...prev, isLive: true }))}
                   disabled={!isAdmin}
-                  className={`px-3 py-1.5 text-[12px] font-medium rounded-md transition-colors ${config.isLive ? "bg-[#C9943A] text-black shadow-sm" : "text-platinum-muted hover:text-platinum"}`}
+                  className={`px-3 py-1.5 text-[12px] font-medium rounded-md transition-colors ${config.isLive ? "bg-[#C9943A] text-foreground shadow-sm" : "text-platinum-muted hover:text-platinum"}`}
                 >
                   <div className="flex items-center gap-1.5">
                     <RefreshCw className="w-3.5 h-3.5" />
@@ -164,7 +164,7 @@ export default function GoldRateSettingsPanel() {
                 <button
                   onClick={() => isAdmin && setConfig((prev: any) => ({ ...prev, isLive: false }))}
                   disabled={!isAdmin}
-                  className={`px-3 py-1.5 text-[12px] font-medium rounded-md transition-colors ${!config.isLive ? "bg-[#C9943A] text-black shadow-sm" : "text-platinum-muted hover:text-platinum"}`}
+                  className={`px-3 py-1.5 text-[12px] font-medium rounded-md transition-colors ${!config.isLive ? "bg-[#C9943A] text-foreground shadow-sm" : "text-platinum-muted hover:text-platinum"}`}
                 >
                   <div className="flex items-center gap-1.5">
                     <Edit3 className="w-3.5 h-3.5" />

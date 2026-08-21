@@ -27,6 +27,11 @@ export async function POST(req: Request) {
       gender,
       dob,
       anniversary,
+      customerGroup,
+      optInWhatsapp,
+      optInSms,
+      optInEmail,
+      optInPromotions,
     } = body;
 
     // Basic validation
@@ -49,6 +54,11 @@ export async function POST(req: Request) {
         gender: gender.toUpperCase() as Gender,
         dob: parseDate(dob),
         anniversary: parseDate(anniversary),
+        customerGroup: customerGroup || undefined,
+        optInWhatsapp: optInWhatsapp !== undefined ? optInWhatsapp : true,
+        optInSms: optInSms !== undefined ? optInSms : true,
+        optInEmail: optInEmail !== undefined ? optInEmail : true,
+        optInPromotions: optInPromotions !== undefined ? optInPromotions : true,
       },
     });
 

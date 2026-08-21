@@ -27,19 +27,19 @@ export function FinanceOverview({ data }: any) {
           <div className="space-y-3 flex-1 pr-4 border-r border-onyx-border/50">
             <div className="flex items-center justify-between">
               <span className="text-[12px] text-platinum-muted flex items-center gap-1.5"><IndianRupee className="w-3 h-3 text-emerald-400" /> Cash</span>
-              <span className="text-[12px] font-medium text-white">₹{data.todayCollection.cash.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              <span className="text-[12px] font-medium text-foreground">₹{data.todayCollection.cash.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-[12px] text-platinum-muted flex items-center gap-1.5"><Smartphone className="w-3 h-3 text-indigo-400" /> UPI</span>
-              <span className="text-[12px] font-medium text-white">₹{data.todayCollection.upi.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              <span className="text-[12px] font-medium text-foreground">₹{data.todayCollection.upi.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-[12px] text-platinum-muted flex items-center gap-1.5"><CreditCard className="w-3 h-3 text-amber-400" /> Card</span>
-              <span className="text-[12px] font-medium text-white">₹{data.todayCollection.card.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              <span className="text-[12px] font-medium text-foreground">₹{data.todayCollection.card.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-[12px] text-platinum-muted flex items-center gap-1.5"><Wallet className="w-3 h-3 text-purple-400" /> Wallet</span>
-              <span className="text-[12px] font-medium text-white">₹{data.todayCollection.wallet.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              <span className="text-[12px] font-medium text-foreground">₹{data.todayCollection.wallet.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
           </div>
           <div className="w-[100px] h-[100px] shrink-0 ml-4">

@@ -21,7 +21,7 @@ export function DashboardFilters({
             onClick={() => setDateRange(range)}
             className={`px-4 py-1.5 rounded-full text-[13px] font-medium capitalize transition-all whitespace-nowrap ${
               dateRange === range
-                ? "bg-gold text-black shadow-md shadow-gold/20"
+                ? "bg-gold text-foreground shadow-md shadow-gold/20"
                 : "bg-onyx-elevated text-platinum-muted hover:text-platinum border border-onyx-border hover:border-gold/30"
             }`}
           >

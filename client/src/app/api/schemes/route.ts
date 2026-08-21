@@ -120,11 +120,44 @@ export async function POST(req: Request) {
       );
     }
 
+    // Fetch branch scheme config
+    const branchSettings = await prisma.globalProductSettings.findUnique({
+      where: { branchId: Number(branchId) },
+      select: { schemeConfig: true },
+    });
+    
+    const defaultConfig = {
+      allowedTypes: ["FIXED_MONTHLY", "ANONYMOUS_DEPOSIT", "GOLD_DEPOSIT"],
+      fixedMonthly: { minDeposit: 1000, maxDeposit: 50000, durations: [12, 24] },
+    };
+    
+    const config = branchSettings?.schemeConfig 
+      ? { ...defaultConfig, ...(branchSettings.schemeConfig as any) }
+      : defaultConfig;
+
+    if (!config.allowedTypes?.includes(type)) {
+      return NextResponse.json(
+        { error: "This scheme type is currently disabled for this branch" },
+        { status: 400 }
+      );
+    }
+
     // Validate type-specific fields
     if (type === "FIXED_MONTHLY") {
-      if (!fixedMonthlyAmount || fixedMonthlyAmount < 1000 || fixedMonthlyAmount > 5000) {
+      const minAmount = config.fixedMonthly?.minDeposit || 1000;
+      const maxAmount = config.fixedMonthly?.maxDeposit || 50000;
+      
+      if (!fixedMonthlyAmount || fixedMonthlyAmount < minAmount || fixedMonthlyAmount > maxAmount) {
         return NextResponse.json(
-          { error: "Fixed monthly amount must be between ₹1,000 and ₹5,000" },
+          { error: `Fixed monthly amount must be between ₹${minAmount} and ₹${maxAmount}` },
+          { status: 400 }
+        );
+      }
+
+      const durations = config.fixedMonthly?.durations || [12, 24];
+      if (!durations.includes(maxDurationMonths)) {
+        return NextResponse.json(
+          { error: `Invalid duration selected. Allowed durations: ${durations.join(", ")} months` },
           { status: 400 }
         );
       }

@@ -122,6 +122,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../libs/prisma';
 import { insertLedgerEntry } from '../../../../../../libs/inventoryLedger';
 import { type } from 'arktype';
+import { generateCodesHelper } from '../../../../../../src/lib/actions/generateCodes';
 
 // Stone schema
 const stoneSchema = type({
@@ -195,8 +196,32 @@ export async function POST(req: NextRequest) {
                     ...productData
                 } = product as any;
 
+                // Fetch category details to auto-generate the gapless barcode
+                const subCat = await tx.subCategory.findUnique({
+                    where: { id: subCategoryId },
+                    include: { category: true }
+                });
+
+                let finalProductCode = productData.productCode;
+                let finalBarcode = productData.barcode;
+
+                if (subCat?.category?.name) {
+                    const categoryType = subCat.category.id.toString();
+                    const { productCode, barcode } = await generateCodesHelper(
+                        tx,
+                        branchId,
+                        categoryType,
+                        subCat.category.name,
+                        true // INCREMENT = true: This securely locks and increments the gapless SequenceTracker in DB
+                    );
+                    finalProductCode = productCode;
+                    finalBarcode = barcode;
+                }
+
                 const dataForPrisma = {
                     ...productData,
+                    productCode: finalProductCode,
+                    barcode: finalBarcode,
                     huidNumber: productData.huidNumber && productData.huidNumber.trim() !== "" ? productData.huidNumber.trim() : null,
                     gsWeight: parseFloat(productData.gsWeight),
                     ntWeight: parseFloat(productData.ntWeight),

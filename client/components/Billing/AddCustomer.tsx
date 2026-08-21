@@ -669,12 +669,12 @@ const AddCustomer = () => {
                                 gold: "bg-[#D4A843]/15 text-[#D4A843] border-[#D4A843]/30",
                                 red: "bg-red-500/10 text-red-400 border-red-500/25",
                                 blue: "bg-blue-500/10 text-blue-400 border-blue-500/25",
-                                gray: "bg-gray-500/10 text-gray-400 border-gray-500/25",
+                                gray: "bg-gray-500/10 text-muted-foreground border-gray-500/25",
                                 green: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
                                 orange: "bg-orange-500/10 text-orange-400 border-orange-500/25",
                                 purple: "bg-purple-500/10 text-purple-400 border-purple-500/25",
                               };
-                              const colorClass = colorMap[tag.color?.toLowerCase() || 'gray'] || "bg-gray-500/10 text-gray-400 border-gray-500/25";
+                              const colorClass = colorMap[tag.color?.toLowerCase() || 'gray'] || "bg-gray-500/10 text-muted-foreground border-gray-500/25";
                               return (
                                 <span
                                   key={tag.id}

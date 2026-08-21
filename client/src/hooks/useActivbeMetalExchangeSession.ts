@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 
 export function useActiveMetalExchangeSession(
   userId?: number,
@@ -10,33 +10,32 @@ export function useActiveMetalExchangeSession(
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadSession = useCallback(async () => {
     if (!userId || !branchId) return
+    try {
+      const res = await fetch(
+        "/api/metal-exchange/session/active",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, branchId }),
+        }
+      )
 
-    async function load() {
-      try {
-        const res = await fetch(
-          "/api/metal-exchange/session/active",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId, branchId }),
-          }
-        )
+      if (!res.ok) throw new Error("Session fetch failed")
 
-        if (!res.ok) throw new Error("Session fetch failed")
-
-        const data = await res.json()
-        setSession(data)
-      } catch (err) {
-        setError("Unable to load session")
-      } finally {
-        setLoading(false)
-      }
+      const data = await res.json()
+      setSession(data)
+    } catch (err) {
+      setError("Unable to load session")
+    } finally {
+      setLoading(false)
     }
-
-    load()
   }, [userId, branchId])
 
-  return { session, loading, error }
+  useEffect(() => {
+    loadSession()
+  }, [loadSession])
+
+  return { session, loading, error, refetchSession: loadSession, setSession }
 }

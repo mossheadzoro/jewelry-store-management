@@ -38,7 +38,7 @@ export function BranchTransferDialog({ booking, isOpen, onClose, onConfirm }: Br
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-background/70 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="w-full max-w-lg bg-onyx-surface border border-onyx-border rounded-2xl overflow-hidden">
           {/* Header */}

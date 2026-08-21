@@ -23,7 +23,7 @@ export async function GET(req: Request) {
     const result = await Promise.all(
       categories.map(async (cat) => {
         const stats = await prisma.productItem.aggregate({
-          where: { branchId, subCategory: { categoryId: cat.id } },
+          where: { branchId, subCategory: { categoryId: cat.id }, quantity: { gt: 0 } },
           _sum: { ntWeight: true, quantity: true }
         });
         return {

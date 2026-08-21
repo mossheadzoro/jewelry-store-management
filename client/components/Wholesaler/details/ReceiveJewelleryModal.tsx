@@ -88,7 +88,7 @@ export function ReceiveJewelleryModal({ wholesalerId, onClose, onSuccess }: Prop
             <button
               key={type}
               onClick={() => { setMetalType(type); setPurityLabel(""); }}
-              className={`flex-1 py-1.5 text-sm rounded-lg font-medium border ${metalType === type ? 'bg-purple-600 border-purple-500 text-white' : 'bg-[#111827] border-gray-700 text-gray-400'}`}
+              className={`flex-1 py-1.5 text-sm rounded-lg font-medium border ${metalType === type ? 'bg-purple-600 border-purple-500 text-foreground' : 'bg-card border-border text-muted-foreground'}`}
             >
               {type}
             </button>
@@ -99,13 +99,13 @@ export function ReceiveJewelleryModal({ wholesalerId, onClose, onSuccess }: Prop
           <div className="space-y-4">
             {metalType === "GOLD" && (
               <div>
-                <label className="text-sm text-gray-400 mb-2 block">Purity</label>
+                <label className="text-sm text-muted-foreground mb-2 block">Purity</label>
                 <div className="flex gap-2 flex-wrap">
                   {GOLD_PURITIES.map((p) => (
                     <button
                       key={p}
                       onClick={() => setPurityLabel(p)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${purityLabel === p ? 'bg-yellow-600 border-yellow-500 text-white' : 'bg-[#1F2937] border-gray-700 text-gray-400'}`}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${purityLabel === p ? 'bg-yellow-600 border-yellow-500 text-foreground' : 'bg-secondary border-border text-muted-foreground'}`}
                     >
                       {p}
                     </button>
@@ -116,49 +116,49 @@ export function ReceiveJewelleryModal({ wholesalerId, onClose, onSuccess }: Prop
 
             {metalType === "SILVER" && (
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">Purity (%)</label>
+                <label className="text-sm text-muted-foreground mb-1 block">Purity (%)</label>
                 <input
                   type="number"
                   placeholder="e.g. 92.50"
                   step="0.01"
                   value={purityLabel}
                   onChange={(e) => setPurityLabel(e.target.value)}
-                  className="w-full bg-[#111827] border border-gray-700 rounded-lg p-2.5 text-white outline-none focus:border-blue-500"
+                  className="w-full bg-card border border-border rounded-lg p-2.5 text-foreground outline-none focus:border-blue-500"
                 />
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">Gross Weight (g)</label>
+                <label className="text-sm text-muted-foreground mb-1 block">Gross Weight (g)</label>
                 <input
                   type="number"
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
-                  className="w-full bg-[#111827] border border-gray-700 rounded-lg p-2.5 text-white outline-none focus:border-blue-500"
+                  className="w-full bg-card border border-border rounded-lg p-2.5 text-foreground outline-none focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-400 mb-1 block">Wastage (%)</label>
+                <label className="text-sm text-muted-foreground mb-1 block">Wastage (%)</label>
                 <input
                   type="number"
                   value={wastage}
                   onChange={(e) => setWastage(e.target.value)}
-                  className="w-full bg-[#111827] border border-gray-700 rounded-lg p-2.5 text-white outline-none focus:border-blue-500"
+                  className="w-full bg-card border border-border rounded-lg p-2.5 text-foreground outline-none focus:border-blue-500"
                 />
               </div>
             </div>
 
-            <div className="bg-[#111827] p-4 rounded-xl border border-blue-900/50 mt-4 flex justify-between items-center">
-              <span className="text-gray-400 font-medium whitespace-nowrap mr-4">Fine {metalType}:</span>
+            <div className="bg-card p-4 rounded-xl border border-blue-900/50 mt-4 flex justify-between items-center">
+              <span className="text-muted-foreground font-medium whitespace-nowrap mr-4">Fine {metalType}:</span>
               <span className="text-xl font-bold text-blue-400 tracking-wide">{fineOutput.toFixed(3)} g</span>
             </div>
           </div>
         )}
 
-        <div className="mt-6 border-t border-gray-800 pt-4">
+        <div className="mt-6 border-t border-border pt-4">
           <div className="flex justify-between items-center mb-3">
-            <h3 className="text-gray-300 font-medium text-sm">Additional Charges (Cash)</h3>
+            <h3 className="text-foreground/80 font-medium text-sm">Additional Charges (Cash)</h3>
             <button onClick={addCashItem} className="text-blue-400 hover:text-blue-300 flex items-center text-xs font-semibold bg-blue-900/20 px-2 py-1 rounded">
               <Plus size={14} className="mr-1" /> Add
             </button>
@@ -172,14 +172,14 @@ export function ReceiveJewelleryModal({ wholesalerId, onClose, onSuccess }: Prop
                   placeholder="e.g. Stone Charge, Making"
                   value={item.itemName}
                   onChange={(e) => updateCashItem(index, "itemName", e.target.value)}
-                  className="flex-1 bg-[#111827] border border-gray-700 rounded-lg p-2 text-white outline-none text-sm"
+                  className="flex-1 bg-card border border-border rounded-lg p-2 text-foreground outline-none text-sm"
                 />
                 <input
                   type="number"
                   placeholder="Amount (₹)"
                   value={item.cost}
                   onChange={(e) => updateCashItem(index, "cost", e.target.value)}
-                  className="w-28 bg-[#111827] border border-gray-700 rounded-lg p-2 text-white outline-none text-sm"
+                  className="w-28 bg-card border border-border rounded-lg p-2 text-foreground outline-none text-sm"
                 />
                 <button onClick={() => removeCashItem(index)} className="text-red-400 hover:text-red-300 p-2">
                   <Trash2 size={16} />
@@ -188,7 +188,7 @@ export function ReceiveJewelleryModal({ wholesalerId, onClose, onSuccess }: Prop
             ))}
             {cashItems.length > 0 && (
               <div className="flex justify-between items-center p-3 bg-green-900/10 border border-green-900/30 rounded-lg mt-2">
-                <span className="text-gray-400 text-sm">Total Cash Amount:</span>
+                <span className="text-muted-foreground text-sm">Total Cash Amount:</span>
                 <span className="font-semibold text-green-400">₹{totalCashAmount.toLocaleString("en-IN")}</span>
               </div>
             )}
@@ -197,7 +197,7 @@ export function ReceiveJewelleryModal({ wholesalerId, onClose, onSuccess }: Prop
 
         <button
           onClick={handleSubmit}
-          className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl mt-6 transition-colors shadow-lg disabled:opacity-50"
+          className="w-full bg-purple-600 hover:bg-purple-700 text-foreground font-semibold py-3 rounded-xl mt-6 transition-colors shadow-lg disabled:opacity-50"
           disabled={loading || (metalType !== "DIAMOND" && (!purityLabel || !weight))}
         >
           {loading ? "Processing..." : "Confirm Receive"}

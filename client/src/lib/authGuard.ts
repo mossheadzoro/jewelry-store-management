@@ -75,16 +75,23 @@ export async function requireAuth(req: Request, options?: { module?: string, req
     if (req.method === "PUT" || req.method === "PATCH") action = "edit";
     if (req.method === "DELETE") action = "delete";
 
-    // Check custom role permissions
-    const permissionsList = Array.isArray(user.role?.permissions) ? user.role!.permissions as any[] : [];
-    const hasPermission = permissionsList.some(
-      (p: any) => p.module === options.module && p.action === action
-    );
+    // Support wildcard permissions (e.g. {"*": true} from seeded Admin roles)
+    const perms = user.role?.permissions as any;
+    const hasWildcard = perms && !Array.isArray(perms) && typeof perms === "object" && perms["*"] === true;
 
-    if (!hasPermission) {
-      return { error: `Forbidden: Missing ${action} permission for ${options.module}`, status: 403 };
+    if (!hasWildcard) {
+      // Check custom role permissions
+      const permissionsList = Array.isArray(user.role?.permissions) ? user.role!.permissions as any[] : [];
+      const hasPermission = permissionsList.some(
+        (p: any) => p.module === options.module && p.action === action
+      );
+
+      if (!hasPermission) {
+        return { error: `Forbidden: Missing ${action} permission for ${options.module}`, status: 403 };
+      }
     }
   }
 
   return { session, user, branchId };
 }
+

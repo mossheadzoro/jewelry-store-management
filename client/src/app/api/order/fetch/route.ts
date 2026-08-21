@@ -9,6 +9,7 @@ export async function GET(req: Request) {
     const limit = parseInt(searchParams.get("limit") || "20", 10);
     const status = searchParams.get("status");
     const search = searchParams.get("search");
+    const wholesalerId = searchParams.get("wholesalerId");
 
     if (!branchId) {
       return NextResponse.json(
@@ -24,6 +25,12 @@ export async function GET(req: Request) {
     // Filter by status
     if (status && status !== "all") {
       where.status = status;
+    }
+
+    if (wholesalerId === "none") {
+      where.wholesalerId = null;
+    } else if (wholesalerId) {
+      where.wholesalerId = wholesalerId;
     }
 
     // Search by customer name, mobile, order number, or slip number

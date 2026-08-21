@@ -123,7 +123,7 @@ export default function SavingSchemeSettingsPanel() {
             <button 
               onClick={() => handleSave(false)} 
               disabled={saving || savingAll} 
-              className="bg-[#C9943A] text-black px-4 py-2 rounded-lg text-[13px] font-semibold hover:bg-[#E8B84B] transition-colors flex items-center gap-2"
+              className="bg-[#C9943A] text-foreground px-4 py-2 rounded-lg text-[13px] font-semibold hover:bg-[#E8B84B] transition-colors flex items-center gap-2"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {saving ? "Saving..." : "Save for this branch"}
@@ -138,7 +138,7 @@ export default function SavingSchemeSettingsPanel() {
             <h3 className="text-[14px] font-medium text-platinum">Allowed Scheme Types</h3>
             <p className="text-[11px] text-platinum-muted">Select which schemes this branch can offer to customers.</p>
             <div className="space-y-3 mt-4">
-              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-[#1F1F24] hover:border-[#333] transition-colors">
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-[#1F1F24] hover:border-border transition-colors">
                 <input type="checkbox" checked={config.allowedTypes?.includes("FIXED_MONTHLY")} onChange={() => toggleSchemeType("FIXED_MONTHLY")} disabled={!isAdmin} className="accent-[#C9943A] w-4 h-4" />
                 <Calendar className="w-5 h-5 text-[#C9943A]" />
                 <div>
@@ -146,7 +146,7 @@ export default function SavingSchemeSettingsPanel() {
                   <div className="text-[11px] text-platinum-muted">Fixed duration and deposit amount</div>
                 </div>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-[#1F1F24] hover:border-[#333] transition-colors">
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-[#1F1F24] hover:border-border transition-colors">
                 <input type="checkbox" checked={config.allowedTypes?.includes("ANONYMOUS_DEPOSIT")} onChange={() => toggleSchemeType("ANONYMOUS_DEPOSIT")} disabled={!isAdmin} className="accent-blue-400 w-4 h-4" />
                 <Banknote className="w-5 h-5 text-blue-400" />
                 <div>
@@ -154,7 +154,7 @@ export default function SavingSchemeSettingsPanel() {
                   <div className="text-[11px] text-platinum-muted">Flexible cash or metal deposits</div>
                 </div>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-[#1F1F24] hover:border-[#333] transition-colors">
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-[#1F1F24] hover:border-border transition-colors">
                 <input type="checkbox" checked={config.allowedTypes?.includes("GOLD_DEPOSIT")} onChange={() => toggleSchemeType("GOLD_DEPOSIT")} disabled={!isAdmin} className="accent-amber-400 w-4 h-4" />
                 <Gem className="w-5 h-5 text-amber-400" />
                 <div>

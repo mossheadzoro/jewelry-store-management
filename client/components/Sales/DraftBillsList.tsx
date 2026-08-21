@@ -71,7 +71,7 @@ export default function DraftBillsList() {
             
             <div className="flex justify-between items-end mt-4 pt-3 border-t border-[#1F1F24] group-hover:border-[#C9943A]/20">
               <span className="text-xs text-[#6B6560]">
-                {new Date(draft.createdAt).toLocaleDateString()}
+                {new Date(draft.createdAt).toLocaleDateString("en-GB")}
               </span>
               <span className="text-xs text-[#C9943A] flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
                 Resume <ChevronRight className="w-3 h-3" />

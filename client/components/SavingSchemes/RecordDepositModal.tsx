@@ -79,7 +79,7 @@ export default function RecordDepositModal({ scheme, onClose, onDeposited }: Rec
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-[#0D0D0F] border border-[#1F1F24] rounded-2xl w-full max-w-md shadow-2xl">
         {/* Header */}
         <div className="border-b border-[#1F1F24] px-6 py-4 flex items-center justify-between">
@@ -237,7 +237,7 @@ export default function RecordDepositModal({ scheme, onClose, onDeposited }: Rec
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-[#C9943A] to-[#E8B84B] text-black text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-[#C9943A]/20 cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-[#C9943A] to-[#E8B84B] text-foreground text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-[#C9943A]/20 cursor-pointer"
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             Record Deposit

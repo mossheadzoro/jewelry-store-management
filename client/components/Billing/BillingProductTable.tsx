@@ -7,7 +7,7 @@ const BillingProductTable = ({ products, removeProduct, onEditProduct }: any) =>
     <div className="w-full overflow-x-auto">
       <Table className="w-full min-w-[1000px]">
         <TableHeader>
-          <TableRow className="bg-[#1a1a1a] hover:bg-[#1a1a1a] border-b border-[#2a2a2a]">
+          <TableRow className="bg-onyx-elevated hover:bg-onyx-elevated border-b border-onyx-border">
             {/* Keeping it simple with # for ID */}
             <TableHead className="text-[#888] font-medium py-3 px-4 font-mono w-16">#</TableHead>
             <TableHead className="text-[#888] font-medium py-3 px-4 uppercase text-xs tracking-wider">Item Details</TableHead>
@@ -16,8 +16,8 @@ const BillingProductTable = ({ products, removeProduct, onEditProduct }: any) =>
             <TableHead className="text-[#888] font-medium py-3 px-4 uppercase text-xs tracking-wider text-right">Rate</TableHead>
             <TableHead className="text-[#888] font-medium py-3 px-4 uppercase text-xs tracking-wider text-right">Metal Val</TableHead>
             <TableHead className="text-[#888] font-medium py-3 px-4 uppercase text-xs tracking-wider text-right">Making</TableHead>
-            <TableHead className="text-[#888] font-medium py-3 px-4 uppercase text-xs tracking-wider text-right">Discount</TableHead>
-            <TableHead className="text-[#888] font-medium py-3 px-4 uppercase text-xs tracking-wider text-right">Ex. Charge</TableHead>
+            <TableHead className="text-[#888] font-medium py-3 px-4 uppercase text-xs tracking-wider text-right">Other Charge Discount</TableHead>
+            <TableHead className="text-[#888] font-medium py-3 px-4 uppercase text-xs tracking-wider text-right">Other Charges</TableHead>
             <TableHead className="text-[#d4a843] font-semibold py-3 px-4 uppercase text-xs tracking-wider text-right">Total</TableHead>
             <TableHead className="text-center w-12"></TableHead>
           </TableRow>
@@ -28,12 +28,13 @@ const BillingProductTable = ({ products, removeProduct, onEditProduct }: any) =>
             const metalValue = p.ntWeight * p.metalRate;
             const makingValue = (metalValue * (p.makingChargePercent ?? 0)) / 100;
             const discountedMaking = makingValue - (makingValue * (p.discountOnMaking ?? 0)) / 100;
-            const total = metalValue + discountedMaking + (p.additionalCharge ?? 0);
+            const otherChargeVal = p.otherChargesPrice ?? p.additionalCharge ?? 0;
+            const total = metalValue + discountedMaking + otherChargeVal;
 
             return (
               <TableRow 
                 key={idx} 
-                className="hover:bg-[#1a1a1a] transition-colors border-b border-[#1e1e1e] group"
+                className="hover:bg-onyx-elevated transition-colors border-b border-[#1e1e1e] group"
               >
                 <TableCell className="text-[#555] font-mono text-xs py-4 px-4 align-top">
                   {p.id}
@@ -41,7 +42,7 @@ const BillingProductTable = ({ products, removeProduct, onEditProduct }: any) =>
 
                 <TableCell className="py-4 px-4 align-top">
                   <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0 h-12 w-12 bg-[#2a2a2a] rounded overflow-hidden flex items-center justify-center border border-[#333]">
+                    <div className="flex-shrink-0 h-12 w-12 bg-[#2a2a2a] rounded overflow-hidden flex items-center justify-center border border-border">
                       {p.image ? (
                         <img 
                           src={p.image} 
@@ -103,7 +104,7 @@ const BillingProductTable = ({ products, removeProduct, onEditProduct }: any) =>
                 </TableCell>
 
                 <TableCell className="text-[#aaa] text-right py-4 px-4 align-top tabular-nums">
-                  ₹{(p.additionalCharge ?? 0).toFixed(2)}
+                  ₹{otherChargeVal.toFixed(2)}
                 </TableCell>
 
                 <TableCell className="text-right py-4 px-4 align-top tabular-nums">

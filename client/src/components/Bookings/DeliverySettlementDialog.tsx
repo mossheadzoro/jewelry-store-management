@@ -47,7 +47,7 @@ export function DeliverySettlementDialog({ booking, isOpen, onClose, onConfirm }
   if (showReceipt) {
     return (
       <>
-        <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+        <div className="fixed inset-0 z-40 bg-background/70 backdrop-blur-sm" onClick={onClose} />
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-onyx-surface border border-onyx-border rounded-2xl p-8 text-center">
             <div className="w-16 h-16 rounded-full bg-gold/10 flex items-center justify-center mx-auto mb-4">
@@ -94,7 +94,7 @@ export function DeliverySettlementDialog({ booking, isOpen, onClose, onConfirm }
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-background/70 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="w-full max-w-2xl bg-onyx-surface border border-onyx-border rounded-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
           {/* Header */}

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useBranchStore } from "@/lib/store/useBranchStore";
 import ReportSummaryCards from "./ReportSummaryCards";
 import SalesByCategorySection from "./SalesByCategorySection";
@@ -98,38 +99,24 @@ export default function ReportsTab({ onDateRangeChange }: ReportsTabProps) {
   const [activePreset, setActivePreset] = useState<ReportDatePreset>("this_week");
   const [dateRange, setDateRange] = useState(() => getReportDateRange("this_week"));
   const [showCustomPicker, setShowCustomPicker] = useState(false);
-  const [data, setData] = useState<ReportData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
 
-  const fetchReports = useCallback(async () => {
-    if (!selectedBranch) return;
-    setIsLoading(true);
-    try {
+  const { data, isLoading } = useQuery<ReportData | null>({
+    queryKey: ["salesReports", selectedBranch?.id, dateRange.from.toISOString(), dateRange.to.toISOString()],
+    queryFn: async () => {
+      if (!selectedBranch) return null;
       const params = new URLSearchParams({
         branchId: selectedBranch.id.toString(),
         dateFrom: dateRange.from.toISOString(),
         dateTo: dateRange.to.toISOString(),
       });
-
       const res = await fetch(`/api/billing/reports?${params.toString()}`);
-      const json = await res.json();
-
-      if (res.ok) {
-        setData(json);
-      } else {
-        console.error("Reports API error:", json.error);
-      }
-    } catch (err) {
-      console.error("Failed to fetch reports:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedBranch, dateRange]);
-
-  useEffect(() => {
-    fetchReports();
-  }, [fetchReports]);
+      if (!res.ok) throw new Error("Failed to fetch reports");
+      return res.json();
+    },
+    enabled: !!selectedBranch,
+    placeholderData: (prev: any) => prev,
+  });
 
   const handlePresetChange = (preset: ReportDatePreset) => {
     setActivePreset(preset);
@@ -199,7 +186,7 @@ export default function ReportsTab({ onDateRangeChange }: ReportsTabProps) {
       {/* Reports Header with Date Filters */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white font-serif">Financial Reports</h2>
+          <h2 className="text-xl font-bold text-foreground font-serif">Financial Reports</h2>
           <p className="text-xs text-[#6B6560] mt-0.5">
             Sales, Tax, and Revenue Analysis
           </p>

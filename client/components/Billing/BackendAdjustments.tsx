@@ -54,18 +54,18 @@ const AdjustmentCard = ({
   };
 
   return (
-    <div className="bg-[#151515] hover:bg-[#1a1a1a] transition-colors rounded-xl border border-[#2a2a2a] overflow-hidden">
+    <div className="bg-[#151515] hover:bg-onyx-elevated transition-colors rounded-xl border border-onyx-border overflow-hidden">
       {/* CARD HEADER (Toggle) */}
       <button 
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-4 focus:outline-none"
       >
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-[#1e1e1e] border border-[#333] flex items-center justify-center text-[#aaaaaa]">
+          <div className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center text-[#aaaaaa]">
             {icon}
           </div>
           <div className="flex flex-col text-left">
-            <span className="text-[15px] font-semibold text-white leading-tight mb-0.5">{title}</span>
+            <span className="text-[15px] font-semibold text-foreground leading-tight mb-0.5">{title}</span>
             <span className="text-[11px] text-[#777]">{subtitle}</span>
           </div>
         </div>
@@ -83,12 +83,12 @@ const AdjustmentCard = ({
                 placeholder={placeholder}
                 value={refNo}
                 onChange={(e) => setRefNo(e.target.value)}
-                className="bg-[#0a0a0a] border-[#333] text-sm text-white focus-visible:ring-[#d4a843] focus-visible:border-[#d4a843] h-10"
+                className="bg-onyx border-border text-sm text-foreground focus-visible:ring-[#d4a843] focus-visible:border-[#d4a843] h-10"
               />
               <button 
                 onClick={handleApply} 
                 disabled={!refNo || loading}
-                className="bg-[#2a2a2a] hover:bg-[#333] disabled:opacity-50 disabled:hover:bg-[#2a2a2a] text-[#eee] px-4 rounded-lg text-sm font-medium transition-colors flex flex-shrink-0 items-center justify-center gap-1.5"
+                className="bg-[#2a2a2a] hover:bg-secondary disabled:opacity-50 disabled:hover:bg-[#2a2a2a] text-[#eee] px-4 rounded-lg text-sm font-medium transition-colors flex flex-shrink-0 items-center justify-center gap-1.5"
               >
                 <Search className="w-3.5 h-3.5" />
                 {loading ? "..." : "Apply"}
@@ -96,7 +96,7 @@ const AdjustmentCard = ({
             </div>
           ) : (
             <div className="mt-4 flex flex-col gap-3">
-              <div className="flex justify-between items-center text-green-400 bg-[#0a0a0a] border border-[#1e1e1e] px-4 py-3 rounded-lg">
+              <div className="flex justify-between items-center text-green-400 bg-onyx border border-[#1e1e1e] px-4 py-3 rounded-lg">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4" />
                   <span className="text-sm font-medium">Applied Amount</span>
@@ -128,7 +128,9 @@ const BillingAdjustments = ({ billing }: { billing: any }) => {
       }
       
       const adv = data.advance;
-      billing.applyAdvance(adv);
+      const success = billing.applyAdvance(adv);
+      
+      if (!success) return null;
       
       // Calculate total applied value (money + estimated metal value) for display
       const totalDisplayValue = adv.moneyAmount + (adv.metalWeight * billing.metalRate);
@@ -147,7 +149,7 @@ const BillingAdjustments = ({ billing }: { billing: any }) => {
         subtitle="Deduct from previous deposits"
         placeholder="Enter Advance Receipt No"
         onApply={handleAdvanceApply}
-        onClear={() => { /* Note: full reset might require reloading session or manual reset, keeping simple for now */ }}
+        onClear={() => billing.removeAdvance()}
         icon={<Wallet className="w-4 h-4" />}
       />
 

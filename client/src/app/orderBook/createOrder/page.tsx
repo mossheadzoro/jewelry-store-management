@@ -19,8 +19,8 @@ export default function CreateOrderPage() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <main className="flex-1 min-h-screen bg-[#0a0a0a] overflow-auto px-8 py-8">
-        <Link href="/orderBook" className="inline-flex items-center gap-2 text-[13px] text-[#888] hover:text-white transition-colors mb-6">
+      <main className="flex-1 min-h-screen bg-onyx overflow-auto px-8 py-8">
+        <Link href="/orderBook" className="inline-flex items-center gap-2 text-[13px] text-[#888] hover:text-foreground transition-colors mb-6">
           <ArrowLeft className="w-4 h-4" /> Back to Order Book
         </Link>
         <CreateOrderView onOrderCreated={handleOrderCreated} />

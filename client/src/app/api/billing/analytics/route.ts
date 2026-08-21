@@ -26,28 +26,36 @@ export async function GET(req: NextRequest) {
       ...(Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {}),
     };
 
-    // Fetch invoices in date range
-    const invoices = await prisma.invoice.findMany({
-      where,
-      include: {
-        customer: true,
-        createdBy: true,
-        items: {
-          include: {
-            product: {
-              include: {
-                subCategory: {
-                  include: {
-                    category: true
+    // Fetch invoices and customer stats concurrently
+    const [invoices, customerAgg] = await Promise.all([
+      prisma.invoice.findMany({
+        where,
+        include: {
+          customer: true,
+          createdBy: true,
+          items: {
+            include: {
+              product: {
+                include: {
+                  subCategory: {
+                    include: {
+                      category: true
+                    }
                   }
                 }
               }
             }
           }
-        }
-      },
-      orderBy: { createdAt: "asc" }
-    });
+        },
+        orderBy: { createdAt: "asc" }
+      }),
+      prisma.invoice.groupBy({
+        by: ["customerId"],
+        where: { branchId },
+        _sum: { totalAmount: true },
+        _count: { id: true }
+      })
+    ]);
 
     // ── 1. Revenue Trend (Group by YYYY-MM-DD or Month if range is long) ──
     const trendMap = new Map<string, { revenue: number; count: number }>();
@@ -180,13 +188,7 @@ export async function GET(req: NextRequest) {
     const returningCustomers = currentCustomerIds.filter(id => priorCustomersSet.has(id)).length;
     const newCustomers = currentCustomerIds.length - returningCustomers;
 
-    // Average lifetime value
-    const customerAgg = await prisma.invoice.groupBy({
-      by: ["customerId"],
-      where: { branchId },
-      _sum: { totalAmount: true },
-      _count: { id: true }
-    });
+    // Average lifetime value (customerAgg fetched concurrently above)
 
     const totalCustomersCount = customerAgg.length;
     const avgLifetimeValue = totalCustomersCount > 0 

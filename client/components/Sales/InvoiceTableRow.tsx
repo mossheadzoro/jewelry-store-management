@@ -13,6 +13,7 @@ interface InvoiceTableRowProps {
     customer: {
       name: string;
       phone: string;
+      mobile?: string | null;
       gstin?: string | null;
     };
     items: any[];
@@ -86,7 +87,7 @@ export default function InvoiceTableRow({ invoice, onClick }: InvoiceTableRowPro
       case "CARD":
         return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
       default:
-        return "bg-gray-500/10 text-gray-400 border border-gray-500/20";
+        return "bg-gray-500/10 text-muted-foreground border border-gray-500/20";
     }
   };
 
@@ -123,14 +124,19 @@ export default function InvoiceTableRow({ invoice, onClick }: InvoiceTableRowPro
       <td className="px-5 py-4">
         <div className="flex items-center gap-3">
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-foreground shrink-0"
             style={{ backgroundColor: avatarBg }}
           >
             {initials}
           </div>
-          <span className="text-sm text-[#F0EBE0] font-medium">
-            {invoice.customer.name}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-sm text-[#F0EBE0] font-medium leading-snug">
+              {invoice.customer.name}
+            </span>
+            <span className="text-xs text-[#6B6560] font-mono leading-none mt-0.5">
+              {invoice.customer.phone || (invoice.customer as any).mobile || "—"}
+            </span>
+          </div>
         </div>
       </td>
 
@@ -182,7 +188,7 @@ export default function InvoiceTableRow({ invoice, onClick }: InvoiceTableRowPro
         <div className="action-btn-container flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <button
             onClick={() => onClick()}
-            className="p-2 rounded-lg hover:bg-[#222228] text-[#6B6560] hover:text-white transition-colors cursor-pointer"
+            className="p-2 rounded-lg hover:bg-[#222228] text-[#6B6560] hover:text-foreground transition-colors cursor-pointer"
             title="View Details"
           >
             <Eye className="w-4 h-4" />
@@ -191,7 +197,7 @@ export default function InvoiceTableRow({ invoice, onClick }: InvoiceTableRowPro
             onClick={() => {
               window.open(`/billing/invoice/${invoice.id}`, "_blank");
             }}
-            className="p-2 rounded-lg hover:bg-[#222228] text-[#6B6560] hover:text-white transition-colors cursor-pointer"
+            className="p-2 rounded-lg hover:bg-[#222228] text-[#6B6560] hover:text-foreground transition-colors cursor-pointer"
             title="Print Invoice"
           >
             <Printer className="w-4 h-4" />

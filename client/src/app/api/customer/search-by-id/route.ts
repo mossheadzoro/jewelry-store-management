@@ -36,6 +36,20 @@ export async function GET(req: Request) {
           select: {
             balanceAmount: true,
           }
+        },
+        CustomerWallet: true,
+        Order: {
+          where: {
+            status: { not: "DELIVERED" }
+          },
+          include: {
+            advance: true,
+            items: {
+              include: {
+                category: true
+              }
+            }
+          }
         }
       },
     });
@@ -44,10 +58,36 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Customer not found" }, { status: 404 });
     }
 
-    const currentDue = customerData.invoices.reduce((acc: number, inv: any) => acc + (inv.balanceAmount || 0), 0);
-    const { invoices, ...customer } = customerData;
+    // Check if any of the active orders have a corresponding product in the Stamping Center
+    const ordersWithStampingStatus = await Promise.all(
+      customerData.Order.map(async (order) => {
+        const stampingProduct = await prisma.productItem.findFirst({
+          where: {
+            description: { contains: order.orderNumber, mode: "insensitive" },
+            subCategory: {
+              category: {
+                name: { equals: "STAMPING CENTER", mode: "insensitive" }
+              }
+            }
+          }
+        });
+        return {
+          ...order,
+          _isInStampingCenter: !!stampingProduct
+        };
+      })
+    );
 
-    return NextResponse.json({ customer: { ...customer, currentDue } });
+    const currentDue = customerData.invoices.reduce((acc: number, inv: any) => acc + (inv.balanceAmount || 0), 0);
+    const { invoices, Order, ...customer } = customerData;
+
+    return NextResponse.json({ 
+      customer: { 
+        ...customer, 
+        currentDue, 
+        Order: ordersWithStampingStatus 
+      } 
+    });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

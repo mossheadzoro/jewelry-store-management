@@ -61,7 +61,7 @@ export default function InvoicePagination({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg text-[#666] hover:text-white hover:bg-[#222] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer"
+          className="p-2 rounded-lg text-[#666] hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -82,8 +82,8 @@ export default function InvoicePagination({
                 min-w-[32px] h-8 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
                 ${
                   page === currentPage
-                    ? "bg-[#D4A843] text-black"
-                    : "text-[#888] hover:bg-[#222] hover:text-white"
+                    ? "bg-[#D4A843] text-foreground"
+                    : "text-[#888] hover:bg-secondary hover:text-foreground"
                 }
               `}
             >
@@ -95,7 +95,7 @@ export default function InvoicePagination({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="p-2 rounded-lg text-[#666] hover:text-white hover:bg-[#222] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer"
+          className="p-2 rounded-lg text-[#666] hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer"
         >
           <ChevronRight className="w-4 h-4" />
         </button>

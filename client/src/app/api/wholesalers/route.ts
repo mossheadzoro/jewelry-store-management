@@ -64,6 +64,8 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const branchId = searchParams.get("branchId");
+    const search = searchParams.get("search");
+    const filter = searchParams.get("filter");
 
     if (!branchId) {
       return NextResponse.json(
@@ -72,8 +74,35 @@ export async function GET(req: Request) {
       );
     }
 
+    const where: any = { branchId: Number(branchId), AND: [] };
+
+    if (search) {
+      where.AND.push({
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { phone: { contains: search } },
+        ]
+      });
+    }
+
+    if (filter === "HAS_DUE") {
+      where.AND.push({
+        OR: [
+          { goldBal: { gt: 0 } },
+          { silverBal: { gt: 0 } },
+          { moneyBal: { gt: 0 } }
+        ]
+      });
+    } else if (filter === "HAS_DEPOSIT") {
+      where.moneyBal = { lt: 0 };
+    }
+
+    if (where.AND.length === 0) {
+      delete where.AND;
+    }
+
     const wholesalers = await prisma.wholesaler.findMany({
-      where: { branchId: Number(branchId) },
+      where,
       select: {
         id: true,
         name: true,
@@ -109,17 +138,17 @@ export async function GET(req: Request) {
     const totalWholesalers = wholesalers.length;
 
     const goldDue = wholesalers.reduce(
-      (acc, ws) => acc + (ws.goldBal > 0 ? ws.goldBal : 0),
+      (acc, ws) => acc + ws.goldBal,
       0
     );
 
     const silverDue = wholesalers.reduce(
-      (acc, ws) => acc + (ws.silverBal > 0 ? ws.silverBal : 0),
+      (acc, ws) => acc + ws.silverBal,
       0
     );
 
     const moneyDue = wholesalers.reduce(
-      (acc, ws) => acc + (ws.moneyBal > 0 ? ws.moneyBal : 0),
+      (acc, ws) => acc + ws.moneyBal,
       0
     );
 

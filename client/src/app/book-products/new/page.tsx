@@ -9,6 +9,7 @@ import {
   selectAdvancePercent,
   selectRemaining,
 } from "@/lib/store/useBookingWizardStore";
+import { useBranchStore } from "@/lib/store/useBranchStore";
 import { useCreateBooking } from "@/hooks/useBookings";
 import { BookingStatusBadge } from "@/components/Bookings/BookingStatusBadge";
 import { AdvanceProgressBar } from "@/components/Bookings/AdvanceProgressBar";
@@ -641,7 +642,7 @@ function Step4Advance() {
                   <p className="text-[13px] font-medium text-platinum">Option C: Metal Wallet</p>
                   {store.deliveryRatePlan === "OPTION_C_METAL_WALLET" && (
                     <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
-                      <Check className="w-2.5 h-2.5 text-white" />
+                      <Check className="w-2.5 h-2.5 text-foreground" />
                     </div>
                   )}
                 </div>
@@ -661,7 +662,7 @@ function Step4Advance() {
                   <p className="text-[13px] font-medium text-platinum">Option D: Fixed Rate</p>
                   {store.deliveryRatePlan === "OPTION_D_FIXED_RATE" && (
                     <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
-                      <Check className="w-2.5 h-2.5 text-white" />
+                      <Check className="w-2.5 h-2.5 text-foreground" />
                     </div>
                   )}
                 </div>
@@ -854,6 +855,7 @@ function Step5Confirm() {
   const advancePercent = selectAdvancePercent(store);
   const { mutateAsync: createBooking } = useCreateBooking();
   const router = useRouter();
+  const { branchSettings, selectedBranch } = useBranchStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState<any>(null);
   const [printMode, setPrintMode] = useState(false);
@@ -917,7 +919,7 @@ function Step5Confirm() {
   return (
     <>
       {/* ====== PRINT SLIP (hidden, only visible when printing) ====== */}
-      <div id="print-slip" className="hidden print:block bg-white text-black p-8 max-w-[800px] mx-auto text-[12px] leading-relaxed">
+      <div id="print-slip" className="hidden print:block bg-white text-foreground p-8 max-w-[800px] mx-auto text-[12px] leading-relaxed">
         <style dangerouslySetInnerHTML={{ __html: `
           @media print {
             body * { visibility: hidden; }
@@ -928,9 +930,25 @@ function Step5Confirm() {
         `}} />
 
         {/* Header */}
-        <div className="text-center border-b-2 border-black pb-4 mb-4">
-          <h1 className="text-[22px] font-bold tracking-wide">JEWELLERY STORE</h1>
-          <p className="text-[10px] text-gray-600 mt-1">Booking Advance Receipt</p>
+        <div className="text-center border-b-2 border-black pb-4 mb-4 flex flex-col items-center">
+          {branchSettings?.logoUrl && (
+             <img src={branchSettings.logoUrl} alt="Logo" className="h-16 w-auto mb-2 object-contain" />
+          )}
+          <h1 className="text-[22px] font-bold tracking-wide uppercase">
+            {branchSettings?.invoiceHeaderText || branchSettings?.shopName || selectedBranch?.name || "JEWELLERY STORE"}
+          </h1>
+          <p className="text-[10px] text-gray-600 mt-1">
+            {branchSettings?.address || selectedBranch?.address || ""}
+          </p>
+          {(branchSettings?.gstNumber || branchSettings?.pan) && (
+            <p className="text-[10px] text-gray-600 font-medium">
+              {branchSettings?.gstNumber && <span className="mr-3">GSTIN: {branchSettings.gstNumber.toUpperCase()}</span>}
+              {branchSettings?.pan && <span>PAN: {branchSettings.pan.toUpperCase()}</span>}
+            </p>
+          )}
+          <p className="text-[10px] font-bold text-foreground mt-2 bg-gray-100 px-3 py-1 rounded inline-block uppercase tracking-wider border border-gray-300">
+            Booking Advance Receipt
+          </p>
         </div>
 
         {/* Booking Info Row */}
@@ -1040,7 +1058,7 @@ function Step5Confirm() {
         </div>
 
         {/* Footer */}
-        <div className="text-center border-t border-gray-300 mt-4 pt-3 text-[9px] text-gray-500">
+        <div className="text-center border-t border-gray-300 mt-4 pt-3 text-[9px] text-muted-foreground">
           <p>Thank you for your booking. For any queries, please contact the store.</p>
           <p className="mt-1">This is a computer-generated receipt.</p>
         </div>

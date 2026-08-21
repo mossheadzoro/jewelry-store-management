@@ -64,7 +64,7 @@ export default function InvoiceFilterSheet({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex justify-end">
+    <div className="fixed inset-0 bg-background/70 backdrop-blur-sm z-50 flex justify-end">
       {/* Click outside to close */}
       <div className="flex-1" onClick={onClose} />
 
@@ -98,9 +98,10 @@ export default function InvoiceFilterSheet({
                 className="w-full px-3 py-2.5 rounded-lg bg-[#1A1A1E] border border-[#1F1F24] text-sm text-[#F0EBE0] focus:outline-none focus:border-[#C9943A]/50 transition-colors"
               >
                 <option value="">All Statuses</option>
-                <option value="PAID">Paid</option>
-                <option value="PARTIAL">Partial</option>
-                <option value="PENDING">Pending</option>
+                <option value="PAID">Fully Paid</option>
+                <option value="PARTIAL">Partial Paid</option>
+                <option value="PENDING">Pending / Unpaid</option>
+                <option value="OUTSTANDING">Has Balance Due (Outstanding)</option>
               </select>
             </div>
 
@@ -136,11 +137,14 @@ export default function InvoiceFilterSheet({
                 className="w-full px-3 py-2.5 rounded-lg bg-[#1A1A1E] border border-[#1F1F24] text-sm text-[#F0EBE0] focus:outline-none focus:border-[#C9943A]/50 transition-colors"
               >
                 <option value="">All Salespeople</option>
-                {staff.map((u) => (
-                  <option key={u.id} value={u.id.toString()}>
-                    {u.name} ({u.role})
-                  </option>
-                ))}
+                {staff.map((u: any) => {
+                  const roleName = typeof u.role === "object" && u.role ? u.role.name : (typeof u.role === "string" ? u.role : u.systemRole || "");
+                  return (
+                    <option key={u.id} value={u.id.toString()}>
+                      {u.name} {roleName ? `(${roleName})` : ""}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -199,7 +203,7 @@ export default function InvoiceFilterSheet({
           </button>
           <button
             onClick={handleApply}
-            className="flex-1 py-3 rounded-lg bg-[#C9943A] hover:bg-[#E8B84B] text-black text-sm font-bold transition-colors cursor-pointer"
+            className="flex-1 py-3 rounded-lg bg-[#C9943A] hover:bg-[#E8B84B] text-foreground text-sm font-bold transition-colors cursor-pointer"
           >
             Apply Filters
           </button>

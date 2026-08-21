@@ -68,6 +68,9 @@ export async function GET(
           orderBy: { createdAt: "desc" },
         },
         Order: {
+          where: {
+            status: { not: "DELIVERED" }
+          },
           select: {
             id: true,
             orderNumber: true,
@@ -87,6 +90,9 @@ export async function GET(
               },
             },
             karigar: {
+              select: { id: true, name: true },
+            },
+            Wholesaler: {
               select: { id: true, name: true },
             },
             items: {
@@ -127,7 +133,8 @@ export async function PUT(
     const body = await req.json();
     const {
       name, mobile, email, pan, gstin, aadhar,
-      address, city, state, pincode, gender, dob, anniversary,
+      address, city, state, pincode, gender, dob, anniversary, customerGroup,
+      optInWhatsapp, optInSms, optInEmail, optInPromotions
     } = body;
 
     const updated = await prisma.customer.update({
@@ -146,6 +153,11 @@ export async function PUT(
         ...(gender && { gender: gender.toUpperCase() as Gender }),
         ...(dob !== undefined && { dob: parseDate(dob) }),
         ...(anniversary !== undefined && { anniversary: parseDate(anniversary) }),
+        ...(customerGroup !== undefined && { customerGroup: customerGroup?.trim() || null }),
+        ...(optInWhatsapp !== undefined && { optInWhatsapp }),
+        ...(optInSms !== undefined && { optInSms }),
+        ...(optInEmail !== undefined && { optInEmail }),
+        ...(optInPromotions !== undefined && { optInPromotions }),
       },
     });
 

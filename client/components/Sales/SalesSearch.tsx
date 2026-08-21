@@ -12,7 +12,7 @@ interface SalesSearchProps {
 export default function SalesSearch({
   value,
   onChange,
-  placeholder = "Search invoices...",
+  placeholder = "Search by name, mobile, or invoice #...",
 }: SalesSearchProps) {
   return (
     <div className="relative">
@@ -24,8 +24,8 @@ export default function SalesSearch({
         placeholder={placeholder}
         className="
           w-[280px] pl-9 pr-4 py-2 rounded-lg
-          bg-[#1a1a1a] border border-[#333]
-          text-sm text-white placeholder-[#666]
+          bg-onyx-elevated border border-border
+          text-sm text-foreground placeholder-[#666]
           focus:outline-none focus:border-[#D4A843]/50 focus:ring-1 focus:ring-[#D4A843]/20
           transition-all duration-200
         "

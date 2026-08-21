@@ -55,12 +55,12 @@ const ExcessGoldModal = ({ billing, open, onClose }: ExcessGoldModalProps) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
         onClick={onClose}
       />
       
       {/* Modal */}
-      <div className="relative bg-[#141414] border border-[#2a2a2a] rounded-2xl w-full max-w-[640px] mx-4 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative bg-onyx-surface border border-onyx-border rounded-2xl w-full max-w-[640px] mx-4 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Amber Warning Strip */}
         <div className="bg-gradient-to-r from-[#d4a843]/20 via-[#f59e0b]/10 to-transparent p-0.5" />
@@ -73,23 +73,23 @@ const ExcessGoldModal = ({ billing, open, onClose }: ExcessGoldModalProps) => {
                 <AlertTriangle className="w-5 h-5 text-[#f59e0b]" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Old Gold Exceeds Purchase</h2>
+                <h2 className="text-xl font-bold text-foreground">Old Gold Exceeds Purchase</h2>
                 <p className="text-sm text-[#888] mt-0.5">Settlement option required for excess value</p>
               </div>
             </div>
             <button 
               onClick={onClose} 
-              className="text-[#555] hover:text-white transition-colors p-1"
+              className="text-[#555] hover:text-foreground transition-colors p-1"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Summary Bar */}
-          <div className="mt-5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-4 grid grid-cols-3 gap-4">
+          <div className="mt-5 bg-onyx-elevated border border-onyx-border rounded-xl p-4 grid grid-cols-3 gap-4">
             <div className="flex flex-col">
               <span className="text-[10px] font-bold text-[#777] uppercase tracking-wider mb-1">Purchase Value</span>
-              <span className="text-sm font-semibold text-white">₹{totalGoldValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <span className="text-sm font-semibold text-foreground">₹{totalGoldValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-bold text-[#777] uppercase tracking-wider mb-1">Old Gold Value</span>
@@ -111,7 +111,7 @@ const ExcessGoldModal = ({ billing, open, onClose }: ExcessGoldModalProps) => {
             className={`w-full text-left p-5 rounded-xl border-2 transition-all duration-200 ${
               selectedMode === 'CASH_OUT' 
                 ? 'border-[#d4a843] bg-[#d4a843]/5 shadow-lg shadow-[#d4a843]/5' 
-                : 'border-[#2a2a2a] bg-[#1a1a1a] hover:border-[#3a3a3a] hover:bg-[#1e1e1e]'
+                : 'border-onyx-border bg-onyx-elevated hover:border-[#3a3a3a] hover:bg-card'
             }`}
           >
             <div className="flex items-start gap-4">
@@ -122,7 +122,7 @@ const ExcessGoldModal = ({ billing, open, onClose }: ExcessGoldModalProps) => {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-white text-[15px]">Cash Out Excess Gold</h3>
+                  <h3 className="font-bold text-foreground text-[15px]">Cash Out Excess Gold</h3>
                   {selectedMode === 'CASH_OUT' && (
                     <span className="px-2 py-0.5 bg-[#d4a843]/20 text-[#d4a843] text-[10px] font-bold rounded-full uppercase tracking-wider">Selected</span>
                   )}
@@ -135,7 +135,7 @@ const ExcessGoldModal = ({ billing, open, onClose }: ExcessGoldModalProps) => {
 
             {/* Cash Out Details (shown when selected) */}
             {selectedMode === 'CASH_OUT' && (
-              <div className="mt-4 pt-4 border-t border-[#2a2a2a]" onClick={(e) => e.stopPropagation()}>
+              <div className="mt-4 pt-4 border-t border-onyx-border" onClick={(e) => e.stopPropagation()}>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] font-bold text-[#888] uppercase tracking-wider flex items-center gap-1">
@@ -149,7 +149,7 @@ const ExcessGoldModal = ({ billing, open, onClose }: ExcessGoldModalProps) => {
                       step={0.5}
                       value={localReductionPct}
                       onChange={(e) => setLocalReductionPct(Math.max(0, Math.min(50, Number(e.target.value))))}
-                      className="bg-[#0a0a0a] border-[#333] text-white font-medium h-10 focus-visible:ring-1 focus-visible:ring-[#d4a843] focus-visible:border-[#d4a843] text-center text-lg"
+                      className="bg-onyx border-border text-foreground font-medium h-10 focus-visible:ring-1 focus-visible:ring-[#d4a843] focus-visible:border-[#d4a843] text-center text-lg"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
@@ -157,7 +157,7 @@ const ExcessGoldModal = ({ billing, open, onClose }: ExcessGoldModalProps) => {
                       <Scale className="w-3 h-3" />
                       Excess Weight
                     </label>
-                    <div className="bg-[#0a0a0a] border border-[#333] rounded-md h-10 flex items-center justify-center text-white font-semibold">
+                    <div className="bg-onyx border border-border rounded-md h-10 flex items-center justify-center text-foreground font-semibold">
                       {excessGoldWeight.toFixed(3)}g
                     </div>
                   </div>
@@ -178,7 +178,7 @@ const ExcessGoldModal = ({ billing, open, onClose }: ExcessGoldModalProps) => {
                     (after refining & handling adjustments)
                   </div>
                   <div className="pt-2 border-t border-[#222] flex justify-between items-center">
-                    <span className="text-sm font-semibold text-white">Cash Out Value</span>
+                    <span className="text-sm font-semibold text-foreground">Cash Out Value</span>
                     <span className="text-lg font-bold text-green-400 font-mono">₹{localCashOut.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
@@ -192,7 +192,7 @@ const ExcessGoldModal = ({ billing, open, onClose }: ExcessGoldModalProps) => {
             className={`w-full text-left p-5 rounded-xl border-2 transition-all duration-200 ${
               selectedMode === 'RETURN_GOLD' 
                 ? 'border-blue-500 bg-blue-500/5 shadow-lg shadow-blue-500/5' 
-                : 'border-[#2a2a2a] bg-[#1a1a1a] hover:border-[#3a3a3a] hover:bg-[#1e1e1e]'
+                : 'border-onyx-border bg-onyx-elevated hover:border-[#3a3a3a] hover:bg-card'
             }`}
           >
             <div className="flex items-start gap-4">
@@ -203,7 +203,7 @@ const ExcessGoldModal = ({ billing, open, onClose }: ExcessGoldModalProps) => {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-white text-[15px]">Return Excess Gold</h3>
+                  <h3 className="font-bold text-foreground text-[15px]">Return Excess Gold</h3>
                   {selectedMode === 'RETURN_GOLD' && (
                     <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-[10px] font-bold rounded-full uppercase tracking-wider">Selected</span>
                   )}
@@ -214,7 +214,7 @@ const ExcessGoldModal = ({ billing, open, onClose }: ExcessGoldModalProps) => {
 
                 {/* Return Details (shown when selected) */}
                 {selectedMode === 'RETURN_GOLD' && (
-                  <div className="mt-4 pt-4 border-t border-[#2a2a2a]">
+                  <div className="mt-4 pt-4 border-t border-onyx-border">
                     <div className="bg-[#0d0d0d] border border-[#222] rounded-lg p-4 space-y-2.5">
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-[#888]">Total Old Gold Given</span>
@@ -222,7 +222,7 @@ const ExcessGoldModal = ({ billing, open, onClose }: ExcessGoldModalProps) => {
                       </div>
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-[#888]">Gold Retained (for bill)</span>
-                        <span className="text-white font-mono font-semibold">{billing.totalGoldWeight.toFixed(3)}g</span>
+                        <span className="text-foreground font-mono font-semibold">{billing.totalGoldWeight.toFixed(3)}g</span>
                       </div>
                       <div className="pt-2 border-t border-[#222] flex justify-between items-center">
                         <span className="text-sm font-semibold text-blue-400">Gold Returned to Customer</span>
@@ -243,7 +243,7 @@ const ExcessGoldModal = ({ billing, open, onClose }: ExcessGoldModalProps) => {
         <div className="p-6 pt-4 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-lg text-sm font-medium text-[#aaa] hover:text-white bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] transition-colors"
+            className="px-5 py-2.5 rounded-lg text-sm font-medium text-[#aaa] hover:text-foreground bg-card hover:bg-[#2a2a2a] border border-border transition-colors"
           >
             Cancel
           </button>

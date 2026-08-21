@@ -70,7 +70,7 @@ export function VoiceRecorder({ onRecordingComplete, existingFile }: VoiceRecord
   if (existingFile) {
     const url = URL.createObjectURL(existingFile);
     return (
-      <div className="flex items-center gap-2 h-10 px-3 rounded-lg bg-[#0a0a0a] border border-[#D4A843]/30">
+      <div className="flex items-center gap-2 h-10 px-3 rounded-lg bg-onyx border border-[#D4A843]/30">
         <audio src={url} controls className="h-6 w-40" />
         <button
           onClick={deleteRecording}
@@ -101,7 +101,7 @@ export function VoiceRecorder({ onRecordingComplete, existingFile }: VoiceRecord
       ) : (
         <button
           onClick={startRecording}
-          className="flex items-center gap-1.5 h-10 px-3 rounded-lg bg-[#141414] border border-[#2a2a2a] hover:border-[#D4A843]/50 text-[12px] text-[#888] hover:text-[#D4A843] transition-colors"
+          className="flex items-center gap-1.5 h-10 px-3 rounded-lg bg-onyx-surface border border-onyx-border hover:border-[#D4A843]/50 text-[12px] text-[#888] hover:text-[#D4A843] transition-colors"
           title="Record Voice Note"
         >
           <Mic className="w-4 h-4" />

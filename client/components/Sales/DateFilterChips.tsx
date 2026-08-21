@@ -33,7 +33,7 @@ export default function DateFilterChips({
               ${
                 isActive
                   ? "border-[#D4A843] text-[#D4A843] bg-[#D4A843]/10"
-                  : "border-[#333] text-[#999] bg-transparent hover:border-[#555] hover:text-[#ccc]"
+                  : "border-border text-[#999] bg-transparent hover:border-[#555] hover:text-[#ccc]"
               }
             `}
           >

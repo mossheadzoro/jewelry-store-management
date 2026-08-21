@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Save } from "lucide-react";
+import { Save, AlertTriangle } from "lucide-react";
 
 export default function WeightAndChargesTab({ 
   weightConfig, 
@@ -26,7 +26,6 @@ export default function WeightAndChargesTab({
     allowMakingOverride: pricingConfig?.allowMakingOverride ?? true,
     wastageMethod: pricingConfig?.wastageMethod || "PERCENTAGE",
     defaultWastage: pricingConfig?.defaultWastage || 0,
-    defaultGst: pricingConfig?.defaultGst || 3,
   });
 
   const [saving, setSaving] = useState(false);
@@ -54,6 +53,14 @@ export default function WeightAndChargesTab({
         {/* Weight Settings */}
         <div className="bg-onyx border border-onyx-border rounded-xl p-6">
           <h4 className="text-[14px] font-medium text-platinum mb-4 border-b border-onyx-border pb-2">Weight Parameters</h4>
+          
+          <div className="mb-5 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex gap-3 items-start">
+            <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+            <p className="text-[12px] text-amber-500/90 leading-relaxed">
+              <strong>Important:</strong> Modifying the Weight Unit or Decimal Precision here will instantly be applied across every weight field in the entire database.
+            </p>
+          </div>
+
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -123,10 +130,6 @@ export default function WeightAndChargesTab({
             </div>
 
             <div className="mt-4 pt-4 border-t border-onyx-border/50 space-y-4">
-              <div>
-                <label className="block text-[12px] text-platinum-muted mb-1.5">Default GST (%)</label>
-                <input type="number" value={pricing.defaultGst} onChange={e => setPricing({...pricing, defaultGst: Number(e.target.value)})} className="w-full bg-onyx-surface px-3 py-2 rounded-lg border border-onyx-border focus:border-gold outline-none text-[13px] text-platinum" />
-              </div>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={pricing.allowMakingOverride} onChange={e => setPricing({...pricing, allowMakingOverride: e.target.checked})} className="accent-gold w-4 h-4" />
                 <span className="text-[13px] text-platinum">Allow users to override making charge during creation</span>

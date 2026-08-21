@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useBranchStore } from "@/lib/store/useBranchStore";
-import axios from "axios";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Order } from "../../types/order";
 import AllOrdersView from "./AllOrdersView";
 import CreateOrderView from "./CreateOrderView";
@@ -14,66 +14,61 @@ import {
   Plus,
 } from "lucide-react";
 
-type TabType = "all" | "create" | "pending" | "completed";
+type TabType = "all" | "create" | "pending" | "completed" | "delivered";
 
 const OrderPage = () => {
   const { selectedBranch } = useBranchStore();
   const [activeTab, setActiveTab] = useState<TabType>("all");
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [totalOrders, setTotalOrders] = useState(0);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [previewOrder, setPreviewOrder] = useState<Order | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchOrders = useCallback(
-    async (page = 1, status?: string, search?: string) => {
-      if (!selectedBranch?.id) return;
-      try {
-        setLoading(true);
-        const params = new URLSearchParams({
-          branchId: String(selectedBranch.id),
-          page: String(page),
-          limit: "20",
-        });
-        if (status && status !== "all") params.set("status", status);
-        if (search) params.set("search", search);
-
-        const res = await axios.get(`/api/order/fetch?${params.toString()}`);
-        setOrders(res.data.orders);
-        setTotalOrders(res.data.total);
-        setCurrentPage(res.data.page);
-        setTotalPages(res.data.totalPages);
-      } catch (err) {
-        console.error("Failed to fetch orders", err);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [selectedBranch]
-  );
-
+  // Debounce search
   useEffect(() => {
-    if (activeTab === "all") {
-      fetchOrders(1, undefined, searchQuery);
-    } else if (activeTab === "pending") {
-      fetchOrders(1, "CREATED", searchQuery);
-    } else if (activeTab === "completed") {
-      fetchOrders(1, "COMPLETED", searchQuery);
-    }
-  }, [selectedBranch, activeTab]);
+    const timer = setTimeout(() => setDebouncedSearch(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const statusForTab = useMemo(() => {
+    if (activeTab === "pending") return "CREATED";
+    if (activeTab === "completed") return "COMPLETED";
+    if (activeTab === "delivered") return "DELIVERED";
+    return undefined;
+  }, [activeTab]);
+
+  const { data: queryData, isLoading: loading } = useQuery({
+    queryKey: ["orders", selectedBranch?.id, activeTab, currentPage, debouncedSearch],
+    queryFn: async () => {
+      if (!selectedBranch?.id) return { orders: [], total: 0, page: 1, totalPages: 1 };
+      const params = new URLSearchParams({
+        branchId: String(selectedBranch.id),
+        page: String(currentPage),
+        limit: "20",
+      });
+      if (statusForTab) params.set("status", statusForTab);
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      const res = await fetch(`/api/order/fetch?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch orders");
+      return res.json();
+    },
+    enabled: !!selectedBranch?.id && activeTab !== "create",
+    placeholderData: (prev: any) => prev,
+  });
+
+  const orders = queryData?.orders ?? [];
+  const totalOrders = queryData?.total ?? 0;
+  const totalPages = queryData?.totalPages ?? 1;
 
   const handleSearch = () => {
-    if (activeTab === "all") fetchOrders(1, undefined, searchQuery);
-    else if (activeTab === "pending") fetchOrders(1, "CREATED", searchQuery);
-    else if (activeTab === "completed") fetchOrders(1, "COMPLETED", searchQuery);
+    setDebouncedSearch(searchInput);
   };
 
   const handleOrderCreated = (order: Order) => {
     setPreviewOrder(order);
     setActiveTab("all");
-    fetchOrders(1);
+    queryClient.invalidateQueries({ queryKey: ["orders"] });
   };
 
   const tabs: { id: TabType; label: string }[] = [
@@ -81,10 +76,11 @@ const OrderPage = () => {
     { id: "create", label: "Create Order" },
     { id: "pending", label: "Pending" },
     { id: "completed", label: "Completed" },
+    { id: "delivered", label: "Delivered" },
   ];
 
   return (
-    <main className="flex-1 min-h-screen bg-[#0a0a0a] overflow-auto">
+    <main className="flex-1 min-h-screen bg-onyx overflow-auto">
       {/* Top Navigation Bar */}
       <header
         className="sticky top-0 z-30 flex items-center justify-between px-8 py-3 border-b border-[#1a1a1a]"
@@ -101,7 +97,7 @@ const OrderPage = () => {
               className={`text-[13px] font-semibold tracking-wide pb-1 transition-all ${
                 activeTab === tab.id
                   ? "text-[#D4A843] border-b-2 border-[#D4A843]"
-                  : "text-[#888] hover:text-white border-b-2 border-transparent"
+                  : "text-[#888] hover:text-foreground border-b-2 border-transparent"
               }`}
             >
               {tab.label}
@@ -116,10 +112,10 @@ const OrderPage = () => {
             <input
               type="text"
               placeholder="Search orders..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="w-[240px] h-9 pl-10 pr-4 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] text-[13px] text-white placeholder:text-[#555] focus:outline-none focus:border-[#D4A843]/50 transition-colors"
+              className="w-[240px] h-9 pl-10 pr-4 rounded-full bg-onyx-elevated border border-onyx-border text-[13px] text-foreground placeholder:text-[#555] focus:outline-none focus:border-[#D4A843]/50 transition-colors"
             />
           </div>
         </div>
@@ -143,17 +139,11 @@ const OrderPage = () => {
             totalPages={totalPages}
             activeTab={activeTab}
             onPageChange={(page) => {
-              const status =
-                activeTab === "pending"
-                  ? "CREATED"
-                  : activeTab === "completed"
-                  ? "COMPLETED"
-                  : undefined;
-              fetchOrders(page, status, searchQuery);
+              setCurrentPage(page);
             }}
             onViewSlip={(order) => setPreviewOrder(order)}
             onCreateOrder={() => setActiveTab("create")}
-            onRefresh={() => fetchOrders(currentPage)}
+            onRefresh={() => queryClient.invalidateQueries({ queryKey: ["orders"] })}
           />
         )}
       </div>

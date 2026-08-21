@@ -29,7 +29,14 @@ export function WholesalerNewOrderModal({ wholesalerId, onClose, onSuccess }: Pr
     // Attempt to fetch some categories so the dropdown isn't empty, if possible
     fetch("/api/inventory/category/fetchAll?branchId=1")
       .then(res => res.json())
-      .then(data => setCategories(data || []))
+      .then(data => {
+        const filtered = (data || []).filter((c: any) => 
+          c.name !== "Raw Metal" && 
+          c.name !== "UNMARKED JEWELLERY" && 
+          c.name.toLowerCase() !== "stamping center"
+        );
+        setCategories(filtered);
+      })
       .catch(e => console.error(e));
   }, []);
 
@@ -69,12 +76,12 @@ export function WholesalerNewOrderModal({ wholesalerId, onClose, onSuccess }: Pr
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 animate-in fade-in">
-      <div className="bg-[#111827] border border-gray-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 bg-background/60 backdrop-blur-sm flex justify-center items-center z-50 animate-in fade-in">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
         
-        <div className="flex justify-between items-center p-6 border-b border-gray-800">
-          <h2 className="text-xl font-semibold text-white">Create New Order</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+        <div className="flex justify-between items-center p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">Create New Order</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -82,36 +89,36 @@ export function WholesalerNewOrderModal({ wholesalerId, onClose, onSuccess }: Pr
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-gray-400">Customer Name</label>
+              <label className="text-sm text-muted-foreground">Customer Name</label>
               <input 
                 required
                 type="text" 
                 value={formData.customerName}
                 onChange={e => setFormData(p => ({...p, customerName: e.target.value}))}
-                className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white outline-none focus:border-blue-500 transition-colors"
+                className="bg-card border border-border rounded-xl px-4 py-2.5 text-foreground outline-none focus:border-blue-500 transition-colors"
                 placeholder="e.g. Rahul Sharma"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-gray-400">Mobile Number</label>
+              <label className="text-sm text-muted-foreground">Mobile Number</label>
               <input 
                 required
                 type="text" 
                 value={formData.customerMobile}
                 onChange={e => setFormData(p => ({...p, customerMobile: e.target.value}))}
-                className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white outline-none focus:border-blue-500 transition-colors"
+                className="bg-card border border-border rounded-xl px-4 py-2.5 text-foreground outline-none focus:border-blue-500 transition-colors"
                 placeholder="e.g. 9876543210"
               />
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-gray-400">Design / Category</label>
+            <label className="text-sm text-muted-foreground">Design / Category</label>
             <select 
               required
               value={formData.categoryId}
               onChange={e => setFormData(p => ({...p, categoryId: e.target.value}))}
-              className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white outline-none focus:border-blue-500 transition-colors"
+              className="bg-card border border-border rounded-xl px-4 py-2.5 text-foreground outline-none focus:border-blue-500 transition-colors"
             >
               <option value="">Select Category...</option>
               {categories.map(c => (
@@ -123,36 +130,36 @@ export function WholesalerNewOrderModal({ wholesalerId, onClose, onSuccess }: Pr
 
           <div className="grid grid-cols-2 gap-4">
              <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-gray-400">Est. Weight (g)</label>
+              <label className="text-sm text-muted-foreground">Est. Weight (g)</label>
               <input 
                 required
                 type="number" 
                 step="0.01"
                 value={formData.weight}
                 onChange={e => setFormData(p => ({...p, weight: e.target.value}))}
-                className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white outline-none focus:border-blue-500 transition-colors"
+                className="bg-card border border-border rounded-xl px-4 py-2.5 text-foreground outline-none focus:border-blue-500 transition-colors"
                 placeholder="e.g. 15.5"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-gray-400">Delivery Date</label>
+              <label className="text-sm text-muted-foreground">Delivery Date</label>
               <input 
                 required
                 type="date" 
                 value={formData.deliveryDate}
                 onChange={e => setFormData(p => ({...p, deliveryDate: e.target.value}))}
-                className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white outline-none focus:border-blue-500 transition-colors [color-scheme:dark]"
+                className="bg-card border border-border rounded-xl px-4 py-2.5 text-foreground outline-none focus:border-blue-500 transition-colors [color-scheme:dark]"
               />
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-gray-400">Notes / Details</label>
+            <label className="text-sm text-muted-foreground">Notes / Details</label>
             <textarea 
               value={formData.description}
               onChange={e => setFormData(p => ({...p, description: e.target.value}))}
               rows={3}
-              className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white outline-none focus:border-blue-500 transition-colors resize-none"
+              className="bg-card border border-border rounded-xl px-4 py-2.5 text-foreground outline-none focus:border-blue-500 transition-colors resize-none"
               placeholder="e.g. 18K Gold, Size 7"
             ></textarea>
           </div>
@@ -161,7 +168,7 @@ export function WholesalerNewOrderModal({ wholesalerId, onClose, onSuccess }: Pr
             <button 
               type="submit"
               disabled={loading}
-              className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-4 py-3 font-medium transition-colors disabled:opacity-50"
+              className="bg-blue-600 hover:bg-blue-500 text-foreground rounded-xl px-4 py-3 font-medium transition-colors disabled:opacity-50"
             >
               {loading ? "Creating..." : "Create Order"}
             </button>

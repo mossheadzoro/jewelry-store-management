@@ -174,45 +174,59 @@ export default function RolesTab() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredRoles.map(role => (
-            <div key={role.id} className="bg-onyx-surface border border-onyx-border rounded-xl p-5 hover:border-gold/30 transition-colors">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center">
-                    <Shield className="w-4 h-4 text-gold" />
-                  </div>
-                  <div>
-                    <h4 className="text-[14px] font-medium text-platinum">{role.name}</h4>
-                    {role.isSystem && <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full mt-1 inline-block">System Role</span>}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleOpenModal(role)} className="text-platinum-muted hover:text-gold transition-colors">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  {!role.isSystem && (
-                    <button onClick={() => handleDelete(role.id)} className="text-platinum-muted hover:text-red-400 transition-colors">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </div>
-              <p className="text-[12px] text-platinum-muted mb-4 line-clamp-2">{role.description || "No description provided."}</p>
-              <div className="text-[11px] text-platinum-muted bg-onyx px-3 py-1.5 rounded-lg inline-block">
-                {Object.values(role.permissions || {}).flat().length} Permissions Assigned
-              </div>
+          {filteredRoles.length === 0 ? (
+            <div className="col-span-full py-16 text-center border-2 border-dashed border-onyx-border rounded-xl flex flex-col items-center justify-center">
+              <Shield className="w-12 h-12 text-onyx-muted mb-3" />
+              <h3 className="text-platinum font-medium text-sm mb-1">No Roles Found</h3>
+              <p className="text-platinum-muted text-xs mb-4">You haven't created any custom roles yet.</p>
+              <button 
+                onClick={() => handleOpenModal()}
+                className="bg-gold text-onyx px-4 py-2 rounded-lg text-[13px] font-medium hover:bg-gold/90 transition-colors"
+              >
+                Create Your First Role
+              </button>
             </div>
-          ))}
+          ) : (
+            filteredRoles.map(role => (
+              <div key={role.id} className="bg-onyx-surface border border-onyx-border rounded-xl p-5 hover:border-gold/30 transition-colors">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center">
+                      <Shield className="w-4 h-4 text-gold" />
+                    </div>
+                    <div>
+                      <h4 className="text-[14px] font-medium text-platinum">{role.name}</h4>
+                      {role.isSystem && <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full mt-1 inline-block">System Role</span>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleOpenModal(role)} className="text-platinum-muted hover:text-gold transition-colors">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    {!role.isSystem && (
+                      <button onClick={() => handleDelete(role.id)} className="text-platinum-muted hover:text-red-400 transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p className="text-[12px] text-platinum-muted mb-4 line-clamp-2">{role.description || "No description provided."}</p>
+                <div className="text-[11px] text-platinum-muted bg-onyx px-3 py-1.5 rounded-lg inline-block">
+                  {Object.values(role.permissions || {}).flat().length} Permissions Assigned
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
 
       {/* Role Config Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-onyx-surface border border-onyx-border rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
             <div className="flex items-center justify-between p-6 border-b border-onyx-border">
               <h2 className="text-[18px] font-semibold text-platinum">{editingRole ? "Edit Role" : "Create New Role"}</h2>
-              <button onClick={handleCloseModal} className="text-platinum-muted hover:text-white transition-colors">
+              <button onClick={handleCloseModal} className="text-platinum-muted hover:text-foreground transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>

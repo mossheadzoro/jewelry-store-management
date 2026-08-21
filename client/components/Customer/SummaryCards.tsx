@@ -26,7 +26,7 @@ export default function SummaryCards({ stats, loading }: SummaryCardsProps) {
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="relative overflow-hidden rounded-2xl bg-[#141414] border border-[#1f1f1f] p-6 animate-pulse"
+            className="relative overflow-hidden rounded-2xl bg-onyx-surface border border-[#1f1f1f] p-6 animate-pulse"
           >
             <div className="h-10 w-10 rounded-xl bg-[#1f1f1f] mb-4" />
             <div className="h-3 w-24 rounded bg-[#1f1f1f] mb-3" />
@@ -72,8 +72,8 @@ export default function SummaryCards({ stats, loading }: SummaryCardsProps) {
         <div
           key={idx}
           onClick={card.onClick}
-          className={`group relative overflow-hidden rounded-2xl bg-[#141414] border border-[#1f1f1f] p-6 hover:border-[#2a2a2a] transition-all duration-300 ${
-            card.onClick ? "cursor-pointer hover:bg-[#1a1a1a] active:scale-[0.99]" : ""
+          className={`group relative overflow-hidden rounded-2xl bg-onyx-surface border border-[#1f1f1f] p-6 hover:border-onyx-border transition-all duration-300 ${
+            card.onClick ? "cursor-pointer hover:bg-onyx-elevated active:scale-[0.99]" : ""
           }`}
         >
           {/* Subtle gradient overlay */}
@@ -82,7 +82,7 @@ export default function SummaryCards({ stats, loading }: SummaryCardsProps) {
           <div className="relative z-10">
             {/* Icon + Badge row */}
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-[#1a1a1a] border border-[#252525] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-onyx-elevated border border-[#252525] flex items-center justify-center">
                 {card.icon}
               </div>
               {card.badge && (
@@ -103,7 +103,7 @@ export default function SummaryCards({ stats, loading }: SummaryCardsProps) {
 
             {/* Value */}
             <div className="flex items-end justify-between">
-              <p className="text-[28px] font-bold text-white tracking-tight leading-none">
+              <p className="text-[28px] font-bold text-foreground tracking-tight leading-none">
                 {card.value}
               </p>
               {card.link && (

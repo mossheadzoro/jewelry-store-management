@@ -24,7 +24,7 @@ export default function BranchSelector() {
 
   if (user?.systemRole !== 'ADMIN' && user?.role !== 'ADMIN') {
     return (
-      <div className="px-4 py-2 text-sm text-gray-50">
+      <div className="px-4 py-2 text-sm text-foreground">
         Branch: <strong>{selectedBranch?.name || 'Your Branch'}</strong>
       </div>
     );
@@ -42,11 +42,11 @@ export default function BranchSelector() {
 
   return (
     <div className="w-full px-4 py-2">
-  <label htmlFor="branch-selector" className="block text-sm font-medium text-gray-50 mb-1">
+  <label htmlFor="branch-selector" className="block text-sm font-medium text-foreground mb-1">
     Select Branch
   </label>
   <Select onValueChange={handleChange} value={selectedBranch?.id?.toString() || ''}>
-    <SelectTrigger className="w-full bg-gray-900 text-sm text-gray-50">
+    <SelectTrigger className="w-full bg-card text-sm text-foreground">
       <SelectValue placeholder="-- Choose a branch --" />
     </SelectTrigger>
     <SelectContent>
@@ -59,7 +59,7 @@ export default function BranchSelector() {
   </Select>
 
   {selectedBranch && (
-    <p className="mt-2 text-sm text-gray-50">
+    <p className="mt-2 text-sm text-foreground">
       Current: <span className="font-medium">{selectedBranch.name}</span>
     </p>
   )}

@@ -74,31 +74,31 @@ export function AssignOrderModal({ wholesalerId, onClose, onSuccess }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 animate-in fade-in">
-      <div className="bg-[#111827] border border-gray-800 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 bg-background/60 backdrop-blur-sm flex justify-center items-center z-50 animate-in fade-in">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
         
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-800">
+        <div className="flex justify-between items-center p-6 border-b border-border">
           <div>
-            <h2 className="text-xl font-semibold text-white">Assign Orders from OrderBook</h2>
-            <p className="text-sm text-gray-400 mt-1">Select unassigned orders to send to this wholesaler.</p>
+            <h2 className="text-xl font-semibold text-foreground">Assign Orders from OrderBook</h2>
+            <p className="text-sm text-muted-foreground mt-1">Select unassigned orders to send to this wholesaler.</p>
           </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-800 transition-colors">
+          <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-secondary transition-colors">
             <X size={20} />
           </button>
         </div>
 
         {/* Content */}
         <div className="p-6 flex-1 overflow-y-auto">
-          <div className="flex items-center gap-2 bg-black/30 border border-gray-800 rounded-xl px-4 py-2 mb-6">
-            <Search size={18} className="text-gray-500" />
-            <input type="text" placeholder="Search orders..." className="bg-transparent border-none outline-none text-sm text-white w-full" />
+          <div className="flex items-center gap-2 bg-background/30 border border-border rounded-xl px-4 py-2 mb-6">
+            <Search size={18} className="text-muted-foreground" />
+            <input type="text" placeholder="Search orders..." className="bg-transparent border-none outline-none text-sm text-foreground w-full" />
           </div>
 
           {loading ? (
-            <div className="text-center py-10 text-gray-500">Loading unassigned orders...</div>
+            <div className="text-center py-10 text-muted-foreground">Loading unassigned orders...</div>
           ) : unassignedOrders.length === 0 ? (
-            <div className="text-center py-10 text-gray-500">No unassigned orders found in OrderBook.</div>
+            <div className="text-center py-10 text-muted-foreground">No unassigned orders found in OrderBook.</div>
           ) : (
             <div className="grid gap-3">
               {unassignedOrders.map(order => {
@@ -109,27 +109,27 @@ export function AssignOrderModal({ wholesalerId, onClose, onSuccess }: Props) {
                     key={order.id} 
                     onClick={() => toggleSelection(order.id)}
                     className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all border ${
-                      isSelected ? "border-blue-500 bg-blue-500/10" : "border-gray-800 bg-gray-900/50 hover:border-gray-700 hover:bg-gray-800"
+                      isSelected ? "border-blue-500 bg-blue-500/10" : "border-border bg-card/50 hover:border-border hover:bg-secondary"
                     }`}
                   >
                     <input 
                       type="checkbox" 
                       checked={isSelected}
                       readOnly
-                      className="rounded border-gray-700 bg-gray-900 accent-blue-600 w-5 h-5"
+                      className="rounded border-border bg-card accent-blue-600 w-5 h-5"
                     />
                     <div className="flex-1 flex justify-between items-center">
                       <div>
-                        <div className="font-semibold text-white flex items-center gap-2">
+                        <div className="font-semibold text-foreground flex items-center gap-2">
                           #{order.orderNumber}
-                          <span className="text-xs font-normal text-gray-400">({order.customerName})</span>
+                          <span className="text-xs font-normal text-muted-foreground">({order.customerName})</span>
                         </div>
-                        <div className="text-sm text-gray-400">
+                        <div className="text-sm text-muted-foreground">
                           {item?.category?.name || "Unknown Design"} - {item?.weight || 0}g
                         </div>
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {new Date(order.createdAt).toLocaleDateString()}
+                      <div className="text-sm text-muted-foreground">
+                        {new Date(order.createdAt).toLocaleDateString("en-GB")}
                       </div>
                     </div>
                   </div>
@@ -140,17 +140,17 @@ export function AssignOrderModal({ wholesalerId, onClose, onSuccess }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-800 flex justify-end gap-3 bg-gray-900/50">
+        <div className="p-6 border-t border-border flex justify-end gap-3 bg-card/50">
           <button 
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors text-sm font-medium"
+            className="px-5 py-2.5 rounded-xl border border-border text-foreground/80 hover:bg-secondary transition-colors text-sm font-medium"
           >
             Cancel
           </button>
           <button 
             onClick={handleAssign}
             disabled={selectedIds.size === 0 || assigning}
-            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20 transition-colors disabled:opacity-50 text-sm font-medium flex items-center gap-2"
+            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-foreground shadow-lg shadow-blue-900/20 transition-colors disabled:opacity-50 text-sm font-medium flex items-center gap-2"
           >
             {assigning ? "Assigning..." : `Assign Selected (${selectedIds.size})`}
           </button>

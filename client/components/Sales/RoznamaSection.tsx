@@ -75,8 +75,16 @@ export default function RoznamaSection() {
               <span class="bold">${formatINR(data.openingStockValue)}</span>
             </div>
             <div class="row">
+              <span>Opening Stock Weight (Approx)</span>
+              <span class="bold">${formatWeight(data.openingGrossWeight || 0)} (Fine: ${formatWeight(data.openingFineWeight || 0)})</span>
+            </div>
+            <div class="row">
               <span>Closing Stock Value</span>
               <span class="bold">${formatINR(data.closingStockValue)}</span>
+            </div>
+            <div class="row">
+              <span>Closing Stock Weight</span>
+              <span class="bold">${formatWeight(data.closingGrossWeight || 0)} (Fine: ${formatWeight(data.closingFineWeight || 0)})</span>
             </div>
             
             <div class="divider"></div>
@@ -167,7 +175,7 @@ export default function RoznamaSection() {
             <button
               onClick={handleGenerate}
               disabled={isLoading}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#C9943A] hover:bg-[#E8B84B] text-black text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#C9943A] hover:bg-[#E8B84B] text-foreground text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer"
             >
               {isLoading ? (
                 <div className="w-3.5 h-3.5 border-2 border-t-black border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin" />
@@ -206,14 +214,22 @@ export default function RoznamaSection() {
               </div>
 
               <div className="py-4 space-y-3">
-                {/* Stock valuation */}
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#6B6560]">Opening Stock Valuation</span>
-                  <span className="font-semibold text-white">{formatINR(data.openingStockValue)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#6B6560]">Closing Stock Valuation</span>
-                  <span className="font-semibold text-[#C9943A]">{formatINR(data.closingStockValue)}</span>
+                {/* Stock valuation & Weights */}
+                <div className="grid grid-cols-2 gap-3 text-xs bg-[#111113] p-3 rounded-lg border border-[#1F1F24]">
+                  <div>
+                    <span className="text-[#6B6560]">Opening Stock Value</span>
+                    <p className="font-semibold text-foreground mt-0.5">{formatINR(data.openingStockValue)}</p>
+                    <span className="text-[10px] text-[#8E8A85]">
+                      Gross: {formatWeight(data.openingGrossWeight || 0)} | Fine: {formatWeight(data.openingFineWeight || 0)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[#6B6560]">Closing Stock Value</span>
+                    <p className="font-semibold text-[#C9943A] mt-0.5">{formatINR(data.closingStockValue)}</p>
+                    <span className="text-[10px] text-[#8E8A85]">
+                      Gross: {formatWeight(data.closingGrossWeight || 0)} | Fine: {formatWeight(data.closingFineWeight || 0)}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="border-t border-[#1F1F24] border-dashed my-2" />
@@ -222,11 +238,11 @@ export default function RoznamaSection() {
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
                     <span className="text-[#6B6560]">Invoices Raised</span>
-                    <p className="text-base font-bold text-white mt-1">{data.invoicesRaised}</p>
+                    <p className="text-base font-bold text-foreground mt-1">{data.invoicesRaised}</p>
                   </div>
                   <div>
                     <span className="text-[#6B6560]">Items Sold</span>
-                    <p className="text-base font-bold text-white mt-1">{data.itemsSold} pcs</p>
+                    <p className="text-base font-bold text-foreground mt-1">{data.itemsSold} pcs</p>
                   </div>
                   <div>
                     <span className="text-[#6B6560]">Total Weight Sold</span>

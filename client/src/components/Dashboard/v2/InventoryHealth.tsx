@@ -22,7 +22,7 @@ export function InventoryHealth({ data }: any) {
         <Link href="/inventory" className="block">
           <div className="p-3 bg-onyx-elevated border border-onyx-border rounded-xl hover:border-gold/30 transition-colors">
             <span className="text-[11px] text-platinum-muted uppercase font-medium tracking-wider mb-1 block">Available Items</span>
-            <span className="text-lg font-bold text-white flex items-center gap-2">
+            <span className="text-lg font-bold text-foreground flex items-center gap-2">
               {data.availableItems} <BadgeCheck className="w-4 h-4 text-emerald-400" />
             </span>
           </div>
@@ -30,7 +30,7 @@ export function InventoryHealth({ data }: any) {
         <Link href="/book-products" className="block">
           <div className="p-3 bg-onyx-elevated border border-onyx-border rounded-xl hover:border-gold/30 transition-colors">
             <span className="text-[11px] text-platinum-muted uppercase font-medium tracking-wider mb-1 block">Reserved</span>
-            <span className="text-lg font-bold text-white">{data.reserved}</span>
+            <span className="text-lg font-bold text-foreground">{data.reserved}</span>
           </div>
         </Link>
         <Link href="/inventory" className="block">
@@ -54,7 +54,7 @@ export function InventoryHealth({ data }: any) {
         <Link href="/inventory/transfers" className="block">
           <div className="p-3 bg-onyx-elevated border border-onyx-border rounded-xl hover:border-gold/30 transition-colors">
             <span className="text-[11px] text-platinum-muted uppercase font-medium tracking-wider mb-1 block">Transfers Pending</span>
-            <span className="text-lg font-bold text-white flex items-center gap-2">
+            <span className="text-lg font-bold text-foreground flex items-center gap-2">
               {data.transfersPending} {data.transfersPending > 0 && <ArrowRightLeft className="w-4 h-4 text-gold" />}
             </span>
           </div>

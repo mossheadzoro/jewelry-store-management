@@ -41,6 +41,8 @@ export default function BusinessSettingsPanel() {
     website: "",
     invoiceHeaderText: "",
     termsAndConditions: "",
+    logoUrl: "",
+    qrCodeUrl: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -69,6 +71,8 @@ export default function BusinessSettingsPanel() {
         website: branchSettings.website || "",
         invoiceHeaderText: branchSettings.invoiceHeaderText || "",
         termsAndConditions: branchSettings.termsAndConditions || "",
+        logoUrl: branchSettings.logoUrl || "",
+        qrCodeUrl: branchSettings.qrCodeUrl || "",
       });
     } else {
       setFormData({
@@ -87,6 +91,8 @@ export default function BusinessSettingsPanel() {
         website: "",
         invoiceHeaderText: "",
         termsAndConditions: "",
+        logoUrl: "",
+        qrCodeUrl: "",
       });
     }
   }, [branchSettings]);
@@ -94,6 +100,27 @@ export default function BusinessSettingsPanel() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: "logoUrl" | "qrCodeUrl") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+    uploadData.append("folder", "branch_settings");
+
+    try {
+      const res = await axios.post("/api/upload/branch", uploadData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      if (res.data.url) {
+        setFormData(prev => ({ ...prev, [field]: res.data.url }));
+      }
+    } catch (error) {
+      console.error("Upload failed", error);
+      alert("Failed to upload image");
+    }
   };
 
   const handleSave = async () => {
@@ -265,19 +292,23 @@ export default function BusinessSettingsPanel() {
         <div className="space-y-6">
           <div className="bg-onyx-elevated rounded-xl border border-onyx-border p-6 text-center space-y-4">
             <h3 className="text-[14px] font-medium text-platinum text-left">Shop Logo</h3>
-            <div className="w-32 h-32 mx-auto rounded-full bg-onyx-surface border-2 border-dashed border-onyx-border flex items-center justify-center cursor-pointer hover:border-gold/50 transition-colors">
-              <span className="text-[11px] text-platinum-muted">Upload Logo</span>
-            </div>
+            <label className={`w-32 h-32 mx-auto rounded-full bg-onyx-surface border-2 border-dashed border-onyx-border flex items-center justify-center cursor-pointer hover:border-gold/50 transition-colors ${!isAdmin ? "pointer-events-none opacity-50" : ""} overflow-hidden`}>
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={(e) => handleFileUpload(e, "logoUrl")}
+                disabled={!isAdmin}
+              />
+              {formData.logoUrl ? (
+                <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[11px] text-platinum-muted">Upload Logo</span>
+              )}
+            </label>
             <p className="text-[10px] text-platinum-muted">Recommended: 500x500px, PNG format.</p>
           </div>
-          
-          <div className="bg-onyx-elevated rounded-xl border border-onyx-border p-6 text-center space-y-4">
-            <h3 className="text-[14px] font-medium text-platinum text-left">Payment QR Code</h3>
-            <div className="w-32 h-32 mx-auto rounded-lg bg-onyx-surface border-2 border-dashed border-onyx-border flex items-center justify-center cursor-pointer hover:border-gold/50 transition-colors">
-              <span className="text-[11px] text-platinum-muted">Upload QR</span>
-            </div>
-            <p className="text-[10px] text-platinum-muted">Appears on invoices.</p>
-          </div>
+
         </div>
       </div>
 

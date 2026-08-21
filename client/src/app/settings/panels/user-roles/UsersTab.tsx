@@ -217,11 +217,11 @@ export default function UsersTab() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-onyx-surface border border-onyx-border rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
             <div className="flex items-center justify-between p-6 border-b border-onyx-border">
               <h2 className="text-[18px] font-semibold text-platinum">{editingUser ? "Edit User" : "Add User"}</h2>
-              <button onClick={handleCloseModal} className="text-platinum-muted hover:text-white transition-colors">
+              <button onClick={handleCloseModal} className="text-platinum-muted hover:text-foreground transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>

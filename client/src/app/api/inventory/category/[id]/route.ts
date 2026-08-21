@@ -19,6 +19,7 @@ export async function GET(
         subCategories: {
           include: {
             products: {
+              where: { quantity: { gt: 0 } },
               select: { ntWeight: true, gsWeight: true, quantity: true },
             },
           },

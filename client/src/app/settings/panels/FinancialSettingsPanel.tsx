@@ -32,6 +32,7 @@ export default function FinancialSettingsPanel() {
   const [config, setConfig] = useState<any>({
     productGst: { cgst: 1.5, sgst: 1.5, igst: 3 },
     makingChargeGst: { cgst: 2.5, sgst: 2.5, igst: 5 },
+    hallmarkConfig: { charge: 500, cgst: 9, sgst: 9, igst: 18 },
     taxCalculation: "exclusive",
     autoRoundOff: true,
     advanceBookingPercent: 80,
@@ -192,6 +193,29 @@ export default function FinancialSettingsPanel() {
                 <div className="space-y-1">
                   <label className="text-[11px] text-platinum-muted">IGST (%)</label>
                   <input type="number" step="0.1" value={config.makingChargeGst?.igst || 0} onChange={e => updateNestedConfig('makingChargeGst', 'igst', parseFloat(e.target.value) || 0)} disabled={!isAdmin} className="w-full h-9 px-3 rounded bg-onyx-surface border border-onyx-border text-[12px] text-platinum focus:border-gold outline-none disabled:opacity-50" />
+                </div>
+              </div>
+            </div>
+
+            {/* Hallmark Config */}
+            <div className="border border-onyx-border p-4 rounded-lg bg-onyx-surface/30">
+              <label className="block text-[12px] font-medium text-platinum mb-3">Hallmarking</label>
+              <div className="grid grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] text-platinum-muted">Charge (₹)</label>
+                  <input type="number" value={config.hallmarkConfig?.charge || 0} onChange={e => updateNestedConfig('hallmarkConfig', 'charge', parseFloat(e.target.value) || 0)} disabled={!isAdmin} className="w-full h-9 px-3 rounded bg-onyx-surface border border-onyx-border text-[12px] text-platinum focus:border-gold outline-none disabled:opacity-50" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-platinum-muted">CGST (%)</label>
+                  <input type="number" step="0.1" value={config.hallmarkConfig?.cgst || 0} onChange={e => updateNestedConfig('hallmarkConfig', 'cgst', parseFloat(e.target.value) || 0)} disabled={!isAdmin} className="w-full h-9 px-3 rounded bg-onyx-surface border border-onyx-border text-[12px] text-platinum focus:border-gold outline-none disabled:opacity-50" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-platinum-muted">SGST (%)</label>
+                  <input type="number" step="0.1" value={config.hallmarkConfig?.sgst || 0} onChange={e => updateNestedConfig('hallmarkConfig', 'sgst', parseFloat(e.target.value) || 0)} disabled={!isAdmin} className="w-full h-9 px-3 rounded bg-onyx-surface border border-onyx-border text-[12px] text-platinum focus:border-gold outline-none disabled:opacity-50" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-platinum-muted">IGST (%)</label>
+                  <input type="number" step="0.1" value={config.hallmarkConfig?.igst || 0} onChange={e => updateNestedConfig('hallmarkConfig', 'igst', parseFloat(e.target.value) || 0)} disabled={!isAdmin} className="w-full h-9 px-3 rounded bg-onyx-surface border border-onyx-border text-[12px] text-platinum focus:border-gold outline-none disabled:opacity-50" />
                 </div>
               </div>
             </div>

@@ -1,7 +1,8 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { RefreshCw, Plus, AlertTriangle, ArrowRight } from "lucide-react";
+import { RefreshCw, Plus, AlertTriangle, ArrowRight, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 const MetalExchangeSection = ({ billing, onOpenExcessModal }: any) => {
   const {
@@ -16,42 +17,83 @@ const MetalExchangeSection = ({ billing, onOpenExcessModal }: any) => {
     effectiveExchangeWeight,
     effectiveExchangeValue,
     excessGoldWeight,
+    appliedAdvance,
+    removeAdvance,
   } = billing;
 
+  const handleRemoveAdvance = () => {
+    if (!appliedAdvance) return;
+    removeAdvance();
+    toast.success(
+      <div className="flex flex-col gap-0.5">
+        <span className="font-semibold text-foreground text-sm">Advance Removed</span>
+        <span className="text-xs text-[#ccc]">
+          Advance <strong>{appliedAdvance.advanceReceiptNumber}</strong> has been removed from the bill. No changes were made to the order or wallet.
+        </span>
+      </div>,
+      { duration: 4000 }
+    );
+  };
+
   return (
-    <div className="bg-[#111111] border border-[#1e1e1e] rounded-xl overflow-hidden mt-2">
+    <div className="bg-onyx-surface border border-[#1e1e1e] rounded-xl overflow-hidden mt-2">
       {/* HEADER BAR */}
       <div className="flex items-center justify-between p-4 border-b border-[#1e1e1e] bg-[#151515]">
         <div className="flex items-center gap-2">
           <RefreshCw className="w-5 h-5 text-[#d4a843]" />
-          <h3 className="text-lg font-bold text-white tracking-tight">
+          <h3 className="text-lg font-bold text-foreground tracking-tight">
             Old Gold Exchange
           </h3>
         </div>
-        <button className="text-[#d4a843] hover:text-[#f0c45d] text-sm font-semibold tracking-wide flex items-center gap-1 transition-colors">
-          <Plus className="w-4 h-4" /> Add Item
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Remove Wallet Balance Button */}
+          {(billing.appliedWalletMetal22K > 0 || billing.appliedWalletMetal24K > 0) && (
+            <button
+              onClick={billing.removeWalletBalance}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#e55]/10 border border-[#e55]/20 text-[#e55] hover:bg-[#e55]/20 hover:border-[#e55]/40 text-xs font-semibold tracking-wide transition-all"
+              title="Remove Wallet Balance"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Remove Wallet
+            </button>
+          )}
+
+          {/* Remove Advance Button — only visible when advance is applied */}
+          {appliedAdvance && (
+            <button
+              onClick={handleRemoveAdvance}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#e55]/10 border border-[#e55]/20 text-[#e55] hover:bg-[#e55]/20 hover:border-[#e55]/40 text-xs font-semibold tracking-wide transition-all"
+              title={`Remove advance ${appliedAdvance.advanceReceiptNumber}`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Remove Advance
+            </button>
+          )}
+          <button className="text-[#d4a843] hover:text-[#f0c45d] text-sm font-semibold tracking-wide flex items-center gap-1 transition-colors">
+            <Plus className="w-4 h-4" /> Add Item
+          </button>
+        </div>
       </div>
 
       {/* CONTENT GRID */}
-      <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="p-5 grid grid-cols-2 lg:grid-cols-6 gap-4">
         
         {/* Total Jewellery Weight */}
         <div className="flex flex-col gap-2">
           <label className="text-[10px] font-bold text-[#888] uppercase tracking-wider">
-            Total Jewellery Wt (g)
+            Jewellery Wt (g)
           </label>
           <Input
             disabled
             value={totalGoldWeight.toFixed(3)}
-            className="bg-[#1a1a1a] border-[#2a2a2a] text-[#aaa] font-medium h-10 disabled:opacity-70"
+            className="bg-onyx-elevated border-onyx-border text-[#aaa] font-medium h-10 disabled:opacity-70"
           />
         </div>
 
         {/* Old Gold Given */}
         <div className="flex flex-col gap-2">
           <label className="text-[10px] font-bold text-[#d4a843] uppercase tracking-wider flex items-center justify-between">
-            Old Gold Given (g)
+            Old Gold (g)
             <span className="text-[#e55]">*</span>
           </label>
           <Input
@@ -62,8 +104,42 @@ const MetalExchangeSection = ({ billing, onOpenExcessModal }: any) => {
               setExchangeGoldWeight(Math.max(0, Number(e.target.value)))
             }
             placeholder="0.000"
-            className="bg-[#1a1a1a] border-[#2a2a2a] text-white font-medium h-10 focus-visible:ring-1 focus-visible:ring-[#d4a843] focus-visible:border-[#d4a843]"
+            className="bg-onyx-elevated border-onyx-border text-foreground font-medium h-10 focus-visible:ring-1 focus-visible:ring-[#d4a843] focus-visible:border-[#d4a843]"
           />
+        </div>
+
+        {/* Purity */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[10px] font-bold text-[#888] uppercase tracking-wider">
+            Purity
+          </label>
+          <select
+            value={billing.exchangeGoldPurity}
+            onChange={(e) => billing.setExchangeGoldPurity(e.target.value)}
+            className="bg-onyx-elevated border-onyx-border border text-foreground font-medium h-10 focus-visible:ring-1 focus-visible:ring-[#d4a843] focus-visible:border-[#d4a843] rounded-md px-3 text-sm outline-none"
+          >
+            <option value="24k">24K</option>
+            <option value="22k">22K</option>
+            <option value="18k">18K</option>
+            <option value="14k">14K</option>
+          </select>
+        </div>
+
+        {/* Deduction % */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[10px] font-bold text-[#888] uppercase tracking-wider">
+            Deduction %
+          </label>
+          <div className="relative">
+            <Input
+              type="number"
+              step="0.1"
+              value={billing.exchangeGoldDeductionPercent}
+              onChange={(e) => billing.setExchangeGoldDeductionPercent(Number(e.target.value))}
+              className="bg-onyx-elevated border-onyx-border text-foreground font-medium h-10 pr-7 focus-visible:ring-1 focus-visible:ring-[#d4a843] focus-visible:border-[#d4a843]"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#555]">%</div>
+          </div>
         </div>
 
         {/* Exchange Rate */}
@@ -75,8 +151,8 @@ const MetalExchangeSection = ({ billing, onOpenExcessModal }: any) => {
              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#555]">₹</div>
              <Input
                disabled
-               value={metalRate.toFixed(2)}
-               className="bg-[#1a1a1a] border-[#2a2a2a] text-[#aaa] font-medium h-10 disabled:opacity-70 pl-7"
+               value={billing.exchangeMetalRate.toFixed(2)}
+               className="bg-onyx-elevated border-onyx-border text-[#aaa] font-medium h-10 disabled:opacity-70 pl-7"
              />
           </div>
         </div>
@@ -91,7 +167,7 @@ const MetalExchangeSection = ({ billing, onOpenExcessModal }: any) => {
              <Input
                disabled
                value={exchangeGoldValue.toFixed(2)}
-               className="bg-[#1a1a1a] border-[#2a2a2a] text-green-400 font-bold h-10 disabled:opacity-100 disabled:cursor-default pl-7"
+               className="bg-onyx-elevated border-onyx-border text-green-400 font-bold h-10 disabled:opacity-100 disabled:cursor-default pl-7"
              />
            </div>
         </div>
@@ -172,7 +248,9 @@ const MetalExchangeSection = ({ billing, onOpenExcessModal }: any) => {
 
       <div className="px-5 pb-5 w-full flex">
          <p className="text-xs text-[#555] italic">
-           * GST on gold will be applied only on net gold purchased.
+           {billing.metalExchange
+             ? "* GST on gold will be applied only on net gold purchased."
+             : "* Metal Exchange is OFF. Old gold value will be deducted from the Grand Total as a cash equivalent."}
          </p>
       </div>
     </div>

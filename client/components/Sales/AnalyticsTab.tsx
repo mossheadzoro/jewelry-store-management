@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useBranchStore } from "@/lib/store/useBranchStore";
 import {
   ResponsiveContainer,
@@ -52,34 +53,26 @@ export default function AnalyticsTab() {
       to: now,
     };
   });
-  
-  const [data, setData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchAnalytics = useCallback(async () => {
-    if (!selectedBranch) return;
-    setIsLoading(true);
-    try {
+  const { data, isLoading } = useQuery({
+    queryKey: ["salesAnalytics", selectedBranch?.id, dateRange.from.toISOString(), dateRange.to.toISOString()],
+    queryFn: async () => {
+      if (!selectedBranch) return null;
       const params = new URLSearchParams({
         branchId: selectedBranch.id.toString(),
         dateFrom: dateRange.from.toISOString(),
         dateTo: dateRange.to.toISOString(),
       });
       const res = await fetch(`/api/billing/analytics?${params.toString()}`);
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to load analytics");
-      setData(json);
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to load dashboard data");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedBranch, dateRange]);
-
-  useEffect(() => {
-    fetchAnalytics();
-  }, [fetchAnalytics]);
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error || "Failed to load analytics");
+      }
+      return res.json();
+    },
+    enabled: !!selectedBranch,
+    placeholderData: (prev: any) => prev,
+  });
 
   const handlePresetChange = (p: "week" | "month" | "quarter" | "year") => {
     setPreset(p);
@@ -102,7 +95,7 @@ export default function AnalyticsTab() {
     if (count <= 2) return "bg-[#2A1F08] border-[#3A2E18]/40";
     if (count <= 5) return "bg-[#5A3A10] border-[#3A2E18]/60";
     if (count <= 10) return "bg-[#9A6020] border-[#C9943A]/30";
-    return "bg-[#C9943A] text-black font-bold border-[#E8B84B]";
+    return "bg-[#C9943A] text-foreground font-bold border-[#E8B84B]";
   };
 
   return (
@@ -110,7 +103,7 @@ export default function AnalyticsTab() {
       {/* Date Filters Row */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white font-serif">Sales Analytics Hub</h2>
+          <h2 className="text-xl font-bold text-foreground font-serif">Sales Analytics Hub</h2>
           <p className="text-xs text-[#6B6560]">High-fidelity showroom performance insights.</p>
         </div>
 
@@ -146,7 +139,7 @@ export default function AnalyticsTab() {
                 <span>NEW CUSTOMERS</span>
                 <Users className="w-4 h-4 text-[#C9943A]" />
               </div>
-              <p className="text-2xl font-bold text-white font-mono">{data.customerInsights.newCustomers}</p>
+              <p className="text-2xl font-bold text-foreground font-mono">{data.customerInsights.newCustomers}</p>
               <span className="text-[10px] text-green-500 font-semibold">▲ 12% vs last month</span>
             </div>
 
@@ -155,7 +148,7 @@ export default function AnalyticsTab() {
                 <span>RETURNING</span>
                 <Users className="w-4 h-4 text-[#C9943A]" />
               </div>
-              <p className="text-2xl font-bold text-white font-mono">{data.customerInsights.returningCustomers}</p>
+              <p className="text-2xl font-bold text-foreground font-mono">{data.customerInsights.returningCustomers}</p>
               <span className="text-[10px] text-green-500 font-semibold">▲ 8% vs last month</span>
             </div>
 
@@ -173,7 +166,7 @@ export default function AnalyticsTab() {
                 <span>REPEAT PURCHASE RATE</span>
                 <span className="text-lg">%</span>
               </div>
-              <p className="text-2xl font-bold text-white font-mono">{data.customerInsights.repeatRate}%</p>
+              <p className="text-2xl font-bold text-foreground font-mono">{data.customerInsights.repeatRate}%</p>
               <span className="text-[10px] text-[#6B6560]">Percentage of repeat clients</span>
             </div>
           </div>

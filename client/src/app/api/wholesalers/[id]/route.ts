@@ -16,6 +16,14 @@ export async function GET(
           orderBy: { createdAt: "desc" },
           take: 50,
         },
+        transactions: {
+          orderBy: { createdAt: "desc" },
+          take: 50,
+          include: {
+            cashItems: true,
+            ledgerEntries: true,
+          },
+        },
         ledgerEntries: {
           orderBy: { createdAt: "desc" },
           take: 50,

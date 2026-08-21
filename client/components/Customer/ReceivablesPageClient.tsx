@@ -96,7 +96,7 @@ export default function ReceivablesPageClient() {
   };
 
   return (
-    <main className="flex-1 min-h-screen bg-[#0a0a0a] overflow-auto">
+    <main className="flex-1 min-h-screen bg-onyx overflow-auto">
       <div className="max-w-[1400px] mx-auto px-8 py-8">
         
         {/* Back link */}
@@ -111,7 +111,7 @@ export default function ReceivablesPageClient() {
         {/* Header */}
         <div className="flex items-start justify-between gap-8 mb-8">
           <div>
-            <h1 className="text-[32px] font-bold text-white tracking-tight leading-tight">
+            <h1 className="text-[32px] font-bold text-foreground tracking-tight leading-tight">
               Outstanding Receivables & Aging Report
             </h1>
             <p className="text-[14px] text-[#555] mt-1.5 max-w-lg leading-relaxed">
@@ -127,14 +127,14 @@ export default function ReceivablesPageClient() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search debtor name or mobile..."
-              className="w-[320px] h-10 pl-10 pr-4 rounded-xl bg-[#111] border border-[#1f1f1f] text-[13px] text-white placeholder:text-[#444] outline-none focus:border-[#D4A843]/40 transition-colors"
+              className="w-[320px] h-10 pl-10 pr-4 rounded-xl bg-[#111] border border-[#1f1f1f] text-[13px] text-foreground placeholder:text-[#444] outline-none focus:border-[#D4A843]/40 transition-colors"
             />
           </div>
         </div>
 
         {/* Query State Loading */}
         {isLoading && (
-          <div className="rounded-2xl bg-[#141414] border border-[#1f1f1f] py-20 flex flex-col items-center justify-center">
+          <div className="rounded-2xl bg-onyx-surface border border-[#1f1f1f] py-20 flex flex-col items-center justify-center">
             <Loader2 className="w-8 h-8 text-[#D4A843] animate-spin mb-4" />
             <p className="text-sm text-[#666]">Generating aging analysis...</p>
           </div>
@@ -144,7 +144,7 @@ export default function ReceivablesPageClient() {
         {error && (
           <div className="rounded-2xl bg-red-500/5 border border-red-500/10 py-16 flex flex-col items-center justify-center text-center px-4">
             <AlertCircle className="w-10 h-10 text-red-500/80 mb-3" />
-            <h3 className="text-[16px] font-semibold text-white mb-1">Failed to fetch report</h3>
+            <h3 className="text-[16px] font-semibold text-foreground mb-1">Failed to fetch report</h3>
             <p className="text-sm text-[#666] max-w-sm">
               An error occurred while compiling the outstanding ledger details. Please try again.
             </p>
@@ -153,11 +153,11 @@ export default function ReceivablesPageClient() {
 
         {/* Query State Empty */}
         {!isLoading && !error && customers.length === 0 && (
-          <div className="rounded-2xl bg-[#141414] border border-[#1f1f1f] py-20 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#1a1a1a] border border-[#222] flex items-center justify-center mb-4">
+          <div className="rounded-2xl bg-onyx-surface border border-[#1f1f1f] py-20 flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 rounded-2xl bg-onyx-elevated border border-[#222] flex items-center justify-center mb-4">
               <span className="text-2xl">🎉</span>
             </div>
-            <h3 className="text-[16px] font-semibold text-white mb-1">No outstanding dues</h3>
+            <h3 className="text-[16px] font-semibold text-foreground mb-1">No outstanding dues</h3>
             <p className="text-sm text-[#555] max-w-xs leading-relaxed">
               All active client invoice ledger accounts have been fully settled.
             </p>
@@ -166,7 +166,7 @@ export default function ReceivablesPageClient() {
 
         {/* Report Table */}
         {!isLoading && !error && customers.length > 0 && (
-          <div className="rounded-2xl bg-[#141414] border border-[#1f1f1f] overflow-hidden">
+          <div className="rounded-2xl bg-onyx-surface border border-[#1f1f1f] overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[1000px]">
                 <thead>
@@ -188,11 +188,11 @@ export default function ReceivablesPageClient() {
                 </thead>
                 <tbody className="divide-y divide-[#1a1a1a]">
                   {customers.map((c) => (
-                    <tr key={c.id} className="group hover:bg-[#1a1a1a]/40 transition-colors duration-150">
+                    <tr key={c.id} className="group hover:bg-onyx-elevated/40 transition-colors duration-150">
                       
                       {/* Customer Info & Risk */}
                       <td className="px-6 py-4 min-w-[240px]">
-                        <div className="font-semibold text-white text-[14px]">{c.name}</div>
+                        <div className="font-semibold text-foreground text-[14px]">{c.name}</div>
                         <div className="text-[12px] text-[#555] mt-0.5">+91 {c.mobile}</div>
                         {c.tags && c.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1.5">
@@ -201,12 +201,12 @@ export default function ReceivablesPageClient() {
                                 gold: "bg-[#D4A843]/15 text-[#D4A843] border-[#D4A843]/30",
                                 red: "bg-red-500/10 text-red-400 border-red-500/25",
                                 blue: "bg-blue-500/10 text-blue-400 border-blue-500/25",
-                                gray: "bg-gray-500/10 text-gray-400 border-gray-500/25",
+                                gray: "bg-gray-500/10 text-muted-foreground border-gray-500/25",
                                 green: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
                                 orange: "bg-orange-500/10 text-orange-400 border-orange-500/25",
                                 purple: "bg-purple-500/10 text-purple-400 border-purple-500/25",
                               };
-                              const colorClass = colorMap[tag.color.toLowerCase()] || "bg-gray-500/10 text-gray-400 border-gray-500/25";
+                              const colorClass = colorMap[tag.color.toLowerCase()] || "bg-gray-500/10 text-muted-foreground border-gray-500/25";
                               return (
                                 <span
                                   key={tag.id}
@@ -236,7 +236,7 @@ export default function ReceivablesPageClient() {
                         {c.latestPurchase ? (
                           <div className="space-y-1 text-[13px]">
                             <div className="text-[#999] flex items-center gap-1.5">
-                              <span className="font-medium text-white">₹{formatCurrency(c.latestPurchase.amount)}</span>
+                              <span className="font-medium text-foreground">₹{formatCurrency(c.latestPurchase.amount)}</span>
                               <span className="text-[11px] text-[#555]">on {formatDate(c.latestPurchase.date)}</span>
                             </div>
                             <div className="text-[#555] text-[11px] truncate" title={c.latestPurchase.items}>
@@ -256,7 +256,7 @@ export default function ReceivablesPageClient() {
                       {/* Aging Breakdown: 0-30 */}
                       <td className="px-4 py-4 text-right text-[13px] font-medium">
                         {c.aging.current > 0 ? (
-                          <span className="text-white">₹{formatCurrency(c.aging.current)}</span>
+                          <span className="text-foreground">₹{formatCurrency(c.aging.current)}</span>
                         ) : (
                           <span className="text-[#333]">—</span>
                         )}

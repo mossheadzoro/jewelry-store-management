@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
         subCategories: {
           include: {
             products: {
+              where: { quantity: { gt: 0 } },
               select: {
                 ntWeight: true,
               },

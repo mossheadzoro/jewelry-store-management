@@ -67,6 +67,7 @@ export async function POST(req: Request) {
     const advanceMetal = Number(formData.get("advanceMetal")) || 0;
     const metalPurity = (formData.get("metalPurity") as string) || "22K";
     const metalType = (formData.get("metalType") as any) || "GOLD";
+    const metalSource = (formData.get("metalSource") as string) || "PHYSICAL";
     
     const priority = (formData.get("priority") as string) || "STANDARD";
     const notes = (formData.get("notes") as string) || null;
@@ -216,7 +217,7 @@ export async function POST(req: Request) {
     const advanceSlipNumber = await getUniqueSlipNumber();
 
     /* ---------- DETERMINE STATUS ---------- */
-    const status = karigarId ? "ASSIGNED" : "CREATED";
+    const status = (karigarId || wholesalerId) ? "ASSIGNED" : "CREATED";
 
     /* ---------- PREPARE ADVANCE CREATION ---------- */
     let advanceCreate: any = undefined;
@@ -273,6 +274,74 @@ export async function POST(req: Request) {
         },
       },
     });
+
+    /* ---------- WALLET PAYMENTS & COLLATERAL ---------- */
+    if (customerId) {
+      const walletId = `WAL-${customerId}`;
+      
+      // 1. Deduct Cash Advance from Wallet
+      if (advanceAmount > 0 && paymentMethod === "WALLET") {
+        await prisma.customerWallet.update({
+          where: { customerId },
+          data: { cashBalance: { decrement: advanceAmount }, updatedAt: new Date() }
+        }).catch(() => null);
+
+        await prisma.customerWalletLedger.create({
+          data: {
+            id: `CWL-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+            walletId,
+            transactionType: "DEBIT",
+            assetType: "CASH",
+            amount: advanceAmount,
+            description: `Cash Advance used for Order ${orderNumber}`,
+            relatedEntityId: order.id
+          }
+        });
+      }
+
+      // 2. Deduct Metal Advance from Wallet
+      if (advanceMetal > 0 && metalSource === "WALLET") {
+        const updateField = metalPurity === "24K" ? "metal24KBalance" : "metal22KBalance";
+        await prisma.customerWallet.update({
+          where: { customerId },
+          data: { [updateField]: { decrement: advanceMetal }, updatedAt: new Date() }
+        }).catch(() => null);
+
+        await prisma.customerWalletLedger.create({
+          data: {
+            id: `CWL-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+            walletId,
+            transactionType: "DEBIT",
+            assetType: `METAL_${metalPurity}`,
+            amount: advanceMetal,
+            description: `Metal Advance used for Order ${orderNumber}`,
+            relatedEntityId: order.id
+          }
+        });
+      }
+    }
+
+    // If Physical Metal Advance is received at counter, increase branch stock
+    if (advanceMetal > 0 && metalSource === "PHYSICAL") {
+      let rawProduct = await prisma.productItem.findFirst({ where: { name: "Old Gold Stock", branchId } });
+      if (rawProduct) {
+        await prisma.inventoryLedger.create({
+          data: {
+            productId: rawProduct.id,
+            branchId,
+            txnType: "OLD_GOLD_IN",
+            refType: "ORDER",
+            refId: order.id,
+            qtyIn: 0,
+            qtyOut: 0,
+            grossWeightIn: 0,
+            netWeightIn: 0,
+            fineWeightIn: advanceMetal,
+            remarks: `Physical Metal Advance for ${orderNumber}`,
+          }
+        });
+      }
+    }
 
     return NextResponse.json(order);
   } catch (error) {

@@ -1,0 +1,50 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "generator": "JewelryStoreERP_GoogleDriveBackup",
+    "timestamp": "2026-07-26T13:13:28.216Z",
+    "branchScope": "ALL",
+    "branchId": null,
+    "gdriveFolderId": "12XQxuTB_fOABKPJ9ziFykajKxbgZuVXX",
+    "createdById": 1,
+    "createdByName": "Admin",
+    "checksum": "a130d2bb0eeeb24019274920ca2239744f4c234e0ee18fb5405e04a217fb61b2",
+    "recordCounts": {
+      "branches": 2,
+      "invoices": 0,
+      "payments": 0,
+      "customers": 0,
+      "stock": 0,
+      "stockLedger": 0,
+      "karigar": 0
+    },
+    "includes": [
+      "invoices",
+      "payments",
+      "customers",
+      "stock",
+      "stockLedger",
+      "karigar"
+    ]
+  },
+  "data": {
+    "branches": [
+      {
+        "id": 2,
+        "name": "Baruipur Branch",
+        "city": "Baruipur"
+      },
+      {
+        "id": 1,
+        "name": "Main Branch",
+        "city": "Baruipur"
+      }
+    ],
+    "invoices": [],
+    "payments": [],
+    "customers": [],
+    "stock": [],
+    "stockLedger": [],
+    "karigar": []
+  }
+}

@@ -57,9 +57,7 @@ export async function GET(
       const metalValue = item.metalValue;
       const makingValue = item.makingAmount;
       const discountedMaking = makingValue - (makingValue * item.discountOnMaking) / 100;
-      const totalBeforeTax = metalValue + discountedMaking;
-      const additionalCharge = parseFloat((item.totalAfterTax - totalBeforeTax).toFixed(2));
-
+      const additionalCharge = item.stoneCharge ?? 0;
       return {
         id: item.productId,
         name: item.product.name,
@@ -70,10 +68,18 @@ export async function GET(
         purity: item.product.purity,
         image: item.product.image,
         subCategory: item.product.subCategory,
+        quantity: item.quantity || 1,
         makingChargePercent: item.makingPercent,
+        makingAmount: item.makingAmount,
         discountOnMaking: item.discountOnMaking,
+        stoneCharge: item.stoneCharge,
         additionalCharge: additionalCharge > 0 ? additionalCharge : 0,
         metalRate: item.metalRate,
+        metalValue: item.metalValue,
+        totalBeforeTax: item.totalBeforeTax,
+        cgst: item.cgst,
+        sgst: item.sgst,
+        totalAfterTax: item.totalAfterTax,
       };
     });
 
@@ -86,11 +92,23 @@ export async function GET(
     const oldGoldPaymentRecord = invoice.payments.find((p) =>
       p.paymentRef?.includes("Old Gold Exchange Weight:")
     );
+    let exchangeGoldPurity: string | undefined = undefined;
+    let exchangeGoldDeductionPercent: number | undefined = undefined;
+    let exchangeMetalRate: number | undefined = undefined;
+
     if (oldGoldPaymentRecord) {
       const match = oldGoldPaymentRecord.paymentRef?.match(/Old Gold Exchange Weight:\s*([\d.]+)/);
       if (match) {
         exchangeGoldWeight = parseFloat(match[1]);
       }
+      const purityMatch = oldGoldPaymentRecord.paymentRef?.match(/Purity:\s*([^\s|]+)/);
+      if (purityMatch) exchangeGoldPurity = purityMatch[1];
+      
+      const deductionMatch = oldGoldPaymentRecord.paymentRef?.match(/Deduction:\s*([\d.]+)/);
+      if (deductionMatch) exchangeGoldDeductionPercent = parseFloat(deductionMatch[1]);
+
+      const rateMatch = oldGoldPaymentRecord.paymentRef?.match(/Rate:\s*₹([\d.]+)/);
+      if (rateMatch) exchangeMetalRate = parseFloat(rateMatch[1]);
     } else {
       // Fallback to mathematical reconstruction for legacy invoices
       if (invoice.totalMetalAmount > 0 && metalRate > 0) {
@@ -102,20 +120,29 @@ export async function GET(
           const cashOutPayment = invoice.payments.find((p) =>
             p.paymentRef?.includes("OLD Gold Cashed Out")
           );
+          let excessWeight = 0;
           if (cashOutPayment) {
             const match = cashOutPayment.paymentRef?.match(/Excess:\s*([\d.]+)/);
-            const excessWeight = match ? parseFloat(match[1]) : 0;
-            exchangeGoldWeight = totalGoldWeight + excessWeight;
+            excessWeight = match ? parseFloat(match[1]) : 0;
+          } else if (invoice.oldGoldCashedOut && invoice.oldGoldCashedOut > 0) {
+            // Recovery for old invoices missing payment records
+            const reduction = invoice.cashOutReductionPct || 10;
+            excessWeight = invoice.oldGoldCashedOut / (metalRate * (1 - reduction/100));
           }
+          exchangeGoldWeight = totalGoldWeight + excessWeight;
         } else if (invoice.excessGoldMode === "RETURN_GOLD") {
           const returnPayment = invoice.payments.find((p) =>
             p.paymentRef?.includes("Excess Gold Returned to Customer")
           );
+          let excessWeight = 0;
           if (returnPayment) {
             const match = returnPayment.paymentRef?.match(/Excess Gold Returned to Customer:\s*([\d.]+)/);
-            const excessWeight = match ? parseFloat(match[1]) : 0;
-            exchangeGoldWeight = totalGoldWeight + excessWeight;
+            excessWeight = match ? parseFloat(match[1]) : 0;
+          } else if (invoice.excessGoldReturned && invoice.excessGoldReturned > 0) {
+            // Recovery for old invoices
+            excessWeight = invoice.excessGoldReturned;
           }
+          exchangeGoldWeight = totalGoldWeight + excessWeight;
         }
       }
     }
@@ -181,10 +208,33 @@ export async function GET(
       taxOnMetal,
       taxOnMaking,
       hallmarkCharge,
+      hallmarkingCharge: invoice.hallmarkingCharge || 0,
+      totalMetalAmount: invoice.totalMetalAmount || 0,
+      totalMakingAmount: invoice.totalMakingAmount || 0,
+      totalStoneAmount: invoice.totalStoneAmount || 0,
+      discountOnMaking: invoice.discountOnMaking || 0,
+      overallDiscount: invoice.overallDiscount || 0,
+      taxOnGold: invoice.taxOnGold || 0,
+      taxOnMakingAmount: invoice.taxOnMaking || 0,
+      taxOnHallmarking: invoice.taxOnHallmarking || 0,
+      cgst: invoice.cgst || 0,
+      sgst: invoice.sgst || 0,
+      grandTotal: invoice.totalAmount || 0,
+      totalAmount: invoice.totalAmount || 0,
+      paidAmount: invoice.paidAmount || 0,
+      balanceAmount: invoice.balanceAmount || 0,
+      createdAt: invoice.createdAt,
       exchangeGoldWeight: parseFloat(exchangeGoldWeight.toFixed(3)),
+      exchangeGoldPurity,
+      exchangeGoldDeductionPercent,
+      exchangeMetalRate,
       appliedAdvance,
       appliedSchemes,
       excessGoldMode: invoice.excessGoldMode,
+      cashSettlementRate: invoice.cashSettlementRate,
+      oldGoldCashedOut: invoice.oldGoldCashedOut,
+      cashToCustomer: invoice.cashToCustomer,
+      excessGoldReturned: invoice.excessGoldReturned,
       cashOutReductionPercent: invoice.cashOutReductionPct || 10,
     });
   } catch (error: any) {
@@ -222,6 +272,7 @@ export async function PUT(
       metalRate,
       netGoldValue,
       totalMaking,
+      totalStoneAmount,
       taxOnGold,
       taxOnMaking,
       taxOnHallmarking,
@@ -238,8 +289,13 @@ export async function PUT(
       cashToCustomer,
       excessGoldReturnedWeight,
       exchangeGoldWeight,
+      exchangeGoldPurity,
+      exchangeGoldDeductionPercent,
+      exchangeMetalRate,
       exchangeGoldValue,
       appliedSchemes,
+      customInvoiceNumber,
+      customCreatedAt,
     } = billingData;
 
     // Calculate totals using rounded totalAmount for consistency with UI
@@ -327,16 +383,49 @@ export async function PUT(
       await tx.schemeRedemption.deleteMany({ where: { invoiceId } });
 
       // 5. Create new items, deduct stock, and create ledger entries
+      const billedOrderIds = new Set<string>();
+      
       for (const p of products) {
+        if (p.orderId) {
+          billedOrderIds.add(p.orderId);
+        }
         const metalValue = p.ntWeight * metalRate;
         const makingValue = (metalValue * (p.makingChargePercent ?? 0)) / 100;
         const discountedMaking = makingValue - (makingValue * (p.discountOnMaking ?? 0)) / 100;
-        const itemTotal = metalValue + discountedMaking + (p.additionalCharge ?? 0);
+        const additionalCharge = Number(p.additionalCharge ?? p.otherChargesPrice ?? p.stoneCharge ?? 0);
+        const itemTotal = metalValue + discountedMaking + additionalCharge;
+
+        let finalProductId = p.id || p.productId;
+
+        if (!finalProductId && p.orderId) {
+          const subCategory = await tx.subCategory.findFirst({
+            where: { branchId },
+          });
+          if (!subCategory) {
+            throw new Error("No SubCategory found in this branch to assign the custom order product.");
+          }
+          const newProduct = await tx.productItem.create({
+            data: {
+              name: p.name || "Custom Order Item",
+              barcode: p.barcode || `ORD-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+              productCode: p.productCode || `ORD-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+              gsWeight: p.gsWeight || 0,
+              ntWeight: p.ntWeight || 0,
+              purity: p.purity || 22,
+              quantity: p.quantity || 1,
+              branchId,
+              subCategoryId: subCategory.id,
+            }
+          });
+          finalProductId = newProduct.id;
+        } else if (!finalProductId) {
+          throw new Error("Product ID is missing for an item.");
+        }
 
         await tx.invoiceItem.create({
           data: {
             invoiceId,
-            productId: p.id,
+            productId: finalProductId,
             quantity: p.quantity || 1,
             gsWeight: p.gsWeight,
             ntWeight: p.ntWeight,
@@ -344,9 +433,9 @@ export async function PUT(
             metalValue,
             makingPercent: p.makingChargePercent || 0,
             makingAmount: makingValue,
-            stoneCharge: 0,
+            stoneCharge: additionalCharge,
             discountOnMaking: p.discountOnMaking || 0,
-            totalBeforeTax: metalValue + discountedMaking,
+            totalBeforeTax: metalValue + discountedMaking + additionalCharge,
             cgst: 0,
             sgst: 0,
             totalAfterTax: itemTotal,
@@ -355,7 +444,7 @@ export async function PUT(
 
         // Auto Ledger entry (Must be BEFORE Deduct Stock)
         await insertLedgerEntry(tx, {
-          productId: p.id,
+          productId: finalProductId,
           branchId,
           txnType: "SALE_OUT",
           refType: "INVOICE",
@@ -370,7 +459,7 @@ export async function PUT(
 
         // Deduct Stock
         await tx.productItem.update({
-          where: { id: p.id },
+          where: { id: finalProductId },
           data: {
             quantity: { decrement: p.quantity || 1 },
             reservedQty: { decrement: p.quantity || 1 },
@@ -432,7 +521,7 @@ export async function PUT(
             invoiceId,
             method: "OTHER",
             amount: 0,
-            paymentRef: `Old Gold Exchange Weight: ${exchangeGoldWeight?.toFixed(3)}g | Value: ₹${exchangeGoldValue?.toFixed(2)}`,
+            paymentRef: `Old Gold Exchange Weight: ${exchangeGoldWeight?.toFixed(3)}g | Purity: ${exchangeGoldPurity || '22k'} | Deduction: ${exchangeGoldDeductionPercent || 2}% | Rate: ₹${exchangeMetalRate?.toFixed(2)} | Value: ₹${exchangeGoldValue?.toFixed(2)}`,
           },
         });
       }
@@ -498,13 +587,38 @@ export async function PUT(
       }
 
       // 9. Update the Invoice container with the new calculations
+      // Mark associated Orders as DELIVERED if fully paid
+      if (isFullyPaid) {
+        if (appliedAdvanceId) {
+          const advance = await tx.advance.findUnique({
+            where: { id: appliedAdvanceId },
+            select: { orderId: true }
+          });
+          
+          if (advance && advance.orderId) {
+            billedOrderIds.add(advance.orderId);
+          }
+        }
+
+        if (billedOrderIds.size > 0) {
+          await tx.order.updateMany({
+            where: { id: { in: Array.from(billedOrderIds) } },
+            data: { status: "DELIVERED" }
+          });
+        }
+      }
+
       const updated = await tx.invoice.update({
         where: { id: invoiceId },
         data: {
+          invoiceNumber: customInvoiceNumber || undefined,
+          createdAt: customCreatedAt ? new Date(customCreatedAt) : undefined,
+          updatedAt: customCreatedAt ? new Date(customCreatedAt) : undefined,
           customerId,
           branchId,
           totalMetalAmount: netGoldValue,
           totalMakingAmount: totalMaking,
+          totalStoneAmount: totalStoneAmount ?? 0,
           taxOnGold,
           taxOnMaking,
           taxOnHallmarking,

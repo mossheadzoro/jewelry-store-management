@@ -43,11 +43,11 @@ function SkeletonCard() {
   return (
     <div className="rounded-xl border border-[#222] bg-[#111] p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="h-3 w-24 bg-[#222] rounded animate-pulse" />
-        <div className="h-8 w-8 bg-[#222] rounded-lg animate-pulse" />
+        <div className="h-3 w-24 bg-secondary rounded animate-pulse" />
+        <div className="h-8 w-8 bg-secondary rounded-lg animate-pulse" />
       </div>
-      <div className="h-7 w-36 bg-[#222] rounded animate-pulse" />
-      <div className="h-3 w-28 bg-[#222] rounded animate-pulse" />
+      <div className="h-7 w-36 bg-secondary rounded animate-pulse" />
+      <div className="h-3 w-28 bg-secondary rounded animate-pulse" />
     </div>
   );
 }
@@ -110,7 +110,7 @@ export default function ReportSummaryCards({
             key={card.title}
             className="
               relative rounded-xl border border-[#222] bg-[#111] p-5
-              hover:border-[#333] transition-all duration-300
+              hover:border-border transition-all duration-300
               group overflow-hidden
             "
           >
@@ -123,7 +123,7 @@ export default function ReportSummaryCards({
                 <span className="text-xs font-semibold text-[#777] tracking-wider">
                   {card.title}
                 </span>
-                <div className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#222] flex items-center justify-center text-[#D4A843]">
+                <div className="w-8 h-8 rounded-lg bg-onyx-elevated border border-[#222] flex items-center justify-center text-[#D4A843]">
                   {card.icon}
                 </div>
               </div>
@@ -131,7 +131,7 @@ export default function ReportSummaryCards({
               {/* Value */}
               <p
                 className={`text-2xl font-bold tabular-nums mb-3 ${
-                  card.highlight ? "text-[#D4A843]" : "text-white"
+                  card.highlight ? "text-[#D4A843]" : "text-foreground"
                 }`}
               >
                 {formatCurrency(card.value)}

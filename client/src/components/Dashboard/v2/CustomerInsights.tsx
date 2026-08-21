@@ -19,7 +19,7 @@ export function CustomerInsights({ data }: any) {
             <UserPlus className="w-3.5 h-3.5 text-gold" />
             <span className="text-[11px] text-platinum-muted uppercase font-medium tracking-wider">New</span>
           </div>
-          <span className="text-lg font-bold text-white">{data.newCustomers}</span>
+          <span className="text-lg font-bold text-foreground">{data.newCustomers}</span>
         </div>
         <Link href="/vip" className="block">
           <div className="p-3 bg-gradient-to-br from-gold/10 to-onyx-elevated border border-gold/30 rounded-xl hover:border-gold/50 transition-colors">
@@ -35,7 +35,7 @@ export function CustomerInsights({ data }: any) {
       <div className="space-y-3">
         <div className="flex items-center justify-between p-2.5 rounded-lg bg-onyx-elevated border border-onyx-border/50">
           <span className="text-[12px] text-platinum-muted">Returning Rate</span>
-          <span className="text-[13px] font-bold text-white">{data.returningRate}%</span>
+          <span className="text-[13px] font-bold text-foreground">{data.returningRate}%</span>
         </div>
         <div className="flex items-center justify-between p-2.5 rounded-lg bg-onyx-elevated border border-onyx-border/50">
           <span className="text-[12px] text-platinum-muted">Avg Purchase</span>

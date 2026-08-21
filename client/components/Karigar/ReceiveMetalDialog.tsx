@@ -26,7 +26,7 @@ export default function ReceiveMetalDialog({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-4xl w-[95vw] lg:max-w-5xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Receive Metal</DialogTitle>
           </DialogHeader>

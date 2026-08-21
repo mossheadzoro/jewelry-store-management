@@ -37,7 +37,7 @@ const STATUS_BADGES: Record<string, { label: string; bg: string; text: string }>
   REDEEMED: { label: "Redeemed", bg: "bg-blue-500/10", text: "text-blue-400" },
   PARTIALLY_REDEEMED: { label: "Partial Redeem", bg: "bg-purple-500/10", text: "text-purple-400" },
   CANCELLED: { label: "Cancelled", bg: "bg-red-500/10", text: "text-red-400" },
-  EXPIRED: { label: "Expired", bg: "bg-gray-500/10", text: "text-gray-400" },
+  EXPIRED: { label: "Expired", bg: "bg-gray-500/10", text: "text-muted-foreground" },
 };
 
 export default function SchemeDetailPanel({ schemeId, onClose, onUpdated }: SchemeDetailPanelProps) {
@@ -115,7 +115,7 @@ export default function SchemeDetailPanel({ schemeId, onClose, onUpdated }: Sche
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-xl bg-[#0D0D0F] border-l border-[#1F1F24] overflow-y-auto shadow-2xl animate-in slide-in-from-right">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-[#0D0D0F] border-b border-[#1F1F24] px-6 py-4 flex items-center justify-between">
@@ -132,7 +132,7 @@ export default function SchemeDetailPanel({ schemeId, onClose, onUpdated }: Sche
         ) : scheme ? (
           <div className="px-6 py-6 space-y-6">
             {/* ─── Hero Card ─────────────────────────────────────── */}
-            <div className="p-5 rounded-xl bg-gradient-to-br from-[#111113] to-[#0A0A0B] border border-[#1F1F24]">
+            <div className="p-5 rounded-xl bg-gradient-to-br from-secondary to-background border border-[#1F1F24]">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <p className="text-2xl font-mono font-bold text-[#C9943A]">{scheme.schemeNumber}</p>
@@ -241,7 +241,7 @@ export default function SchemeDetailPanel({ schemeId, onClose, onUpdated }: Sche
                     <button
                       onClick={() => handleExtend(24)}
                       disabled={extending}
-                      className="ml-auto px-3 py-1 rounded-md bg-[#C9943A] text-black font-bold hover:bg-[#E8B84B] transition-colors cursor-pointer disabled:opacity-50"
+                      className="ml-auto px-3 py-1 rounded-md bg-[#C9943A] text-foreground font-bold hover:bg-[#E8B84B] transition-colors cursor-pointer disabled:opacity-50"
                     >
                       {extending ? "Continuing..." : "Continue Part 2"}
                     </button>
@@ -255,7 +255,7 @@ export default function SchemeDetailPanel({ schemeId, onClose, onUpdated }: Sche
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowDepositModal(true)}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-[#C9943A] to-[#E8B84B] text-black text-sm font-semibold hover:brightness-110 transition-all cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-[#C9943A] to-[#E8B84B] text-foreground text-sm font-semibold hover:brightness-110 transition-all cursor-pointer"
                 >
                   <Plus className="w-4 h-4" /> Record Deposit
                 </button>

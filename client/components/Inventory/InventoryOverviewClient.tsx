@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Plus, Minus, ArrowUpRight, ArrowDownLeft, Hash, Gem, CircleDollarSign, Diamond } from "lucide-react";
 import { useBranchStore } from "@/lib/store/useBranchStore";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import AddCategoryForm from "./Category/AddCategoryForm";
 
@@ -19,7 +20,7 @@ interface CategoryStat {
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   gold: <Hash size={22} className="text-yellow-400" />,
   diamond: <Diamond size={22} className="text-blue-300" />,
-  silver: <CircleDollarSign size={22} className="text-gray-300" />,
+  silver: <CircleDollarSign size={22} className="text-foreground/80" />,
   platinum: <Gem size={22} className="text-purple-300" />,
 };
 
@@ -46,12 +47,22 @@ function getCategoryBorder(name: string) {
   return "border-amber-700/40";
 }
 
+async function fetchInventoryOverview(branchId: number) {
+  const res = await fetch(`/api/inventory/overview?branchId=${branchId}`);
+  if (!res.ok) throw new Error("Failed to fetch inventory overview");
+  return res.json();
+}
+
+async function fetchRecentActivity(branchId: number) {
+  const res = await fetch(`/api/inventory/recent-activity?branchId=${branchId}`);
+  if (!res.ok) throw new Error("Failed to fetch recent activity");
+  return res.json();
+}
+
 export default function InventoryClient() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { selectedBranch, branches } = useBranchStore();
-  const [data, setData] = useState<{ categories: CategoryStat[]; totalVaultWeight: number; totalItems: number } | null>(null);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
@@ -59,47 +70,46 @@ export default function InventoryClient() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const fetchData = async () => {
-    if (!selectedBranch?.id) return;
-    setLoading(true);
-    try {
-      const [overviewRes, recentRes] = await Promise.all([
-        fetch(`/api/inventory/overview?branchId=${selectedBranch.id}`),
-        fetch(`/api/inventory/recent-activity?branchId=${selectedBranch.id}`)
-      ]);
-      if (overviewRes.ok) setData(await overviewRes.json());
-      if (recentRes.ok) {
-        const activityData = await recentRes.json();
-        setRecentActivity(activityData);
-        setCurrentPage(1);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const branchId = selectedBranch?.id;
 
-  useEffect(() => {
-    fetchData();
-  }, [selectedBranch]);
+  // React Query — cached, deduplicated, background refresh
+  const { data, isLoading: overviewLoading } = useQuery({
+    queryKey: ["inventoryOverview", branchId],
+    queryFn: () => fetchInventoryOverview(branchId!),
+    enabled: !!branchId,
+    placeholderData: (prev: any) => prev,
+  });
+
+  const { data: recentActivity = [], isLoading: activityLoading } = useQuery({
+    queryKey: ["inventoryRecentActivity", branchId],
+    queryFn: () => fetchRecentActivity(branchId!),
+    enabled: !!branchId,
+    placeholderData: (prev: any) => prev,
+  });
+
+  const loading = overviewLoading && !data;
 
   const handleGlobalSearch = async () => {
     if (!search.trim() || !selectedBranch?.id) return;
     router.push(`/inventory/search?q=${encodeURIComponent(search)}&branchId=${selectedBranch.id}`);
   };
 
-  const totalPages = Math.ceil(recentActivity.length / itemsPerPage);
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["inventoryOverview"] });
+    queryClient.invalidateQueries({ queryKey: ["inventoryRecentActivity"] });
+  };
+
+  const totalPages = Math.ceil((recentActivity?.length || 0) / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedActivity = recentActivity.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedActivity = (recentActivity || []).slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-8 w-full">
+    <div className="min-h-screen bg-onyx text-foreground p-8 w-full">
       {/* Header */}
       <div className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-4xl font-bold tracking-tight mb-1">Inventory Overview</h1>
-          <p className="text-gray-500 text-sm">Real-time valuation and categorization</p>
+          <p className="text-muted-foreground text-sm">Real-time valuation and categorization</p>
         </div>
         <div className="text-right">
           <p className="text-xs font-semibold text-yellow-500 uppercase tracking-widest mb-1">Total Vault Weight</p>
@@ -109,21 +119,21 @@ export default function InventoryClient() {
 
       {/* Search Bar + Add Product */}
       <div className="flex gap-4 mb-10">
-        <div className="flex-1 flex items-center bg-[#141414] border border-gray-800 rounded-2xl px-5 py-3 gap-3">
-          <Search size={20} className="text-gray-500" />
+        <div className="flex-1 flex items-center bg-onyx-surface border border-border rounded-2xl px-5 py-3 gap-3">
+          <Search size={20} className="text-muted-foreground" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleGlobalSearch()}
             placeholder="Search by Barcode, Product Code, or HUID..."
-            className="bg-transparent outline-none text-white w-full text-sm placeholder:text-gray-600"
+            className="bg-transparent outline-none text-foreground w-full text-sm placeholder:text-gray-600"
           />
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => setAddCategoryOpen(true)}
-            className="flex items-center gap-2 bg-[#222] hover:bg-[#333] border border-[#444] text-white font-semibold px-6 py-3 rounded-2xl text-sm transition-colors"
+            className="flex items-center gap-2 bg-secondary hover:bg-secondary border border-[#444] text-foreground font-semibold px-6 py-3 rounded-2xl text-sm transition-colors"
           >
             <Plus size={18} /> ADD NEW CATEGORY
           </button>
@@ -133,20 +143,20 @@ export default function InventoryClient() {
 
       {/* Category Cards Grid */}
       {loading ? (
-        <div className="text-gray-500 text-center py-20">Loading inventory data...</div>
+        <div className="text-muted-foreground text-center py-20">Loading inventory data...</div>
       ) : !data || data.categories.length === 0 ? (
-        <div className="text-gray-500 text-center py-20">No categories found. Create some categories first.</div>
+        <div className="text-muted-foreground text-center py-20">No categories found. Create some categories first.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-14">
-          {data.categories.map((cat) => (
+          {data.categories.map((cat: CategoryStat) => (
             <div
               key={cat.id}
               onClick={() => router.push(`/inventory/category/${cat.id}`)}
-              className={`bg-[#141414] border ${getCategoryBorder(cat.name)} rounded-2xl p-6 cursor-pointer hover:bg-[#1a1a1a] transition-all group`}
+              className={`bg-onyx-surface border ${getCategoryBorder(cat.name)} rounded-2xl p-6 cursor-pointer hover:bg-onyx-elevated transition-all group`}
             >
               <div className="flex justify-between items-center mb-8">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#1e1e1e] rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-card rounded-xl flex items-center justify-center">
                     {getCategoryIcon(cat.name)}
                   </div>
                   <span className="text-xl font-semibold">{cat.name}</span>
@@ -154,17 +164,17 @@ export default function InventoryClient() {
                 <ArrowUpRight size={20} className="text-gray-600 group-hover:text-yellow-500 transition-colors" />
               </div>
 
-              <div className="grid grid-cols-3 gap-4 border-t border-gray-800/50 pt-5">
+              <div className="grid grid-cols-3 gap-4 border-t border-border/50 pt-5">
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">Total Weight</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Total Weight</p>
                   <p className="text-lg font-bold">{cat.totalWeight.toLocaleString("en-IN")}g</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">Item Count</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Item Count</p>
                   <p className="text-lg font-bold">{cat.itemCount}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">Subcategories</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Subcategories</p>
                   <p className="text-lg font-bold">{cat.subCategoryCount}</p>
                 </div>
               </div>
@@ -179,11 +189,11 @@ export default function InventoryClient() {
           <h2 className="text-xl font-bold">Recent Vault Activity</h2>
         </div>
         <div className="space-y-3">
-          {recentActivity.length === 0 ? (
-            <div className="text-gray-500 text-sm py-4">No recent activity found.</div>
+          {(recentActivity || []).length === 0 ? (
+            <div className="text-muted-foreground text-sm py-4">No recent activity found.</div>
           ) : (
             <>
-              {paginatedActivity.map((activity, idx) => {
+              {paginatedActivity.map((activity: any, idx: number) => {
                 const isOut = activity.qtyOut > 0 || activity.netWeightOut > 0 || (activity.txnType && activity.txnType.endsWith('_OUT'));
                 const isIn = activity.qtyIn > 0 || activity.netWeightIn > 0 || (activity.txnType && activity.txnType.endsWith('_IN'));
                 
@@ -197,19 +207,19 @@ export default function InventoryClient() {
                 const weight = isOut ? activity.netWeightOut : activity.netWeightIn;
 
                 return (
-                <div key={idx} className="flex items-center gap-4 bg-[#141414] border border-gray-800/50 rounded-xl p-4 hover:bg-[#1a1a1a] transition-colors">
+                <div key={idx} className="flex items-center gap-4 bg-onyx-surface border border-border/50 rounded-xl p-4 hover:bg-onyx-elevated transition-colors">
                   <div className={`w-9 h-9 ${iconBg} rounded-full flex items-center justify-center shrink-0`}>
                     <IconComponent size={16} className={iconColor} />
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium flex items-center gap-2">
-                      <span className="text-white">{activity.product?.name || 'Unknown Product'}</span>
-                      <span className="text-xs bg-[#222] border border-[#333] px-2 py-0.5 rounded text-gray-400">{activity.product?.barcode || 'N/A'}</span>
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-white/5 text-gray-400">
+                      <span className="text-foreground">{activity.product?.name || 'Unknown Product'}</span>
+                      <span className="text-xs bg-secondary border border-border px-2 py-0.5 rounded text-muted-foreground">{activity.product?.barcode || 'N/A'}</span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-white/5 text-muted-foreground">
                         {txnLabel}
                       </span>
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {activity.product?.purity ? `${activity.product.purity}% Purity • ` : ''} 
                       {weight}g Net Weight
                     </p>
@@ -223,12 +233,12 @@ export default function InventoryClient() {
               })}
 
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6 bg-[#141414] border border-gray-800/50 rounded-xl p-4">
+                <div className="flex items-center justify-between mt-6 bg-onyx-surface border border-border/50 rounded-xl p-4">
                   <button
                     type="button"
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:text-gray-400 bg-[#222] border border-[#333] rounded-lg transition-colors"
+                    className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground bg-secondary border border-border rounded-lg transition-colors"
                   >
                     Previous
                   </button>
@@ -241,8 +251,8 @@ export default function InventoryClient() {
                         onClick={() => setCurrentPage(page)}
                         className={`w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center transition-all ${
                           currentPage === page
-                            ? "bg-[#d4a843] text-black"
-                            : "bg-[#222] border border-[#333] text-gray-400 hover:text-white"
+                            ? "bg-[#d4a843] text-foreground"
+                            : "bg-secondary border border-border text-muted-foreground hover:text-foreground"
                         }`}
                       >
                         {page}
@@ -254,7 +264,7 @@ export default function InventoryClient() {
                     type="button"
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:text-gray-400 bg-[#222] border border-[#333] rounded-lg transition-colors"
+                    className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground bg-secondary border border-border rounded-lg transition-colors"
                   >
                     Next
                   </button>
@@ -269,7 +279,7 @@ export default function InventoryClient() {
 
 
       {addCategoryOpen && (
-        <AddCategoryForm open={addCategoryOpen} setOpen={setAddCategoryOpen} onSuccess={fetchData} />
+        <AddCategoryForm open={addCategoryOpen} setOpen={setAddCategoryOpen} onSuccess={invalidateAll} />
       )}
     </div>
   );

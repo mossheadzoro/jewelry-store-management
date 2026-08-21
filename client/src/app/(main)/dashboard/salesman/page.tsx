@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
-import { prisma } from "../../../../libs/prisma";
+import { prisma } from "../../../../../libs/prisma";
 
 
 export default async function SalesmanDashboard() {

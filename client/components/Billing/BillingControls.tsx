@@ -5,8 +5,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Info, RefreshCcw } from "lucide-react";
 import React from "react";
 import { cn } from "@/lib/utils";
+import { useSession } from "next-auth/react";
 
 const BillingControls = ({ billing }: any) => {
+  const { data: session } = useSession();
+  const userRole = (session?.user as any)?.role || "SALESMAN";
+  const canEditRate = userRole === "ADMIN" || userRole === "SUPER_ADMIN" || userRole === "OWNER";
+
   const {
     metalRate,
     updateMetalRate,
@@ -18,31 +23,44 @@ const BillingControls = ({ billing }: any) => {
     setTaxOnMetal,
     taxOnMaking,
     setTaxOnMaking,
+    metalExchange,
+    setMetalExchange,
   } = billing;
 
   const preventNegative = (val: number) => (val < 0 ? 0 : val);
 
+  const isDualTax = taxOnMetal && taxOnMaking;
+
+  const handleTaxModeSwitch = (mode: "total" | "dual" | "none") => {
+    if (mode === "total") {
+      setTaxOnTotal(true);
+      setTaxOnMetal(false);
+      setTaxOnMaking(false);
+    } else if (mode === "dual") {
+      setTaxOnTotal(false);
+      setTaxOnMetal(true);
+      setTaxOnMaking(true);
+    } else {
+      setTaxOnTotal(false);
+      setTaxOnMetal(false);
+      setTaxOnMaking(false);
+    }
+  };
+
   const taxOptions = [
     {
       id: "total",
-      label: "Total GST 3%",
+      label: "Total Tax (3%)",
       checked: taxOnTotal,
-      setFn: setTaxOnTotal,
-      info: "GST applied on Metal + Making",
+      setFn: () => handleTaxModeSwitch(taxOnTotal ? "none" : "total"),
+      info: "Flat 3% GST applied on the combined Metal + Making value",
     },
     {
-      id: "metal",
-      label: "Metal GST 3%",
-      checked: taxOnMetal,
-      setFn: setTaxOnMetal,
-      info: "GST 3% (1.5% + 1.5%)",
-    },
-    {
-      id: "making",
-      label: "Making GST 5%",
-      checked: taxOnMaking,
-      setFn: setTaxOnMaking,
-      info: "GST 5% (2.5% + 2.5%)",
+      id: "dual",
+      label: "Dual Tax (3% & 5%)",
+      checked: isDualTax,
+      setFn: () => handleTaxModeSwitch(isDualTax ? "none" : "dual"),
+      info: "GST 3% applied on Metal, and 5% applied on Making Charges",
     },
     {
       id: "hallmark",
@@ -51,13 +69,20 @@ const BillingControls = ({ billing }: any) => {
       setFn: setHallmarkCharge,
       info: "Includes hallmark fees + GST",
     },
+    {
+      id: "metalExchange",
+      label: "Metal Exchange",
+      checked: metalExchange,
+      setFn: setMetalExchange,
+      info: "Exchanges old gold weight for net taxation",
+    },
   ];
 
   return (
     <div className="flex flex-col md:flex-row items-center gap-4 bg-[#111] p-3 rounded-xl border border-[#1e1e1e]">
       
       {/* GOLD RATE SECTION */}
-      <div className="flex items-center gap-3 pr-4 border-b md:border-b-0 md:border-r border-[#2a2a2a] w-full md:w-auto pb-4 md:pb-0">
+      <div className="flex items-center gap-3 pr-4 border-b md:border-b-0 md:border-r border-onyx-border w-full md:w-auto pb-4 md:pb-0">
         <span className="text-sm font-medium text-[#888] whitespace-nowrap pl-1">
           Gold Rate (22K)
         </span>
@@ -66,19 +91,19 @@ const BillingControls = ({ billing }: any) => {
           <Input
             inputMode="decimal"
             pattern="[0-9]*"
-            className="pl-7 pr-10 bg-[#1a1a1a] border-[#2a2a2a] text-white rounded-lg h-9 w-32 focus-visible:ring-1 focus-visible:ring-[#d4a843] focus-visible:border-[#d4a843] text-sm"
+            className={cn(
+              "pl-7 pr-10 bg-onyx-elevated border-onyx-border text-foreground rounded-lg h-9 w-32 focus-visible:ring-1 focus-visible:ring-[#d4a843] focus-visible:border-[#d4a843] text-sm",
+              !canEditRate && "opacity-70 cursor-not-allowed"
+            )}
             value={metalRate ?? ""}
             onChange={(e) => updateMetalRate(preventNegative(Number(e.target.value)))}
+            readOnly={!canEditRate}
           />
           <span className="absolute right-[40px] text-[#555] text-xs font-medium">/g</span>
           <button
             onClick={async () => {
-              try {
-                const res = await fetch("/api/rates/latest");
-                const data = await res.json();
-                if (data.rate) updateMetalRate(data.rate);
-              } catch {
-                console.error("Failed to refresh metal rate");
+              if (billing.refreshRates) {
+                await billing.refreshRates();
               }
             }}
             className="absolute right-1 p-1.5 hover:bg-[#2a2a2a] rounded-md transition-colors group"
@@ -94,7 +119,7 @@ const BillingControls = ({ billing }: any) => {
         <span className="text-sm font-medium text-[#888] whitespace-nowrap pl-1 md:pl-0">
           Taxation
         </span>
-        <div className="flex bg-[#1a1a1a] rounded-lg p-1 border border-[#2a2a2a]">
+        <div className="flex bg-onyx-elevated rounded-lg p-1 border border-onyx-border">
           {taxOptions.map((item) => (
             <div
               key={item.id}
@@ -118,7 +143,7 @@ const BillingControls = ({ billing }: any) => {
                 <PopoverTrigger onClick={(e) => e.stopPropagation()} className="ml-1 cursor-help outline-none">
                   <Info className={cn("w-3.5 h-3.5", item.checked ? "text-[#d4a843]/70" : "text-[#555]")} />
                 </PopoverTrigger>
-                <PopoverContent side="top" className="bg-[#1e1e1e] border-[#333] text-[#eee] text-xs p-2.5 max-w-[200px] shadow-xl">
+                <PopoverContent side="top" className="bg-card border-border text-[#eee] text-xs p-2.5 max-w-[200px] shadow-xl">
                   {item.info}
                 </PopoverContent>
               </Popover>

@@ -64,6 +64,7 @@ export default function AllOrdersView({
 }: AllOrdersViewProps) {
   const [stats, setStats] = useState<OrderStats | null>(null);
   const [settings, setSettings] = useState<any>(null);
+  const { selectedBranch } = useBranchStore();
 
   useEffect(() => {
     if (!selectedBranch?.id) return;
@@ -86,6 +87,7 @@ export default function AllOrdersView({
   const getTitle = () => {
     if (activeTab === "pending") return "Pending Orders";
     if (activeTab === "completed") return "Completed Orders";
+    if (activeTab === "delivered") return "Delivered Orders";
     return "Order Management";
   };
 
@@ -94,7 +96,7 @@ export default function AllOrdersView({
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-[32px] font-bold text-white tracking-tight">
+          <h1 className="text-[32px] font-bold text-foreground tracking-tight">
             {getTitle()}
           </h1>
           <p className="text-[14px] text-[#666] mt-1">
@@ -104,7 +106,7 @@ export default function AllOrdersView({
         <div className="flex items-center gap-3">
           <button
             onClick={onCreateOrder}
-            className="h-10 px-5 rounded-full bg-[#D4A843] text-black text-[13px] font-semibold flex items-center gap-2 hover:bg-[#e6bc5a] transition-all"
+            className="h-10 px-5 rounded-full bg-[#D4A843] text-foreground text-[13px] font-semibold flex items-center gap-2 hover:bg-[#e6bc5a] transition-all"
           >
             <Plus className="w-4 h-4" />
             Create New Order
@@ -117,44 +119,44 @@ export default function AllOrdersView({
         <div className="grid grid-cols-4 gap-4 mb-8">
           {/* Total Value */}
           {(!settings?.dashboardSettings?.enableCards || settings.dashboardSettings.enableCards.includes("Total Booking Value")) && (
-          <div className="bg-[#141414] border border-[#222] rounded-2xl p-5">
+          <div className="bg-onyx-surface border border-[#222] rounded-2xl p-5">
             <p className="text-[10px] font-bold text-[#666] uppercase tracking-[0.15em] mb-2">
               Total Value
             </p>
-            <p className="text-[28px] font-bold text-white leading-tight">
+            <p className="text-[28px] font-bold text-foreground leading-tight">
               {formatCurrency(stats.totalValue)}
             </p>
             <div className="w-16 h-1 bg-[#D4A843] rounded-full mt-3" />
           </div>
           )}
 
-          {/* Active Karigars */}
+          {/* Assigned Orders */}
           {(!settings?.dashboardSettings?.enableCards || settings.dashboardSettings.enableCards.includes("Karigar Workload")) && (
-          <div className="bg-[#141414] border border-[#222] rounded-2xl p-5">
+          <div className="bg-onyx-surface border border-[#222] rounded-2xl p-5">
             <p className="text-[10px] font-bold text-[#666] uppercase tracking-[0.15em] mb-2">
-              Active Karigars
+              Assigned Orders
             </p>
-            <p className="text-[28px] font-bold text-white leading-tight">
-              {stats.activeKarigars}
+            <p className="text-[28px] font-bold text-foreground leading-tight">
+              {stats.assignedOrders}
               <span className="text-[16px] text-[#666] font-normal ml-1">
-                assigned
+                orders
               </span>
             </p>
             <div className="flex items-center gap-1 mt-3">
               <Users className="w-3.5 h-3.5 text-[#555]" />
-              <span className="text-[11px] text-[#555]">Workshop artisans</span>
+              <span className="text-[11px] text-[#555]">With Karigars/Wholesalers</span>
             </div>
           </div>
           )}
 
           {/* Metal in Process */}
           {(!settings?.dashboardSettings?.enableCards || settings.dashboardSettings.enableCards.includes("Metal In Process")) && (
-          <div className="bg-[#141414] border border-[#222] rounded-2xl p-5">
+          <div className="bg-onyx-surface border border-[#222] rounded-2xl p-5">
             <p className="text-[10px] font-bold text-[#666] uppercase tracking-[0.15em] mb-2">
               Metal in Process
             </p>
-            <p className="text-[28px] font-bold text-white leading-tight">
-              {stats.metalInProcess.toFixed(1)}g
+            <p className="text-[28px] font-bold text-foreground leading-tight">
+              {Number(stats.metalInProcess || 0).toFixed(1)}g
               <span className="text-[16px] text-[#666] font-normal ml-1">Gold</span>
             </p>
             <p className="text-[11px] text-[#D4A843] mt-3 font-semibold">
@@ -165,11 +167,11 @@ export default function AllOrdersView({
 
           {/* Pending Deliveries */}
           {(!settings?.dashboardSettings?.enableCards || settings.dashboardSettings.enableCards.includes("Pending Delivery")) && (
-          <div className="bg-[#141414] border border-[#222] rounded-2xl p-5">
+          <div className="bg-onyx-surface border border-[#222] rounded-2xl p-5">
             <p className="text-[10px] font-bold text-[#666] uppercase tracking-[0.15em] mb-2">
               Pending Deliveries
             </p>
-            <p className="text-[28px] font-bold text-white leading-tight">
+            <p className="text-[28px] font-bold text-foreground leading-tight">
               {stats.pendingDeliveries}
             </p>
             {stats.urgentRequests > 0 && (
@@ -183,14 +185,14 @@ export default function AllOrdersView({
       )}
 
       {/* Orders Table */}
-      <div className="bg-[#141414] border border-[#222] rounded-2xl overflow-hidden">
+      <div className="bg-onyx-surface border border-[#222] rounded-2xl overflow-hidden">
         {/* Table Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#222]">
-          <h2 className="text-[18px] font-bold text-white">
+          <h2 className="text-[18px] font-bold text-foreground">
             Ledger Transactions
           </h2>
           <p className="text-[12px] text-[#666]">
-            Sort: <span className="text-white font-medium">Latest first</span>
+            Sort: <span className="text-foreground font-medium">Latest first</span>
           </p>
         </div>
 
@@ -238,7 +240,7 @@ export default function AllOrdersView({
               return (
                 <div
                   key={order.id}
-                  className="grid grid-cols-[1fr_1fr_1.2fr_1fr_1fr_0.8fr_0.8fr_0.6fr] px-6 py-4 border-b border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors items-center group"
+                  className="grid grid-cols-[1fr_1fr_1.2fr_1fr_1fr_0.8fr_0.8fr_0.6fr] px-6 py-4 border-b border-[#1a1a1a] hover:bg-onyx-elevated transition-colors items-center group"
                 >
                   {/* Order No */}
                   <div>
@@ -250,7 +252,7 @@ export default function AllOrdersView({
                   {/* Slip No */}
                   <div>
                     {order.advance?.advanceReceiptNumber ? (
-                      <span className="inline-block px-2 py-1 rounded bg-[#1a1a1a] border border-[#2a2a2a] text-[11px] font-mono text-white">
+                      <span className="inline-block px-2 py-1 rounded bg-onyx-elevated border border-onyx-border text-[11px] font-mono text-foreground">
                         {order.advance.advanceReceiptNumber}
                       </span>
                     ) : (
@@ -260,7 +262,7 @@ export default function AllOrdersView({
 
                   {/* Customer */}
                   <div>
-                    <p className="text-[13px] font-semibold text-white">
+                    <p className="text-[13px] font-semibold text-foreground">
                       {order.customerName}
                     </p>
                     <p className="text-[11px] text-[#666]">
@@ -270,15 +272,21 @@ export default function AllOrdersView({
 
                   {/* Karigar */}
                   <div>
-                    {order.karigar ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-[#2a2a2a] flex items-center justify-center text-[10px] font-bold text-[#D4A843]">
-                          {order.karigar.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="text-[13px] text-white">
-                          {order.karigar.name}
+                    {order.karigar || order.Wholesaler || order.wholesalerId || order.karigarId ? (
+                      (order.status === "COMPLETED" || order.status === "DELIVERED") ? (
+                        <span className="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                          FINISHED
                         </span>
-                      </div>
+                      ) : (
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20">
+                            ASSIGNED
+                          </span>
+                          {order.karigar && (
+                            <span className="text-[10px] text-[#888]">{order.karigar.name}</span>
+                          )}
+                        </div>
+                      )
                     ) : (
                       <span className="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20">
                         NOT ASSIGNED
@@ -288,7 +296,7 @@ export default function AllOrdersView({
 
                   {/* Advance */}
                   <div>
-                    <p className="text-[13px] font-semibold text-white">
+                    <p className="text-[13px] font-semibold text-foreground">
                       ₹{Number(order.advance?.moneyAmount || 0).toLocaleString("en-IN")}
                     </p>
                     {Number(order.advance?.metalWeight || 0) > 0 && (
@@ -323,7 +331,7 @@ export default function AllOrdersView({
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => onViewSlip(order)}
-                      className="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center text-[#ccc] hover:text-[#D4A843] hover:bg-[#333] transition-colors"
+                      className="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center text-[#ccc] hover:text-[#D4A843] hover:bg-secondary transition-colors"
                       title="View Slip"
                     >
                       <Eye className="w-3.5 h-3.5" />
@@ -332,7 +340,7 @@ export default function AllOrdersView({
                       onClick={() =>
                         window.open(`/orderBook/print/${order.id}`, "_blank")
                       }
-                      className="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center text-[#ccc] hover:text-[#D4A843] hover:bg-[#333] transition-colors"
+                      className="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center text-[#ccc] hover:text-[#D4A843] hover:bg-secondary transition-colors"
                       title="Print Slip"
                     >
                       <Printer className="w-3.5 h-3.5" />
@@ -356,7 +364,7 @@ export default function AllOrdersView({
               <button
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="w-8 h-8 rounded-full border border-[#333] flex items-center justify-center text-[#888] hover:text-white hover:border-[#555] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-[#888] hover:text-foreground hover:border-[#555] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -377,8 +385,8 @@ export default function AllOrdersView({
                     onClick={() => onPageChange(page)}
                     className={`w-8 h-8 rounded-full text-[12px] font-semibold transition-colors ${
                       page === currentPage
-                        ? "bg-[#D4A843] text-black"
-                        : "text-[#888] hover:text-white border border-[#333] hover:border-[#555]"
+                        ? "bg-[#D4A843] text-foreground"
+                        : "text-[#888] hover:text-foreground border border-border hover:border-[#555]"
                     }`}
                   >
                     {page}
@@ -388,7 +396,7 @@ export default function AllOrdersView({
               <button
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="w-8 h-8 rounded-full border border-[#333] flex items-center justify-center text-[#888] hover:text-white hover:border-[#555] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-[#888] hover:text-foreground hover:border-[#555] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

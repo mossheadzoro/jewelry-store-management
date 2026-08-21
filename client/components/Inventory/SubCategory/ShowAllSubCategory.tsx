@@ -49,7 +49,7 @@ const branchId=selectedBranch?.id;
   }, [selectedBranch]);
 
   return (
-    <Card className=" p-6 bg-black rounded-lg shadow-md">
+    <Card className=" p-6 bg-background rounded-lg shadow-md">
       <div className="flex justify-between items-center ">
         <h2 className="text-xl font-semibold">Add Sub-Category</h2>
         <Button onClick={fetchSubcategories} disabled={loading}>

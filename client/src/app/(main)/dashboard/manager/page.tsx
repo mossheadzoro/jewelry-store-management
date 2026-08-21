@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { DashboardFilters } from "@/components/Dashboard/v2/DashboardFilters";
 import { PerformanceOverview } from "@/components/Dashboard/v2/PerformanceOverview";
 import { SalesCharts } from "@/components/Dashboard/v2/SalesCharts";
@@ -15,39 +16,29 @@ import { useSession } from "next-auth/react";
 
 export default function ManagerDashboard() {
   const { data: session } = useSession();
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState("today");
 
   // Lock to manager's branch
   const branchId = session?.user?.branchId;
 
-  useEffect(() => {
-    if (!branchId) return;
-    
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const url = new URL("/api/dashboard/v2", window.location.origin);
-        url.searchParams.set("branchId", branchId.toString());
-        if (dateRange) url.searchParams.set("dateRange", dateRange);
-        
-        const res = await fetch(url.toString());
-        const d = await res.json();
-        setData(d);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [branchId, dateRange]);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["managerDashboard", branchId, dateRange],
+    queryFn: async () => {
+      const url = new URL("/api/dashboard/v2", window.location.origin);
+      url.searchParams.set("branchId", branchId!.toString());
+      if (dateRange) url.searchParams.set("dateRange", dateRange);
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error("Failed to fetch dashboard");
+      return res.json();
+    },
+    enabled: !!branchId,
+    placeholderData: (prev: any) => prev,
+  });
 
   return (
-    <div className="min-h-screen bg-onyx p-6 space-y-6">
+    <div className="min-h-screen flex-1 w-full bg-onyx p-6 space-y-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold text-white tracking-tight">Branch Dashboard</h1>
+        <h1 className="text-2xl font-bold text-foreground tracking-tight">Branch Dashboard</h1>
         <p className="text-[13px] text-platinum-muted">Daily operations and performance metrics for your branch.</p>
       </div>
 

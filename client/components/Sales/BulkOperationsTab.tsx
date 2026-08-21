@@ -282,7 +282,7 @@ export default function BulkOperationsTab() {
           <button
             onClick={handleBulkPrint}
             disabled={!printPreview || printPreview.count === 0 || isPrinting}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-[#C9943A] hover:bg-[#E8B84B] text-black text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer border-0"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-[#C9943A] hover:bg-[#E8B84B] text-foreground text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer border-0"
           >
             {isPrinting ? (
               <Loader2 className="w-4 h-4 animate-spin" />

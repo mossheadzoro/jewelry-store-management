@@ -1,9 +1,23 @@
 import { prisma } from "../../../libs/prisma";
 
+export async function getNextSequence(tx: any, branchId: number, categoryName: string, increment: boolean = false): Promise<number> {
+  if (increment) {
+    const tracker = await tx.sequenceTracker.upsert({
+      where: { branchId_categoryName: { branchId, categoryName } },
+      update: { lastValue: { increment: 1 } },
+      create: { branchId, categoryName, lastValue: 1 },
+    });
+    return tracker.lastValue;
+  } else {
+    const tracker = await tx.sequenceTracker.findUnique({
+      where: { branchId_categoryName: { branchId, categoryName } }
+    });
+    return (tracker?.lastValue || 0) + 1;
+  }
+}
 
-
-export async function generateCodes(branchId: number, categoryType: string, categoryName: string) {
-  const branch = await prisma.branch.findUnique({
+export async function generateCodesHelper(tx: any, branchId: number, categoryType: string, categoryName: string, increment: boolean, offset: number = 0) {
+  const branch = await tx.branch.findUnique({
     where: { id: branchId },
     select: { name: true },
   });
@@ -13,17 +27,24 @@ export async function generateCodes(branchId: number, categoryType: string, cate
   const branchCode = branch.name.substring(0, 3).toUpperCase();
   const categoryPrefix = categoryName.substring(0, 3).toUpperCase();
 
-  const lastProduct = await prisma.productItem.findFirst({
-    where: { branchId, barcode: { startsWith: branchCode } },
-    orderBy: { id: "desc" },
-    select: { id: true },
-  });
+  let nextSeq = await getNextSequence(tx, branchId, categoryName, increment);
+  if (!increment) nextSeq += offset;
 
-  const nextSeq = lastProduct ? lastProduct.id + 1 : 1;
   const seqStr = String(nextSeq).padStart(5, "0");
 
+  // Old style ProductCode
   const productCode = `${branchCode}${branchId}${categoryType}${categoryPrefix}${seqStr}`;
-  const barcode = `${branchCode}${String(branchId).padStart(2, "0")}${categoryType}${seqStr}`;
+
+  // Numeric style Barcode
+  const now = new Date();
+  const datePart = `${String(now.getFullYear()).slice(-2)}${String(
+    now.getMonth() + 1
+  ).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  const barcode = `${String(branchId).padStart(2, "0")}${String(categoryType).padStart(2, "0")}${datePart}${seqStr}`;
 
   return { productCode, barcode };
+}
+
+export async function generateCodes(branchId: number, categoryType: string, categoryName: string) {
+  return generateCodesHelper(prisma, branchId, categoryType, categoryName, false);
 }

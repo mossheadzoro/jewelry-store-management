@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { useBranchStore } from "@/lib/store/useBranchStore";
+import { useProductSettingsStore } from "@/lib/store/useProductSettingsStore";
 
 const BILLING_STORAGE_KEY = "billing-session";
 const EXPIRY_MINUTES = 60;
@@ -39,13 +41,19 @@ export function getDraftInfo(): { hasValidDraft: boolean; customerId?: string | 
 }
 
 export function useBillingLogic(isEditMode?: boolean) {
-  const restored = useRef(false); // used only for addProduct guard
+  const restored = useRef(false);
 
-  // isHydrated: TRUE only after restore completes + state update fires
-  // Using STATE (not ref) so the save effect re-evaluates reactively
+  const { selectedBranch } = useBranchStore();
+  const { globalSettings, fetchGlobalSettings } = useProductSettingsStore();
+
+  useEffect(() => {
+    if (selectedBranch?.id) {
+      fetchGlobalSettings(selectedBranch.id);
+    }
+  }, [selectedBranch?.id, fetchGlobalSettings]);
+
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Restored customer — useState so BillingPage effect can react to changes
   const [restoredCustomerId, setRestoredCustomerId] = useState<string | null>(null);
   const [restoredCustomer, setRestoredCustomer] = useState<any>(null);
 
@@ -54,12 +62,31 @@ export function useBillingLogic(isEditMode?: boolean) {
 
   // TAX STATES (global)
   const [taxOnTotal, setTaxOnTotal] = useState(false);
-  const [hallmarkCharge, setHallmarkCharge] = useState(false);
+  const [hallmarkCharge, setHallmarkCharge] = useState(true);
   const [taxOnMetal, setTaxOnMetal] = useState(false);
   const [taxOnMaking, setTaxOnMaking] = useState(false);
+  const [metalExchange, setMetalExchange] = useState(true);
 
   // 🔥 Old gold exchange
   const [exchangeGoldWeight, setExchangeGoldWeight] = useState<number>(0);
+  const [exchangeGoldPurity, setExchangeGoldPurity] = useState<string>("22k");
+  const [exchangeGoldDeductionPercent, setExchangeGoldDeductionPercent] = useState<number>(2);
+  const [savedExchangeMetalRate, setSavedExchangeMetalRate] = useState<number | null>(null);
+  const [liveRates, setLiveRates] = useState<Record<string, number>>({});
+
+  // 🔥 Fetch Live Rates
+  useEffect(() => {
+    if (isEditMode) return; // User requested: rate API should not work in edit mode
+
+    fetch('/api/gold-rates')
+      .then(res => res.json())
+      .then(data => {
+        if (data.ratesPerGram) {
+          setLiveRates(data.ratesPerGram);
+        }
+      })
+      .catch(console.error);
+  }, [isEditMode]);
 
   // 🔥 Payments
   const [payments, setPayments] = useState<any[]>([
@@ -72,9 +99,15 @@ export function useBillingLogic(isEditMode?: boolean) {
   // 🔥 Saving Schemes
   const [appliedSchemes, setAppliedSchemes] = useState<any[]>([]);
 
+  // 🔥 Wallet tracking
+  const [appliedWalletMetal22K, setAppliedWalletMetal22K] = useState<number>(0);
+  const [appliedWalletMetal24K, setAppliedWalletMetal24K] = useState<number>(0);
+
   // 🔥 Excess Old Gold Handling
   const [excessGoldMode, setExcessGoldMode] = useState<null | 'CASH_OUT' | 'RETURN_GOLD'>(null);
   const [cashOutReductionPercent, setCashOutReductionPercent] = useState<number>(10);
+  const [refundMethod, setRefundMethod] = useState<string>('CASH');
+  const [refundDetails, setRefundDetails] = useState<string>('');
 
   /* -------------------- STOCK RESERVATION -------------------- */
 
@@ -94,6 +127,8 @@ export function useBillingLogic(isEditMode?: boolean) {
     }
     localStorage.removeItem(BILLING_STORAGE_KEY);
     setProducts([]);
+    setAppliedWalletMetal22K(0);
+    setAppliedWalletMetal24K(0);
   };
 
   /* -------------------- RESTORE SESSION -------------------- */
@@ -101,14 +136,14 @@ export function useBillingLogic(isEditMode?: boolean) {
   useEffect(() => {
     if (isEditMode) {
       restored.current = true;
-      setIsHydrated(true); // Edit mode hydrates immediately (data loaded externally)
+      setIsHydrated(true);
       return;
     }
 
     const saved = localStorage.getItem(BILLING_STORAGE_KEY);
     if (!saved) {
       restored.current = true;
-      setIsHydrated(true); // No draft — mark hydrated so new bills can save
+      setIsHydrated(true);
       return;
     }
 
@@ -124,10 +159,13 @@ export function useBillingLogic(isEditMode?: boolean) {
     setProducts(state.products ?? []);
     setMetalRate(state.metalRate ?? 0);
     setTaxOnTotal(state.taxOnTotal ?? false);
-    setHallmarkCharge(state.hallmarkCharge ?? false);
+    setHallmarkCharge(state.hallmarkCharge ?? true);
     setTaxOnMetal(state.taxOnMetal ?? false);
     setTaxOnMaking(state.taxOnMaking ?? false);
+    setMetalExchange(state.metalExchange ?? true);
     setExchangeGoldWeight(state.exchangeGoldWeight ?? 0);
+    setExchangeGoldPurity(state.exchangeGoldPurity ?? "22k");
+    setExchangeGoldDeductionPercent(state.exchangeGoldDeductionPercent ?? 2);
     if (state.payments && state.payments.length > 0) {
       setPayments(state.payments);
     }
@@ -135,19 +173,19 @@ export function useBillingLogic(isEditMode?: boolean) {
     setAppliedSchemes(state.appliedSchemes ?? []);
     setExcessGoldMode(state.excessGoldMode ?? null);
     setCashOutReductionPercent(state.cashOutReductionPercent ?? 10);
-    // Restore customer info as STATE so BillingPage effect re-runs
+    setRefundMethod(state.refundMethod ?? 'CASH');
+    setRefundDetails(state.refundDetails ?? '');
     setRestoredCustomerId(state.customerId ?? null);
     setRestoredCustomer(state.customer ?? null);
+    setAppliedWalletMetal22K(state.appliedWalletMetal22K ?? 0);
+    setAppliedWalletMetal24K(state.appliedWalletMetal24K ?? 0);
 
     restored.current = true;
-    // setIsHydrated(true) fires AFTER all the above setX() calls settle,
-    // so the save effect only runs once with the correct restored values.
     setIsHydrated(true);
   }, [isEditMode]);
 
   /* -------------------- SAVE SESSION -------------------- */
 
-  /** Called by BillingPage whenever customer changes, so draft includes customer */
   const saveCustomerToDraft = (customerId: string | null, customer: any) => {
     try {
       const saved = localStorage.getItem(BILLING_STORAGE_KEY);
@@ -157,7 +195,6 @@ export function useBillingLogic(isEditMode?: boolean) {
   };
 
   useEffect(() => {
-    // Only save AFTER hydration is complete to avoid overwriting restored data
     if (isEditMode || !isHydrated) return;
 
     const saveData = {
@@ -167,17 +204,23 @@ export function useBillingLogic(isEditMode?: boolean) {
       hallmarkCharge,
       taxOnMetal,
       taxOnMaking,
+      metalExchange,
       exchangeGoldWeight,
+      exchangeGoldPurity,
+      exchangeGoldDeductionPercent,
       payments,
       appliedAdvance,
       appliedSchemes,
       excessGoldMode,
       cashOutReductionPercent,
+      refundMethod,
+      refundDetails,
+      appliedWalletMetal22K,
+      appliedWalletMetal24K,
       savedAt: Date.now(),
       expiry: Date.now() + EXPIRY_MINUTES * 60 * 1000,
     };
 
-    // Preserve customer info if already saved
     const existing = localStorage.getItem(BILLING_STORAGE_KEY);
     const existingState = existing ? JSON.parse(existing) : {};
     localStorage.setItem(BILLING_STORAGE_KEY, JSON.stringify({ ...existingState, ...saveData }));
@@ -189,22 +232,69 @@ export function useBillingLogic(isEditMode?: boolean) {
     hallmarkCharge,
     taxOnMetal,
     taxOnMaking,
+    metalExchange,
     exchangeGoldWeight,
+    exchangeGoldPurity,
+    exchangeGoldDeductionPercent,
     payments,
     appliedAdvance,
     excessGoldMode,
     cashOutReductionPercent,
+    refundMethod,
+    refundDetails,
     isEditMode,
+    appliedWalletMetal22K,
+    appliedWalletMetal24K,
   ]);
 
   /* -------------------- PRODUCT HANDLERS -------------------- */
 
   const updateMetalRate = (rate: number) => {
     setMetalRate(rate);
+    
+    // Also update the 22k live rate so Old Gold Exchange automatically reflects it
+    setLiveRates(prev => ({ ...prev, "22k": rate }));
+
+    // Automatically update invoice items that are 22K or have no specific purity
+    setProducts(prev => prev.map(p => {
+      const purityStr = p.purity?.toString().toLowerCase() || '22k';
+      const key = purityStr.endsWith('k') ? purityStr : `${purityStr}k`;
+      if (key === '22k' || !p.purity) {
+        return { ...p, metalRate: rate };
+      }
+      return p;
+    }));
+  };
+
+  const refreshRates = async () => {
+    try {
+      const res = await fetch("/api/gold-rates");
+      const data = await res.json();
+      if (data.ratesPerGram) {
+        setLiveRates(data.ratesPerGram);
+        if (data.ratesPerGram["22k"]) {
+           setMetalRate(data.ratesPerGram["22k"]);
+        }
+        
+        // Auto update all invoice items based on their purity
+        setProducts(prev => prev.map(p => {
+           const purityStr = p.purity?.toString().toLowerCase() || '22k';
+           const key = purityStr.endsWith('k') ? purityStr : `${purityStr}k`;
+           if (data.ratesPerGram[key]) {
+              return { ...p, metalRate: data.ratesPerGram[key] };
+           } else if (data.ratesPerGram["22k"]) {
+              return { ...p, metalRate: data.ratesPerGram["22k"] };
+           }
+           return p;
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to refresh metal rate", err);
+    }
   };
 
   const addProduct = async (product: any) => {
-    if (restored.current) {
+    if (restored.current && product.id) {
       try {
         await axios.post("/api/stock/update", { id: product.id, action: "reserve" });
       } catch {}
@@ -214,11 +304,14 @@ export function useBillingLogic(isEditMode?: boolean) {
 
   const removeProduct = async (index: number) => {
     const prod = products[index];
-    if (prod && restored.current) {
+    if (prod && restored.current && prod.id) {
       try {
         await axios.post("/api/stock/update", { id: prod.id, action: "unreserve" });
       } catch {}
     }
+
+    // Auto-remove advance logic was removed based on user feedback
+
     setProducts((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -228,26 +321,88 @@ export function useBillingLogic(isEditMode?: boolean) {
     );
   };
 
-  /* -------------------- ADVANCE HANDLERS -------------------- */
   const applyAdvance = (advance: any) => {
+    if (appliedAdvance?.id === advance.id) {
+      alert("This advance is already applied to the bill.");
+      return false;
+    }
+    if (appliedAdvance) {
+      alert("An advance is already applied to this bill. Please remove it first or clear the session to apply a different one.");
+      return false;
+    }
+
     setAppliedAdvance(advance);
 
     if (advance.metalWeight > 0) {
       setExchangeGoldWeight((prev) => prev + advance.metalWeight);
+      if (advance.metalPurity) {
+        setExchangeGoldPurity(advance.metalPurity.toLowerCase());
+      }
     }
 
     if (advance.moneyAmount > 0) {
       setPayments((prev) => {
-        // If the first payment is empty cash, replace it. Otherwise append.
         const isFirstEmpty = prev.length === 1 && prev[0].method === "CASH" && !prev[0].amount;
         const newPayment = {
           method: "ADVANCE",
           amount: advance.moneyAmount.toString(),
           metalWeight: "",
           narration: advance.advanceReceiptNumber,
+          isLocked: true,
         };
         return isFirstEmpty ? [newPayment] : [...prev, newPayment];
       });
+    }
+    return true;
+  };
+
+  const removeAdvance = () => {
+    if (!appliedAdvance) return;
+    setPayments((prev) => {
+      const filtered = prev.filter(p => !(p.method === "ADVANCE" && p.narration === appliedAdvance.advanceReceiptNumber));
+      if (filtered.length === 0) return [{ method: "CASH", amount: "", metalWeight: "", narration: "" }];
+      return filtered;
+    });
+    if (appliedAdvance.metalWeight > 0) {
+      setExchangeGoldWeight((prev) => Math.max(0, prev - appliedAdvance.metalWeight));
+    }
+    setAppliedAdvance(null);
+  };
+
+  const applyWalletBalance = (weight: number, purity: string) => {
+    if (!weight || weight <= 0) {
+      alert("No balance available in this purity.");
+      return;
+    }
+    const is24K = purity.toUpperCase() === '24K';
+    const alreadyApplied = is24K ? appliedWalletMetal24K : appliedWalletMetal22K;
+    
+    if (alreadyApplied >= weight) {
+      alert(`Wallet balance for ${purity} is already fully applied.`);
+      return;
+    }
+    
+    const weightToApply = weight - alreadyApplied;
+    
+    setExchangeGoldWeight((prev) => prev + weightToApply);
+    setExchangeGoldPurity(purity.toLowerCase());
+    
+    if (is24K) {
+      setAppliedWalletMetal24K((prev) => prev + weightToApply);
+    } else {
+      setAppliedWalletMetal22K((prev) => prev + weightToApply);
+    }
+    
+    alert(`Applied ${weightToApply.toFixed(3)}g of ${purity} from Wallet to Old Gold Exchange.`);
+  };
+
+  const removeWalletBalance = () => {
+    if (appliedWalletMetal22K > 0 || appliedWalletMetal24K > 0) {
+      const totalToRemove = appliedWalletMetal22K + appliedWalletMetal24K;
+      setExchangeGoldWeight((prev) => Math.max(0, prev - totalToRemove));
+      setAppliedWalletMetal22K(0);
+      setAppliedWalletMetal24K(0);
+      alert("Wallet balances removed from Old Gold Exchange.");
     }
   };
 
@@ -273,7 +428,7 @@ export function useBillingLogic(isEditMode?: boolean) {
           metalWeight: "",
           narration: scheme.schemeNumber,
           schemeId: scheme.id,
-          isLocked: true, // Specific field to prevent removal in UI
+          isLocked: true,
         };
         return isFirstEmpty ? [newPayment] : [...prev, newPayment];
       });
@@ -295,11 +450,13 @@ export function useBillingLogic(isEditMode?: boolean) {
   const resetExcessGoldHandling = () => {
     setExcessGoldMode(null);
     setCashOutReductionPercent(10);
+    setRefundMethod('CASH');
+    setRefundDetails('');
   };
 
-  /* -------------------- ITEM CALCULATIONS (UNCHANGED) -------------------- */
+  /* -------------------- ITEM CALCULATIONS -------------------- */
 
-  const metalValue = (p: any) => p.ntWeight * p.metalRate;
+  const metalValue = (p: any) => p.ntWeight * (p.metalRate || metalRate);
 
   const makingValue = (p: any) =>
     (metalValue(p) * (p.makingChargePercent ?? 0)) / 100;
@@ -309,7 +466,7 @@ export function useBillingLogic(isEditMode?: boolean) {
     makingValue(p) * ((p.discountOnMaking ?? 0) / 100);
 
   const itemTotal = (p: any) =>
-    metalValue(p) + afterDiscount(p) + (p.additionalCharge ?? 0);
+    metalValue(p) + afterDiscount(p) + Number(p.additionalCharge ?? p.otherChargesPrice ?? p.stoneCharge ?? 0);
 
   /* -------------------- AGGREGATES -------------------- */
 
@@ -318,38 +475,48 @@ export function useBillingLogic(isEditMode?: boolean) {
     0
   );
   const totalGoldValue = totalGoldWeight * metalRate;
-  
-
-  const exchangeGoldValue = exchangeGoldWeight * metalRate;
+  const purityLiveRate = liveRates[exchangeGoldPurity] || metalRate;
+  const computedExchangeMetalRate = purityLiveRate * (1 - exchangeGoldDeductionPercent / 100);
+  const exchangeMetalRate = savedExchangeMetalRate !== null ? savedExchangeMetalRate : computedExchangeMetalRate;
+  const exchangeGoldValue = exchangeGoldWeight * exchangeMetalRate;
 
   // 🔥 Excess Old Gold Detection
-  const isOldGoldExcess = exchangeGoldValue > totalGoldValue && totalGoldValue > 0;
+  const isOldGoldExcess = metalExchange && exchangeGoldValue > totalGoldValue && totalGoldValue > 0;
   const excessGoldValue = isOldGoldExcess ? exchangeGoldValue - totalGoldValue : 0;
-  const excessGoldWeight = metalRate > 0 ? excessGoldValue / metalRate : 0;
+  const excessGoldWeight = exchangeMetalRate > 0 ? excessGoldValue / exchangeMetalRate : 0;
 
   // 🔥 Cash Settlement Calculations
-  const cashSettlementRate = metalRate * (1 - cashOutReductionPercent / 100);
+  const cashSettlementRate = exchangeMetalRate * (1 - cashOutReductionPercent / 100);
   const cashOutAmount = excessGoldWeight * cashSettlementRate;
 
   // 🔥 Effective exchange values based on mode
   let effectiveExchangeValue = exchangeGoldValue;
   let effectiveExchangeWeight = exchangeGoldWeight;
 
-  if (isOldGoldExcess && excessGoldMode) {
-    // Cap old gold at purchase value — only retain what's needed
-    effectiveExchangeValue = totalGoldValue;
-    effectiveExchangeWeight = totalGoldWeight;
+  if (!metalExchange) {
+    effectiveExchangeValue = 0;
+    effectiveExchangeWeight = 0;
+  } else {
+    if (isOldGoldExcess && excessGoldMode) {
+      effectiveExchangeValue = totalGoldValue;
+      effectiveExchangeWeight = totalGoldWeight;
+    }
   }
 
-  const netGoldWeight = Math.max(totalGoldWeight - effectiveExchangeWeight, 0);
-  const netGoldValue = netGoldWeight * metalRate;
+  const netGoldValue = Math.max(totalGoldValue - effectiveExchangeValue, 0);
+  const netGoldWeight = metalRate > 0 ? netGoldValue / metalRate : 0;
 
   const subtotal = products.reduce((acc, p) => acc + itemTotal(p), 0);
 
-  const hallmarkFee = hallmarkCharge ? 500 : 0;
-  const hallmarkTax = hallmarkCharge ? hallmarkFee * 0.18 : 0;
+  const totalProductQuantityForHallmark = products.reduce((acc, p) => acc + (Number(p.quantity) || 1), 0);
+  const hallmarkConfig = globalSettings?.financialConfig?.hallmarkConfig || { charge: 500, cgst: 9, sgst: 9 };
+  const hallmarkFee = (hallmarkCharge && products.length > 0) ? hallmarkConfig.charge * totalProductQuantityForHallmark : 0;
+  
+  const hallmarkingCGST = (hallmarkCharge && products.length > 0) ? hallmarkFee * (hallmarkConfig.cgst / 100) : 0;
+  const hallmarkingSGST = (hallmarkCharge && products.length > 0) ? hallmarkFee * (hallmarkConfig.sgst / 100) : 0;
+  const hallmarkTax = hallmarkingCGST + hallmarkingSGST;
 
-  // 🔥 GST logic (LEGALLY CORRECT)
+  // 🔥 GST logic (INCLUDES ADDITIONAL CHARGES)
   const goldGST = taxOnMetal ? netGoldValue * 0.03 : 0;
 
   const totalMaking = products.reduce(
@@ -357,63 +524,70 @@ export function useBillingLogic(isEditMode?: boolean) {
     0
   );
 
-  const makingGST = taxOnMaking ? totalMaking * 0.05 : 0;
+  const totalAdditional = products.reduce(
+    (acc, p) => acc + Number(p.additionalCharge ?? p.otherChargesPrice ?? p.stoneCharge ?? 0),
+    0
+  );
 
-  const exchangeTotal = netGoldValue + totalMaking;
+  const makingGST = taxOnMaking ? (totalMaking + totalAdditional) * 0.05 : 0;
+
+  // Net Taxable Base = Net Gold Value + Discounted Making + Additional Charges
+  const exchangeTotal = netGoldValue + totalMaking + totalAdditional;
   const totalTax = taxOnTotal ? exchangeTotal * 0.03 : 0;
-
-  
 
   /* -------------------- GRAND TOTAL -------------------- */
   const isExchangeTotalTaxMode =
     exchangeGoldWeight > 0 &&
     taxOnTotal &&
     !taxOnMetal &&
-    !taxOnMaking;
+    !taxOnMaking &&
+    metalExchange;
 
-  // Base grand total (before excess gold adjustments)
+  // Base grand total (Net Gold + Net Making + Additional Charge + 3% GST + Hallmark)
   const baseGrandTotal =
     netGoldValue +
     totalMaking +
+    totalAdditional +
     hallmarkFee +
     totalTax +
     hallmarkTax +
     (isExchangeTotalTaxMode ? 0 : goldGST) +
     (isExchangeTotalTaxMode ? 0 : makingGST);
 
-  // 🔥 Cash to customer: when cashOutAmount exceeds the remaining charges
   let cashToCustomer = 0;
-  let grandTotal = baseGrandTotal;
+  // If metalExchange is OFF, deduct exchangeGoldValue from the baseGrandTotal as a cash value.
+  let grandTotal = metalExchange ? baseGrandTotal : baseGrandTotal - exchangeGoldValue;
   let oldGoldCashedOutValue = 0;
 
-  if (isOldGoldExcess && excessGoldMode === 'CASH_OUT') {
-    // The remaining bill is just making + taxes + hallmark (net gold = 0 since old gold covers it)
-    const remainingCharges = totalMaking + hallmarkFee + totalTax + hallmarkTax +
-      (isExchangeTotalTaxMode ? 0 : goldGST) +
-      (isExchangeTotalTaxMode ? 0 : makingGST);
-    
-    if (cashOutAmount > remainingCharges) {
-      // Cash out covers everything + excess goes to customer
-      cashToCustomer = cashOutAmount - remainingCharges;
-      grandTotal = 0; // Bill is fully settled, we owe the customer money
-      oldGoldCashedOutValue = cashOutAmount;
-    } else {
-      // Cash out partially covers remaining charges
-      grandTotal = remainingCharges - cashOutAmount;
-      oldGoldCashedOutValue = cashOutAmount;
+  if (metalExchange) {
+    if (isOldGoldExcess && excessGoldMode === 'CASH_OUT') {
+      const remainingCharges = totalMaking + totalAdditional + hallmarkFee + totalTax + hallmarkTax +
+        (isExchangeTotalTaxMode ? 0 : goldGST) +
+        (isExchangeTotalTaxMode ? 0 : makingGST);
+      
+      if (cashOutAmount > remainingCharges) {
+        cashToCustomer = cashOutAmount - remainingCharges;
+        grandTotal = 0;
+        oldGoldCashedOutValue = cashOutAmount;
+      } else {
+        grandTotal = remainingCharges - cashOutAmount;
+        oldGoldCashedOutValue = cashOutAmount;
+      }
+    } else if (isOldGoldExcess && excessGoldMode === 'RETURN_GOLD') {
+      grandTotal = totalMaking + totalAdditional + hallmarkFee + totalTax + hallmarkTax +
+        (isExchangeTotalTaxMode ? 0 : goldGST) +
+        (isExchangeTotalTaxMode ? 0 : makingGST);
     }
-  } else if (isOldGoldExcess && excessGoldMode === 'RETURN_GOLD') {
-    // Net gold value = 0 (old gold covers it exactly), remaining is making + taxes
-    grandTotal = totalMaking + hallmarkFee + totalTax + hallmarkTax +
-      (isExchangeTotalTaxMode ? 0 : goldGST) +
-      (isExchangeTotalTaxMode ? 0 : makingGST);
+  } else {
+    // If metalExchange is off and old gold value > grand total, customer gets cash back.
+    if (grandTotal < 0) {
+      cashToCustomer = Math.abs(grandTotal);
+      grandTotal = 0;
+    }
   }
-
 
   const goldCgst = goldGST / 2;
   const goldSgst = goldGST / 2;
-  const hallmarkingCGST = hallmarkTax / 2;
-  const hallmarkingSGST = hallmarkTax / 2;
   const cgst = totalTax / 2;
   const sgst = totalTax / 2;
   const makingCgst = makingGST / 2;
@@ -421,7 +595,6 @@ export function useBillingLogic(isEditMode?: boolean) {
 
   /* -------------------- EXPORT -------------------- */
   return {
-    /** Customer info restored from draft — reactive state so BillingPage effect can watch it */
     restoredCustomerId,
     restoredCustomer,
     saveCustomerToDraft,
@@ -432,17 +605,28 @@ export function useBillingLogic(isEditMode?: boolean) {
     hallmarkCharge,
     taxOnMetal,
     taxOnMaking,
+    metalExchange,
 
     exchangeGoldWeight,
     setExchangeGoldWeight,
+    exchangeGoldPurity,
+    setExchangeGoldPurity,
+    exchangeGoldDeductionPercent,
+    setExchangeGoldDeductionPercent,
+    savedExchangeMetalRate,
+    setSavedExchangeMetalRate,
+    liveRates,
+    exchangeMetalRate,
 
     updateMetalRate,
+    refreshRates,
+    addProduct,
     setTaxOnTotal,
     setHallmarkCharge,
     setTaxOnMetal,
     setTaxOnMaking,
+    setMetalExchange,
 
-    addProduct,
     removeProduct,
     updateProduct,
     setProducts,
@@ -465,6 +649,7 @@ export function useBillingLogic(isEditMode?: boolean) {
     exchangeGoldValue,
 
     totalMaking,
+    totalAdditional,
     isExchangeTotalTaxMode,
     goldCgst,
     goldSgst,
@@ -483,13 +668,15 @@ export function useBillingLogic(isEditMode?: boolean) {
     appliedAdvance,
     setAppliedAdvance,
     applyAdvance,
+    removeAdvance,
+    applyWalletBalance,
+    removeWalletBalance,
 
     appliedSchemes,
     setAppliedSchemes,
     applyScheme,
     removeScheme,
 
-    // 🔥 Excess Old Gold
     isOldGoldExcess,
     excessGoldValue,
     excessGoldWeight,
@@ -498,11 +685,18 @@ export function useBillingLogic(isEditMode?: boolean) {
     cashOutReductionPercent,
     setCashOutReductionPercent,
     cashSettlementRate,
+    refundMethod,
+    setRefundMethod,
+    refundDetails,
+    setRefundDetails,
     cashOutAmount,
     cashToCustomer,
     oldGoldCashedOutValue,
     resetExcessGoldHandling,
     effectiveExchangeValue,
     effectiveExchangeWeight,
+    appliedWalletMetal22K,
+    appliedWalletMetal24K,
   };
 }
+

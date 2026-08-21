@@ -37,8 +37,15 @@ export async function GET(req: NextRequest) {
       prevWhere.createdAt = { gte: prevFrom, lte: prevTo };
     }
 
-    // ── Aggregate current & previous periods ──
-    const [currentAgg, prevAgg, pendingInvoiceCount] = await Promise.all([
+    // ── Aggregate current & previous periods & fetch items/payments concurrently ──
+    const [
+      currentAgg,
+      prevAgg,
+      pendingInvoiceCount,
+      invoiceItems,
+      invoicePayments,
+      invoicesForPayments
+    ] = await Promise.all([
       prisma.invoice.aggregate({
         where,
         _sum: {
@@ -61,6 +68,31 @@ export async function GET(req: NextRequest) {
           isFullyPaid: false,
         },
       }),
+      prisma.invoiceItem.findMany({
+        where: {
+          invoice: where,
+        },
+        include: {
+          product: {
+            include: {
+              subCategory: {
+                include: {
+                  category: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      prisma.invoicePayment.findMany({
+        where: {
+          invoice: where,
+        },
+      }),
+      prisma.invoice.findMany({
+        where,
+        select: { paymentMethod: true, totalAmount: true },
+      })
     ]);
 
     const totalSales = currentAgg._sum.totalAmount || 0;
@@ -71,24 +103,7 @@ export async function GET(req: NextRequest) {
     const pendingDues = currentAgg._sum.balanceAmount || 0;
     const totalSalesPrevPeriod = prevAgg._sum.totalAmount || 0;
 
-    // ── Category Sales breakdown (join through InvoiceItem → ProductItem → SubCategory → Category) ──
-    const invoiceItems = await prisma.invoiceItem.findMany({
-      where: {
-        invoice: where,
-      },
-      include: {
-        product: {
-          include: {
-            subCategory: {
-              include: {
-                category: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
+    // ── Category Sales breakdown ──
     const categorySummaryMap = new Map<string, { itemsSold: number; netWt: number; revenue: number }>();
     for (const item of invoiceItems) {
       const catName = item.product.subCategory.category.name || "General";
@@ -136,14 +151,9 @@ export async function GET(req: NextRequest) {
       }));
 
     // ── Payment method breakdown ──
-    const invoicePayments = await prisma.invoicePayment.findMany({
-      where: {
-        invoice: where,
-      },
-    });
-
     const paymentSummaryMap = new Map<string, { count: number; amount: number }>();
     let totalPaymentAmount = 0;
+    
     for (const pay of invoicePayments) {
       const existing = paymentSummaryMap.get(pay.method) || { count: 0, amount: 0 };
       existing.count += 1;
@@ -154,10 +164,6 @@ export async function GET(req: NextRequest) {
 
     // Include invoice paymentMethod from invoice itself if payments are empty
     if (invoicePayments.length === 0) {
-      const invoicesForPayments = await prisma.invoice.findMany({
-        where,
-        select: { paymentMethod: true, totalAmount: true },
-      });
       for (const inv of invoicesForPayments) {
         const existing = paymentSummaryMap.get(inv.paymentMethod) || { count: 0, amount: 0 };
         existing.count += 1;

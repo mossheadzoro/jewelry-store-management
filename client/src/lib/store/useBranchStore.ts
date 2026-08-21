@@ -6,6 +6,9 @@ import axios from 'axios';
 interface Branch {
   id: number;
   name: string;
+  city?: string;
+  address?: string;
+  code?: string;
   users?: {
     id: number;
     name: string;

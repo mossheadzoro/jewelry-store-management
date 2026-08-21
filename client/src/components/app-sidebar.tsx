@@ -20,6 +20,7 @@ import {
   IconSearch,
   IconSettings,
   IconUsers,
+  IconReceiptRefund,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -74,6 +75,11 @@ const data = {
       title: "Customers",
       url: "/customer",
       icon: IconUsers,
+    },
+    {
+      title: "Returns & Exchanges",
+      url: "/returns",
+      icon: IconReceiptRefund,
     },
     {
       title: "Saving Schemes",
@@ -142,7 +148,7 @@ const data = {
     },
     {
       title: "Search",
-      url: "#",
+      url: "/search",
       icon: IconSearch,
     },
   ],

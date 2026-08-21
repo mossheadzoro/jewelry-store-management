@@ -68,12 +68,12 @@ export function ImageUploader({ images, onChange, maxImages = 5 }: ImageUploader
           {images.map((file, idx) => {
             const url = URL.createObjectURL(file);
             return (
-              <div key={idx} className="relative w-16 h-16 rounded-md overflow-hidden border border-[#333] group">
+              <div key={idx} className="relative w-16 h-16 rounded-md overflow-hidden border border-border group">
                 <img src={url} alt={`Upload ${idx}`} className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => removeImage(idx)}
-                  className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-1 right-1 bg-background/70 text-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -87,7 +87,7 @@ export function ImageUploader({ images, onChange, maxImages = 5 }: ImageUploader
         <label
           onDrop={handleDrop}
           onDragOver={handleDragOver}
-          className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-[#2a2a2a] rounded-xl bg-[#0a0a0a] hover:bg-[#111] hover:border-[#D4A843]/40 cursor-pointer transition-colors"
+          className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-onyx-border rounded-xl bg-onyx hover:bg-[#111] hover:border-[#D4A843]/40 cursor-pointer transition-colors"
         >
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
             <Upload className="w-5 h-5 text-[#555] mb-2" />

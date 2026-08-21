@@ -52,23 +52,23 @@ export default function DirectCommunicationModal({ open, onClose, customer }: Di
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal Container */}
       <div className="relative w-full max-w-5xl max-h-[85vh] bg-[#0f0f0f] border border-[#222] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-5 border-b border-[#1f1f1f] bg-[#141414]">
+        <div className="flex items-center justify-between px-8 py-5 border-b border-[#1f1f1f] bg-onyx-surface">
           <div>
-            <h2 className="text-[20px] font-bold text-white tracking-tight">Direct Communication</h2>
+            <h2 className="text-[20px] font-bold text-foreground tracking-tight">Direct Communication</h2>
             <p className="text-[13px] text-[#777] mt-1">Secure messaging hub for personal client relations.</p>
           </div>
           <div className="flex items-center gap-4">
-            <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#333] text-[#ccc] hover:bg-[#1f1f1f] hover:text-white transition-colors text-[13px] font-medium">
+            <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-[#ccc] hover:bg-[#1f1f1f] hover:text-foreground transition-colors text-[13px] font-medium">
               <History className="w-4 h-4" />
               View History
             </button>
-            <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#777] hover:text-white hover:bg-[#222] transition-colors">
+            <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#777] hover:text-foreground hover:bg-secondary transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -81,12 +81,12 @@ export default function DirectCommunicationModal({ open, onClose, customer }: Di
           <div className="w-[320px] border-r border-[#1f1f1f] bg-[#111] flex flex-col p-6 overflow-y-auto custom-scrollbar">
             
             {/* Profile Summary */}
-            <div className="bg-[#1a1a1a] border border-[#252525] rounded-xl p-5 mb-6 flex flex-col items-center text-center">
-              <div className="relative w-20 h-20 rounded-full bg-[#222] border-2 border-[#D4A843]/30 flex items-center justify-center text-2xl font-bold text-[#D4A843] mb-4">
+            <div className="bg-onyx-elevated border border-[#252525] rounded-xl p-5 mb-6 flex flex-col items-center text-center">
+              <div className="relative w-20 h-20 rounded-full bg-secondary border-2 border-[#D4A843]/30 flex items-center justify-center text-2xl font-bold text-[#D4A843] mb-4">
                 {initials}
                 <div className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#1a1a1a]"></div>
               </div>
-              <h3 className="text-[18px] font-bold text-white">{customer.name}</h3>
+              <h3 className="text-[18px] font-bold text-foreground">{customer.name}</h3>
               {customer.tier && (
                 <div className="mt-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-[#D4A843]/15 text-[#D4A843]">
                   {customer.tier} Tier
@@ -117,7 +117,7 @@ export default function DirectCommunicationModal({ open, onClose, customer }: Di
             {/* Recent Context */}
             <div>
               <h4 className="text-[11px] font-bold text-[#555] uppercase tracking-wider mb-3">Recent Context</h4>
-              <div className="bg-[#1a1a1a] border border-[#252525] rounded-xl p-4 space-y-4">
+              <div className="bg-onyx-elevated border border-[#252525] rounded-xl p-4 space-y-4">
                 <div className="flex gap-3">
                   <div className="w-8 h-8 rounded-full bg-[#D4A843]/10 flex items-center justify-center shrink-0">
                     <ShoppingBag className="w-4 h-4 text-[#D4A843]" />
@@ -128,7 +128,7 @@ export default function DirectCommunicationModal({ open, onClose, customer }: Di
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#333] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
                     <Clock className="w-4 h-4 text-[#999]" />
                   </div>
                   <div>
@@ -142,7 +142,7 @@ export default function DirectCommunicationModal({ open, onClose, customer }: Di
           </div>
 
           {/* Right Panel - Messaging */}
-          <div className="flex-1 flex flex-col bg-[#0a0a0a]">
+          <div className="flex-1 flex flex-col bg-onyx">
             
             {/* Tabs */}
             <div className="flex border-b border-[#1f1f1f] px-8">
@@ -179,7 +179,7 @@ export default function DirectCommunicationModal({ open, onClose, customer }: Di
                     <button
                       key={tpl.id}
                       onClick={() => handleTemplate(tpl.id)}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#141414] border border-[#252525] text-[13px] text-[#ccc] hover:bg-[#1f1f1f] hover:text-white transition-all"
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-onyx-surface border border-[#252525] text-[13px] text-[#ccc] hover:bg-[#1f1f1f] hover:text-foreground transition-all"
                     >
                       <span>{tpl.icon}</span>
                       {tpl.label}
@@ -189,12 +189,12 @@ export default function DirectCommunicationModal({ open, onClose, customer }: Di
               </div>
 
               {/* Text Area */}
-              <div className="flex-1 relative bg-[#141414] border border-[#252525] rounded-xl overflow-hidden flex flex-col focus-within:border-[#D4A843]/50 transition-colors">
+              <div className="flex-1 relative bg-onyx-surface border border-[#252525] rounded-xl overflow-hidden flex flex-col focus-within:border-[#D4A843]/50 transition-colors">
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={`Draft your personalized ${activeTab.toLowerCase()} to ${customer.name.split(' ')[0]} here...`}
-                  className="flex-1 bg-transparent p-5 text-[14px] text-white placeholder:text-[#555] outline-none resize-none custom-scrollbar"
+                  className="flex-1 bg-transparent p-5 text-[14px] text-foreground placeholder:text-[#555] outline-none resize-none custom-scrollbar"
                 />
               </div>
 
@@ -204,13 +204,13 @@ export default function DirectCommunicationModal({ open, onClose, customer }: Di
                   Character count: <span className="text-[#999]">{message.length}</span> • Sending via Official Business {activeTab === 'Email' ? 'Email' : 'Number'}
                 </p>
                 <div className="flex gap-3">
-                  <button className="px-5 py-2.5 rounded-xl border border-[#333] text-[#ccc] text-[13px] font-medium hover:text-white hover:bg-[#1a1a1a] transition-all">
+                  <button className="px-5 py-2.5 rounded-xl border border-border text-[#ccc] text-[13px] font-medium hover:text-foreground hover:bg-onyx-elevated transition-all">
                     Save Draft
                   </button>
                   <button 
                     onClick={handleSend}
                     disabled={sending || !message.trim()}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#D4A843] text-black text-[14px] font-semibold hover:bg-[#e6bc5a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#D4A843] text-foreground text-[14px] font-semibold hover:bg-[#e6bc5a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Message 🚀"}
                   </button>

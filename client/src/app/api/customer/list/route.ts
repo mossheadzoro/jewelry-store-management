@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "../../../../../libs/prisma";
 import { requireAuth } from "@/lib/authGuard";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
   const auth = await requireAuth(req, { module: "CUSTOMERS", requireBranch: true });
   if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -50,7 +52,6 @@ export async function GET(req: Request) {
     // Total count for pagination
     const totalCount = await prisma.customer.count({ where });
 
-    // Get customers with invoice data and tags
     const customers = await prisma.customer.findMany({
       where,
       skip,
@@ -92,6 +93,8 @@ export async function GET(req: Request) {
         },
       },
     });
+
+    console.log(`[API /customer/list] Found ${customers.length} customers. Branch: ${branchId}`);
 
     // Process customers to add computed fields
     const processedCustomers = customers.map((customer) => {

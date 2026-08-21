@@ -132,7 +132,7 @@ export default function CustomerPageClient() {
   };
 
   return (
-    <main className="flex-1 min-h-screen bg-[#0a0a0a] overflow-auto">
+    <main className="flex-1 min-h-screen bg-onyx overflow-auto">
       <div className="max-w-[1400px] mx-auto px-8 py-8">
         {/* Top Label */}
         <p className="text-[13px] font-semibold text-[#D4A843] uppercase tracking-widest mb-2">
@@ -142,7 +142,7 @@ export default function CustomerPageClient() {
         {/* Header */}
         <div className="flex items-start justify-between gap-8 mb-8">
           <div>
-            <h1 className="text-[32px] font-bold text-white tracking-tight leading-tight">
+            <h1 className="text-[32px] font-bold text-foreground tracking-tight leading-tight">
               Customer Management
             </h1>
             <p className="text-[14px] text-[#555] mt-1.5 max-w-lg leading-relaxed">
@@ -163,7 +163,7 @@ export default function CustomerPageClient() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search by name, mobile, or ID..."
-                className="w-[280px] h-10 pl-10 pr-4 rounded-xl bg-[#111] border border-[#1f1f1f] text-[13px] text-white placeholder:text-[#444] outline-none focus:border-[#D4A843]/40 transition-colors"
+                className="w-[280px] h-10 pl-10 pr-4 rounded-xl bg-[#111] border border-[#1f1f1f] text-[13px] text-foreground placeholder:text-[#444] outline-none focus:border-[#D4A843]/40 transition-colors"
               />
             </div>
             {/* Tag Filter */}
@@ -174,7 +174,7 @@ export default function CustomerPageClient() {
                   setSelectedTagId(e.target.value);
                   setPage(1);
                 }}
-                className="h-10 pl-4 pr-8 rounded-xl bg-[#111] border border-[#1f1f1f] text-[13px] text-white outline-none focus:border-[#D4A843]/40 transition-colors appearance-none cursor-pointer min-w-[150px]"
+                className="h-10 pl-4 pr-8 rounded-xl bg-[#111] border border-[#1f1f1f] text-[13px] text-foreground outline-none focus:border-[#D4A843]/40 transition-colors appearance-none cursor-pointer min-w-[150px]"
               >
                 <option value="">All Tags</option>
                 {tagDefinitions.map((def) => (
@@ -194,7 +194,7 @@ export default function CustomerPageClient() {
             {/* Add Customer Button */}
             <button
               onClick={() => setShowAddModal(true)}
-              className="h-10 px-5 rounded-xl bg-[#D4A843] text-black text-[13px] font-semibold flex items-center gap-2 hover:bg-[#e6bc5a] transition-all cursor-pointer whitespace-nowrap"
+              className="h-10 px-5 rounded-xl bg-[#D4A843] text-foreground text-[13px] font-semibold flex items-center gap-2 hover:bg-[#e6bc5a] transition-all cursor-pointer whitespace-nowrap"
             >
               <UserPlus className="w-4 h-4" />
               Add New Customer
@@ -243,24 +243,24 @@ export default function CustomerPageClient() {
       {/* Delete Confirmation */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)} />
+          <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)} />
           <div className="relative bg-[#111] border border-[#222] rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <h3 className="text-[16px] font-semibold text-white mb-2">Delete Customer?</h3>
+            <h3 className="text-[16px] font-semibold text-foreground mb-2">Delete Customer?</h3>
             <p className="text-[13px] text-[#666] mb-5">
-              Are you sure you want to delete <span className="text-white font-medium">{deleteConfirm.name}</span>?
+              Are you sure you want to delete <span className="text-foreground font-medium">{deleteConfirm.name}</span>?
               This action cannot be undone.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="h-9 px-4 rounded-lg text-[13px] text-[#999] bg-[#1a1a1a] border border-[#252525] hover:text-white transition-all cursor-pointer"
+                className="h-9 px-4 rounded-lg text-[13px] text-[#999] bg-onyx-elevated border border-[#252525] hover:text-foreground transition-all cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleteLoading}
-                className="h-9 px-4 rounded-lg text-[13px] font-semibold bg-red-500 text-white hover:bg-red-600 transition-all disabled:opacity-50 cursor-pointer"
+                className="h-9 px-4 rounded-lg text-[13px] font-semibold bg-red-500 text-foreground hover:bg-red-600 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {deleteLoading ? "Deleting..." : "Delete"}
               </button>

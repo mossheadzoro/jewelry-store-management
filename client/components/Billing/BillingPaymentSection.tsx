@@ -28,6 +28,10 @@ const BillingPaymentSection = ({ billing, customer }: any) => {
     cashSettlementRate,
     cashOutReductionPercent,
     effectiveExchangeWeight,
+    refundMethod,
+    setRefundMethod,
+    refundDetails,
+    setRefundDetails,
     
     // Saving Schemes
     appliedSchemes = [],
@@ -70,6 +74,10 @@ const BillingPaymentSection = ({ billing, customer }: any) => {
     ]);
 
   const removeMethod = (i: number) => {
+    if (payments[i].method === "ADVANCE") {
+      if (billing.removeAdvance) billing.removeAdvance();
+      return;
+    }
     const updated = [...payments];
     updated.splice(i, 1);
     setPayments(updated);
@@ -113,10 +121,10 @@ const BillingPaymentSection = ({ billing, customer }: any) => {
   /* ---------------- UI ---------------- */
 
   return (
-    <div className="bg-[#111111] border border-[#1e1e1e] rounded-xl overflow-hidden mt-2">
+    <div className="bg-onyx-surface border border-[#1e1e1e] rounded-xl overflow-hidden mt-2">
       {/* HEADER BAR */}
       <div className="p-4 border-b border-[#1e1e1e] bg-[#151515]">
-        <h3 className="text-lg font-bold text-white tracking-tight">
+        <h3 className="text-lg font-bold text-foreground tracking-tight">
           Payment Details
         </h3>
       </div>
@@ -147,11 +155,11 @@ const BillingPaymentSection = ({ billing, customer }: any) => {
                     const isMatured = scheme.maturityDate && new Date(scheme.maturityDate) <= new Date();
 
                     return (
-                      <div key={scheme.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 rounded-lg border border-[#333] bg-[#1a1a1a]">
+                      <div key={scheme.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 rounded-lg border border-border bg-onyx-elevated">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-white">{scheme.schemeName}</span>
-                            <span className="text-xs bg-[#333] px-2 py-0.5 rounded text-[#aaa]">{scheme.schemeNumber}</span>
+                            <span className="font-bold text-foreground">{scheme.schemeName}</span>
+                            <span className="text-xs bg-secondary px-2 py-0.5 rounded text-[#aaa]">{scheme.schemeNumber}</span>
                             {isMatured && <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded border border-green-500/30 uppercase tracking-wider font-bold">Matured</span>}
                           </div>
                           <div className="text-sm text-[#888] mt-1">
@@ -206,8 +214,8 @@ const BillingPaymentSection = ({ billing, customer }: any) => {
                     <div key={scheme.id} className="flex justify-between items-center p-3 rounded-lg border border-green-500/20 bg-green-500/5">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-white">{scheme.schemeName}</span>
-                          <span className="text-xs bg-[#333] px-2 py-0.5 rounded text-[#aaa]">{scheme.schemeNumber}</span>
+                          <span className="font-bold text-foreground">{scheme.schemeName}</span>
+                          <span className="text-xs bg-secondary px-2 py-0.5 rounded text-[#aaa]">{scheme.schemeNumber}</span>
                         </div>
                         <div className="text-sm text-green-400 mt-1">
                           Redeemed: <span className="font-mono font-bold">₹{scheme.amountUsed?.toFixed(2)}</span>
@@ -234,14 +242,14 @@ const BillingPaymentSection = ({ billing, customer }: any) => {
           {payments.map((p: any, i: number) => (
             <div
               key={i}
-              className="grid grid-cols-[140px_1fr_1fr_40px] gap-3 items-center bg-[#1a1a1a] p-2.5 rounded-lg border border-[#2a2a2a]"
+              className="grid grid-cols-[140px_1fr_1fr_40px] gap-3 items-center bg-onyx-elevated p-2.5 rounded-lg border border-onyx-border"
             >
               {/* METHOD */}
               <Select value={p.method} onValueChange={(v) => updateMethod(i, v)} disabled={p.isLocked}>
-                <SelectTrigger className={`bg-[#0a0a0a] border-[#333] text-white focus-visible:ring-[#d4a843] ${p.isLocked ? 'opacity-70' : ''}`}>
+                <SelectTrigger className={`bg-onyx border-border text-foreground focus-visible:ring-[#d4a843] ${p.isLocked ? 'opacity-70' : ''}`}>
                   <SelectValue placeholder="Method" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#1e1e1e] border-[#333] text-white">
+                <SelectContent className="bg-card border-border text-foreground">
                   <SelectItem value="CASH">Cash</SelectItem>
                   <SelectItem value="CHEQUE">Cheque</SelectItem>
                   <SelectItem value="UPI">UPI</SelectItem>
@@ -261,14 +269,14 @@ const BillingPaymentSection = ({ billing, customer }: any) => {
                     placeholder="Metal (g)"
                     value={p.metalWeight}
                     onChange={(e) => updatePayment(i, "metalWeight", e.target.value)}
-                    className="bg-[#0a0a0a] border-[#333] text-white focus-visible:ring-[#d4a843]"
+                    className="bg-onyx border-border text-foreground focus-visible:ring-[#d4a843]"
                   />
                   <Input
                     type="number"
                     placeholder="₹ Amount"
                     value={p.amount}
                     readOnly
-                    className="bg-[#0a0a0a] border-[#333] text-[#aaa] cursor-not-allowed opacity-70"
+                    className="bg-onyx border-border text-[#aaa] cursor-not-allowed opacity-70"
                   />
                 </div>
               ) : (
@@ -280,7 +288,7 @@ const BillingPaymentSection = ({ billing, customer }: any) => {
                   onFocus={() => handleFocus(i)}
                   onBlur={handleBlur}
                   readOnly={p.isLocked}
-                  className={`bg-[#0a0a0a] border-[#333] text-white focus-visible:ring-[#d4a843] ${p.isLocked ? 'text-[#aaa] cursor-not-allowed opacity-70' : ''}`}
+                  className={`bg-onyx border-border text-foreground focus-visible:ring-[#d4a843] ${p.isLocked ? 'text-[#aaa] cursor-not-allowed opacity-70' : ''}`}
                 />
               )}
 
@@ -292,7 +300,7 @@ const BillingPaymentSection = ({ billing, customer }: any) => {
                 onFocus={() => handleFocus(i)}
                 onBlur={handleBlur}
                 readOnly={p.isLocked}
-                className={`bg-[#0a0a0a] border-[#333] text-white focus-visible:ring-[#d4a843] ${p.isLocked ? 'text-[#aaa] cursor-not-allowed opacity-70' : ''}`}
+                className={`bg-onyx border-border text-foreground focus-visible:ring-[#d4a843] ${p.isLocked ? 'text-[#aaa] cursor-not-allowed opacity-70' : ''}`}
               />
 
               {/* REMOVE */}
@@ -325,7 +333,7 @@ const BillingPaymentSection = ({ billing, customer }: any) => {
             <div className="space-y-2">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-[#888]">Excess Gold Weight</span>
-                <span className="text-white font-mono">{excessGoldWeight.toFixed(3)}g</span>
+                <span className="text-foreground font-mono">{excessGoldWeight.toFixed(3)}g</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-[#888]">
@@ -338,13 +346,50 @@ const BillingPaymentSection = ({ billing, customer }: any) => {
                 <span className="text-green-400 font-semibold">Adjusted Amount</span>
                 <span className="text-green-400 font-bold font-mono">₹{oldGoldCashedOutValue.toFixed(2)}</span>
               </div>
-              {cashToCustomer > 0 && (
-                <div className="flex justify-between items-center text-sm pt-2 border-t border-[#d4a843]/20 mt-1">
-                  <span className="text-[#d4a843] font-bold">💰 Cash Given to Customer</span>
-                  <span className="text-[#d4a843] font-bold font-mono text-base">₹{cashToCustomer.toFixed(2)}</span>
-                </div>
-              )}
             </div>
+          </div>
+        )}
+
+        {cashToCustomer > 0 && (
+          <div className="mt-4 bg-[#d4a843]/5 border border-[#d4a843]/20 rounded-xl p-4 space-y-3">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-[#d4a843] font-bold">💰 Refund to Customer</span>
+              <span className="text-[#d4a843] font-bold font-mono text-base">₹{cashToCustomer.toFixed(2)}</span>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs text-[#888] font-semibold">Refund Method</label>
+              <Select value={refundMethod} onValueChange={setRefundMethod}>
+                <SelectTrigger className="bg-onyx border-border text-foreground w-full">
+                  <SelectValue placeholder="Select Refund Method" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground">
+                  <SelectItem value="CASH">Cash (Direct Handover)</SelectItem>
+                  <SelectItem value="CHEQUE">Cheque</SelectItem>
+                  <SelectItem value="ONLINE">Online (UPI / NEFT)</SelectItem>
+                  <SelectItem value="WALLET_CASH">Store as Cash (Wallet)</SelectItem>
+                  <SelectItem value="WALLET_METAL">Store as Metal (Wallet)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {(refundMethod === 'CHEQUE' || refundMethod === 'ONLINE') && (
+              <div className="space-y-2">
+                <label className="text-xs text-[#888] font-semibold">Transaction Details <span className="text-red-500">*</span></label>
+                <Input
+                  placeholder={refundMethod === 'CHEQUE' ? "Cheque No / Bank" : "UTR No / App"}
+                  value={refundDetails}
+                  onChange={(e) => setRefundDetails(e.target.value)}
+                  className="bg-onyx border-border text-foreground"
+                />
+              </div>
+            )}
+
+            {refundMethod === 'WALLET_METAL' && (
+              <div className="bg-onyx-elevated rounded p-2 border border-border flex justify-between items-center text-xs">
+                <span className="text-[#aaa]">Metal Equivalent</span>
+                <span className="text-gold font-mono font-bold">{(cashToCustomer / cashSettlementRate).toFixed(3)} g</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -362,7 +407,7 @@ const BillingPaymentSection = ({ billing, customer }: any) => {
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-[#888]">Gold Retained (for bill)</span>
-                <span className="text-white font-mono">{effectiveExchangeWeight.toFixed(3)}g</span>
+                <span className="text-foreground font-mono">{effectiveExchangeWeight.toFixed(3)}g</span>
               </div>
             </div>
           </div>
@@ -372,7 +417,7 @@ const BillingPaymentSection = ({ billing, customer }: any) => {
         <div className="mt-6 pt-5 border-t border-[#1e1e1e] flex flex-col gap-3 max-w-sm ml-auto">
           <div className="flex justify-between items-center text-sm">
             <span className="text-[#888]">Bill Amount</span>
-            <span className="font-semibold text-white">
+            <span className="font-semibold text-foreground">
               ₹{grandTotal.toFixed(2)}
             </span>
           </div>
@@ -388,17 +433,17 @@ const BillingPaymentSection = ({ billing, customer }: any) => {
 
           <div className="flex justify-between items-center text-sm">
             <span className="text-[#888]">Total Paid</span>
-            <span className="font-semibold text-white">
+            <span className="font-semibold text-foreground">
               ₹{displayTotalPaid.toFixed(2)}
             </span>
           </div>
 
-          <div className="border-t border-[#2a2a2a] my-1"></div>
+          <div className="border-t border-onyx-border my-1"></div>
 
           <div className="flex justify-between items-center text-sm font-semibold">
             <span className="text-[#888]">Status</span>
             <span
-              className={`px-3 py-1 rounded bg-[#1a1a1a] border ${
+              className={`px-3 py-1 rounded bg-onyx-elevated border ${
                 displayTotalPaid >= Math.round(grandTotal)
                   ? "text-green-400 border-green-400/20"
                   : "text-[#e55] border-[#e55]/20"

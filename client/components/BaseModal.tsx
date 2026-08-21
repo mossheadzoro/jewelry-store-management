@@ -22,7 +22,7 @@ export function BaseModal({
 }: BaseModalProps) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-[#0f0f0f] text-white border-none">
+      <DialogContent className="bg-[#0f0f0f] text-foreground border-none">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>

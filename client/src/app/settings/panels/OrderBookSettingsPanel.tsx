@@ -76,7 +76,7 @@ export default function OrderBookSettingsPanel() {
         <button 
           onClick={handleSave} 
           disabled={saving}
-          className="flex items-center gap-2 bg-gold text-black px-6 py-2 rounded-lg font-medium text-[13px] hover:bg-gold/90 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 bg-gold text-foreground px-6 py-2 rounded-lg font-medium text-[13px] hover:bg-gold/90 transition-colors disabled:opacity-50"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           Save Configuration

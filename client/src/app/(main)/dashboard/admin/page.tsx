@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { DashboardFilters } from "@/components/Dashboard/v2/DashboardFilters";
 import { PerformanceOverview } from "@/components/Dashboard/v2/PerformanceOverview";
 import { SalesCharts } from "@/components/Dashboard/v2/SalesCharts";
@@ -13,56 +14,49 @@ import { AlertsAndInsights } from "@/components/Dashboard/v2/AlertsAndInsights";
 import { QuickActions } from "@/components/Dashboard/v2/QuickActions";
 
 export default function AdminDashboard() {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [branchId, setBranchId] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState("today");
-  const [branches, setBranches] = useState([]);
 
-  useEffect(() => {
-    // Fetch branches for filter
-    fetch("/api/branch/fetch")
-      .then(res => res.json())
-      .then(d => {
-        const branchList = d.data || [];
-        setBranches(branchList);
-        if (branchList.length > 0 && !branchId) {
-          setBranchId(branchList[0].id);
-        }
-      })
-      .catch(console.error);
-  }, []);
+  // Branches — rarely change, high staleTime
+  const { data: branchesData } = useQuery({
+    queryKey: ["branches"],
+    queryFn: async () => {
+      const res = await fetch("/api/branch/fetch");
+      if (!res.ok) throw new Error("Failed to fetch branches");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const url = new URL("/api/dashboard/v2", window.location.origin);
-        if (branchId) url.searchParams.set("branchId", branchId.toString());
-        if (dateRange) url.searchParams.set("dateRange", dateRange);
-        
-        const res = await fetch(url.toString());
-        const d = await res.json();
-        setData(d);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [branchId, dateRange]);
+  const branches = branchesData?.data || [];
+
+  // Auto-select first branch when branches load
+  const effectiveBranchId = branchId ?? (branches.length > 0 ? branches[0].id : null);
+
+  // Dashboard data — cached, instant on revisit
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["adminDashboard", effectiveBranchId, dateRange],
+    queryFn: async () => {
+      const url = new URL("/api/dashboard/v2", window.location.origin);
+      if (effectiveBranchId) url.searchParams.set("branchId", effectiveBranchId.toString());
+      if (dateRange) url.searchParams.set("dateRange", dateRange);
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error("Failed to fetch dashboard");
+      return res.json();
+    },
+    placeholderData: (prev: any) => prev,
+  });
 
   return (
-    <div className="min-h-screen bg-onyx p-6 space-y-6">
+    <div className="min-h-screen flex-1 w-full bg-onyx p-6 space-y-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold text-white tracking-tight">Executive Dashboard</h1>
+        <h1 className="text-2xl font-bold text-foreground tracking-tight">Executive Dashboard</h1>
         <p className="text-[13px] text-platinum-muted">Comprehensive business intelligence and performance overview.</p>
       </div>
 
       <DashboardFilters 
         isAdmin={true} 
-        branchId={branchId} 
+        branchId={effectiveBranchId} 
         setBranchId={setBranchId} 
         dateRange={dateRange} 
         setDateRange={setDateRange} 
@@ -103,7 +97,7 @@ export default function AdminDashboard() {
                       <tbody className="text-[13px]">
                         {data.branchComparison.map((b: any) => (
                           <tr key={b.id} className="border-b border-onyx-border/50 hover:bg-onyx-elevated/50 transition-colors">
-                            <td className="py-3 pl-2 font-medium text-white">{b.name}</td>
+                            <td className="py-3 pl-2 font-medium text-foreground">{b.name}</td>
                             <td className="py-3 text-right text-platinum">₹{b.sales.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                             <td className="py-3 text-right text-emerald-400 font-medium">₹{b.profit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                             <td className={`py-3 text-right font-medium ${b.growth >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -117,15 +111,16 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <WorkshopOrders data={data?.workshopOrders} />
+                <FinanceOverview data={data?.finance} />
+              </div>
             </div>
             
             <div className="space-y-6">
               <InventoryHealth data={data?.inventoryHealth} />
               <CustomerInsights data={data?.customerInsights} />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-6">
-                <WorkshopOrders data={data?.workshopOrders} />
-                <FinanceOverview data={data?.finance} />
-              </div>
             </div>
           </div>
           

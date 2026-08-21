@@ -228,7 +228,7 @@ export default function InvoicesTab({
             <SlidersHorizontal className="w-4 h-4" />
             Filter
             {activeFiltersCount > 0 && (
-              <span className="w-5 h-5 rounded-full bg-[#C9943A] text-black text-[10px] font-bold flex items-center justify-center font-mono">
+              <span className="w-5 h-5 rounded-full bg-[#C9943A] text-foreground text-[10px] font-bold flex items-center justify-center font-mono">
                 {activeFiltersCount}
               </span>
             )}

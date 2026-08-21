@@ -1,60 +1,68 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Plus, Search, Filter } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import SummaryCard from "./SummaryCard";
 import WholesalerTable from "./WholesalerTable";
 import CreateWholesalerModal from "./CreateWholesalerModel";
+import { useBranchStore } from "@/lib/store/useBranchStore";
 
 const WholesalerDashboard = () => {
+  const { selectedBranch } = useBranchStore();
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [open,setOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState("ALL");
+  const queryClient = useQueryClient();
 
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
-const [wholesalers, setWholesalers] = useState([]);
-const [summary, setSummary] = useState(null);
-
-
- useEffect(() => {
-  async function fetchWholesalers() {
-    try {
-      const res = await fetch("/api/wholesalers?branchId=1");
-
+  const { data: queryData } = useQuery({
+    queryKey: ["wholesalers", selectedBranch?.id, search, activeFilter],
+    queryFn: async () => {
+      if (!selectedBranch?.id) return { table: [], summary: null };
+      const q = new URLSearchParams();
+      q.append("branchId", String(selectedBranch.id));
+      if (search) q.append("search", search);
+      if (activeFilter !== "ALL") q.append("filter", activeFilter);
+      const res = await fetch(`/api/wholesalers?${q.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
+    enabled: !!selectedBranch?.id,
+    placeholderData: (prev) => prev,
+  });
 
-      const data = await res.json();
+  const wholesalers = queryData?.table || [];
+  const summary = queryData?.summary || null;
 
-      if (data.table && data.summary) {
-        setWholesalers(data.table);
-        setSummary(data.summary);
-      } else {
-        setWholesalers([]);
-        setSummary(null);
-      }
-    } catch (error) {
-      console.error(error);
-      setWholesalers([]);
-      setSummary(null);
-    }
-  }
-
-  fetchWholesalers();
-}, []);
-
-
- 
   return (
-    <div className="min-h-screen bg-[#030508] text-white p-8 w-full">
+    <div className="flex-1 min-h-screen bg-[#0a0a0a] overflow-auto px-8 py-8 w-full">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-semibold">Wholesaler Management</h1>
-        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-xl shadow-lg" onClick={() => setOpen(true)}>
+        <div>
+          <h1 className="text-[28px] font-bold text-white tracking-tight">Wholesaler Network</h1>
+          <p className="text-[13px] text-[#666] mt-1">Manage wholesale partners, balances, and metal accounts.</p>
+        </div>
+        <button 
+          className="flex items-center gap-2 bg-[#D4A843] hover:bg-[#C29B3C] text-black px-5 py-2.5 rounded-xl shadow-lg transition-colors font-semibold text-[14px]" 
+          onClick={() => setOpen(true)}
+        >
           <Plus size={18} />
-          Add New Wholesaler
+          Add Wholesaler
         </button>
       </div>
- <CreateWholesalerModal
+      <CreateWholesalerModal
         isOpen={open}
         onClose={() => setOpen(false)}
+        onSuccess={() => {
+          setOpen(false);
+          queryClient.invalidateQueries({ queryKey: ["wholesalers"] });
+        }}
       />
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
@@ -88,32 +96,38 @@ const [summary, setSummary] = useState(null);
   />
 </div>
 
-
       {/* Search & Filter */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center bg-[#111827] px-4 py-2 rounded-xl w-full md:w-1/2">
-          <Search size={18} className="text-gray-400" />
+        <div className="relative w-full md:w-[320px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#555]" />
           <input
             type="text"
-            placeholder="Search by wholesaler name or phone..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="bg-transparent outline-none ml-2 w-full text-sm"
+            placeholder="Search by Name or Phone..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="w-full h-10 pl-9 pr-4 rounded-xl bg-[#141414] border border-[#222] text-[13px] text-white placeholder:text-[#555] outline-none focus:border-[#D4A843]/50 transition-colors"
           />
         </div>
-
-        <div className="flex gap-3">
-          <button className="bg-[#111827] px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-[#1F2937]">
-            <Filter size={16} />
-            Filter
-          </button>
-          <button className="bg-blue-600 px-4 py-2 rounded-xl">Has Due</button>
-          <button className="bg-[#111827] px-4 py-2 rounded-xl hover:bg-[#1F2937]">
-            Has Deposit
-          </button>
-          <button className="bg-[#111827] px-4 py-2 rounded-xl hover:bg-[#1F2937]">
-            Active Orders
-          </button>
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
+          <Filter size={16} className="text-[#555] mr-1" />
+          {[
+            { label: "All", value: "ALL" },
+            { label: "Has Balance Due", value: "HAS_DUE" },
+            { label: "Has Advance/Deposit", value: "HAS_DEPOSIT" },
+            { label: "Active Orders", value: "ACTIVE_ORDERS" },
+          ].map((f) => (
+            <button
+              key={f.value}
+              className={`px-4 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-colors ${
+                activeFilter === f.value
+                  ? "bg-[#D4A843] text-black"
+                  : "bg-[#141414] text-[#888] hover:text-white border border-[#222]"
+              }`}
+              onClick={() => setActiveFilter(f.value)}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
       </div>
 

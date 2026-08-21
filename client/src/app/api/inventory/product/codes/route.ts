@@ -1,6 +1,7 @@
-// src/app/api/product/generate-codes/route.ts
+// src/app/api/inventory/product/codes/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../../libs/prisma";
+import { generateCodesHelper } from "../../../../../../src/lib/actions/generateCodes";
 
 export async function POST(req: Request) {
   try {
@@ -13,17 +14,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Fetch branch details
-    const branch = await prisma.branch.findUnique({
-      where: { id: branchId },
-      select: { name: true },
-    });
-
-    if (!branch) {
-      return NextResponse.json({ error: "Branch not found" }, { status: 404 });
-    }
-
-    // Fetch category details
+    // Fetch category details to get the categoryType (id)
     const category = await prisma.category.findUnique({
       where: { name_branchId: { name: categoryName, branchId: branchId } },
       select: { id: true },
@@ -33,30 +24,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Category not found" }, { status: 404 });
     }
 
-    const branchCode = branch.name.substring(0, 3).toUpperCase();
-    const categoryPrefix = categoryName.substring(0, 3).toUpperCase();
-    const categoryType = category.id; // numeric category type
+    const categoryType = category.id.toString();
 
-    // Get last product for this branch & category
-    const lastProduct = await prisma.productItem.findFirst({
-      where: { branchId, barcode: { startsWith: String(branchId).padStart(2, "0") } },
-      orderBy: { id: "desc" },
-      select: { id: true },
-    });
-
-    const nextSeq = (lastProduct ? lastProduct.id + 1 : 1) + Number(offset);
-    const seqStr = String(nextSeq).padStart(5, "0");
-
-    // ProductCode (your old logic)
-    const productCode = `${branchCode}${branchId}${categoryType}${categoryPrefix}${seqStr}`;
-
-    // Barcode: numeric only = [BranchID(2)][CategoryID(2)][YYMMDD][Seq(5)]
-    const now = new Date();
-    const datePart = `${String(now.getFullYear()).slice(-2)}${String(
-      now.getMonth() + 1
-    ).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-
-    const barcode = `${String(branchId).padStart(2, "0")}${String(categoryType).padStart(2, "0")}${datePart}${seqStr}`;
+    // Generate preview codes (increment = false)
+    const { productCode, barcode } = await generateCodesHelper(
+      prisma,
+      branchId,
+      categoryType,
+      categoryName,
+      false,
+      Number(offset)
+    );
 
     return NextResponse.json({ productCode, barcode }, { status: 200 });
   } catch (error) {

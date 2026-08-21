@@ -50,7 +50,7 @@ export default function ShowCategory() {
   }, [branchId]); // refetch when selectedBranch is updated
 
   return (
-    <div className="p-6 bg-black rounded-lg shadow-md text-white">
+    <div className="p-6 bg-background rounded-lg shadow-md text-foreground">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-semibold">All Categories</h2>
         <Button onClick={fetchCategories} disabled={loading || !branchId}>

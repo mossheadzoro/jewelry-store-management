@@ -54,38 +54,38 @@ export function IssueMetalModal({ wholesalerId, onClose, onSuccess }: Props) {
             <button
               key={type}
               onClick={() => setMetalType(type)}
-              className={`flex-1 py-2 rounded-lg font-medium border ${metalType === type ? 'bg-blue-600 border-blue-500 text-white' : 'bg-[#111827] border-gray-700 text-gray-400'}`}
+              className={`flex-1 py-2 rounded-lg font-medium border ${metalType === type ? 'bg-blue-600 border-blue-500 text-foreground' : 'bg-card border-border text-muted-foreground'}`}
             >
               {type}
             </button>
           ))}
         </div>
 
-        <div className="bg-[#111827] p-4 rounded-xl border border-gray-700 mt-4 flex justify-between items-center text-sm text-gray-400">
+        <div className="bg-card p-4 rounded-xl border border-border mt-4 flex justify-between items-center text-sm text-muted-foreground">
           <span>Purity Level</span>
-          <span className="font-semibold text-gray-200">24K (Pure {metalType})</span>
+          <span className="font-semibold text-foreground/90">24K (Pure {metalType})</span>
         </div>
 
         <div className="grid grid-cols-1 gap-4">
           <div>
-            <label className="text-sm text-gray-400 mb-1 block">Gross Weight (g)</label>
+            <label className="text-sm text-muted-foreground mb-1 block">Gross Weight (g)</label>
             <input
               type="number"
               value={weight}
               onChange={(e) => setWeight(e.target.value)}
-              className="w-full bg-[#111827] border border-gray-700 rounded-lg p-2.5 text-white outline-none focus:border-blue-500"
+              className="w-full bg-card border border-border rounded-lg p-2.5 text-foreground outline-none focus:border-blue-500"
             />
           </div>
         </div>
 
-        <div className="bg-[#111827] p-4 rounded-xl border border-blue-900/50 mt-4 flex justify-between items-center">
-          <span className="text-gray-400 font-medium whitespace-nowrap mr-4">Fine {metalType} Deducted:</span>
+        <div className="bg-card p-4 rounded-xl border border-blue-900/50 mt-4 flex justify-between items-center">
+          <span className="text-muted-foreground font-medium whitespace-nowrap mr-4">Fine {metalType} Deducted:</span>
           <span className="text-xl font-bold text-blue-400 tracking-wide">{fineOutput.toFixed(3)} g</span>
         </div>
 
         <button
           onClick={handleSubmit}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl mt-6 transition-colors shadow-lg disabled:opacity-50"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-foreground font-semibold py-3 rounded-xl mt-6 transition-colors shadow-lg disabled:opacity-50"
           disabled={!weight || loading}
         >
           {loading ? "Processing..." : "Confirm Issue (24K)"}

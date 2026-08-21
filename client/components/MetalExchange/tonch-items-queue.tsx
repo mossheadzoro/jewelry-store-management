@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Lock, Pencil, RefreshCw } from "lucide-react";
+import { Loader2, Lock, Pencil, RefreshCw, Printer } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { IconLoader2 } from "@tabler/icons-react";
+import { roundFineGold } from "@/lib/fineGold";
+import OldGoldSlipModal from "./OldGoldSlipModal";
 
 export default function TonchItemsQueue({
   items,
@@ -26,41 +28,41 @@ export default function TonchItemsQueue({
 }) {
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [showFinalize, setShowFinalize] = useState(false);
-const [finalizing, setFinalizing] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
+  const [selectedSlipItem, setSelectedSlipItem] = useState<any | null>(null);
 
-const canFinalize =
-  items.length > 0 &&
-  items.every((i) => i.status === "PROCESSING");
+  const pendingItems = items.filter((i) => i.status !== "TONCHED" && !i.locked);
+
+  const canFinalize =
+    pendingItems.length > 0 &&
+    pendingItems.every(
+      (i) => i.after != null && i.purity != null && Number(i.after) > 0 && Number(i.purity) > 0
+    );
 
   return (
     <>
       <Card>
-        <div className="flex gap-2 items-center">
-  <Badge variant="secondary">Pending</Badge>
-  <Badge className="bg-green-600">Tonched</Badge>
+        <CardHeader className="flex flex-row justify-between items-center">
+          <CardTitle>Tonch Queue</CardTitle>
 
-  <Button
-    size="sm"
-    variant="default"
-    disabled={!canFinalize}
-    onClick={() => setShowFinalize(true)}
-  >
-    Finalize Tonch
-  </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={onRefresh}>
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Refresh
+            </Button>
 
-  <Button
-    size="icon"
-    variant="ghost"
-    onClick={onRefresh}
-    title="Refresh queue"
-  >
-    <RefreshCw className="h-4 w-4" />
-  </Button>
-</div>
+            <Button
+              size="sm"
+              disabled={!canFinalize}
+              onClick={() => setShowFinalize(true)}
+            >
+              Finalize Tonch
+            </Button>
+          </div>
+        </CardHeader>
 
-
-        <CardContent>
-          <table className="w-full text-sm table-fixed border-collapse">
+        <CardContent className="max-h-[400px] overflow-auto">
+          <table className="w-full text-sm">
             <thead className="sticky top-0 bg-background z-10">
               <tr className="border-b">
                 <Th className="w-36">Queue ID</Th>
@@ -74,7 +76,7 @@ const canFinalize =
                 <Th className="w-20 text-right">Purity</Th>
                 <Th className="w-24 text-right">Fine</Th>
                 <Th className="w-28 text-center">Status</Th>
-                <Th className="w-12 text-center" children={undefined}></Th>
+                <Th className="w-20 text-center">Action</Th>
               </tr>
             </thead>
 
@@ -87,7 +89,7 @@ const canFinalize =
                   <Td className="truncate">{item.description}</Td>
                   <Td className="text-center font-medium">
                     {item.metalType === "GOLD" ? (
-                      <Badge className="bg-yellow-500 text-black">GOLD</Badge>
+                      <Badge className="bg-yellow-500 text-foreground">GOLD</Badge>
                     ) : (
                       <Badge variant="secondary">SILVER</Badge>
                     )}
@@ -108,18 +110,26 @@ const canFinalize =
                   </Td>
 
                   <Td className="text-right tabular-nums font-medium text-green-600">
-                    {item.fine ?? "-"}
+                    {item.fine != null ? roundFineGold(item.fine).toFixed(3) : "-"}
                   </Td>
 
                   <Td className="text-center">
                     <StatusBadge status={item.status} />
                   </Td>
 
-                  <Td className="text-center">
+                  <Td className="text-center flex justify-center gap-1.5 pt-3">
+                    <button
+                      onClick={() => setSelectedSlipItem(item)}
+                      title="Print 2-Page Old Gold Slip"
+                      className="p-1 rounded text-[#C9943A] hover:bg-[#C9943A]/10 transition-colors"
+                    >
+                      <Printer size={16} />
+                    </button>
+
                     {item.locked ? (
-                      <Lock size={16} />
+                      <Lock size={16} className="text-muted-foreground mt-0.5" />
                     ) : (
-                      <button onClick={() => setEditingItem(item)}>
+                      <button onClick={() => setEditingItem(item)} title="Edit draft">
                         <Pencil size={16} />
                       </button>
                     )}
@@ -137,17 +147,26 @@ const canFinalize =
         onClose={() => setEditingItem(null)}
         onSave={onUpdate}
       />
-      <Dialog open={showFinalize} onOpenChange={setShowFinalize}>
-  <DialogContent className="max-w-md">
-    <DialogHeader>
-      <DialogTitle>Finalize Tonch</DialogTitle>
-    </DialogHeader>
 
-    {!canFinalize && (
-      <div className="text-sm text-red-600">
-        All items must be in PROCESSING state before finalizing.
-      </div>
-    )}
+      {/* PRINT OLD GOLD SLIP MODAL */}
+      {selectedSlipItem && (
+        <OldGoldSlipModal
+          open={!!selectedSlipItem}
+          onClose={() => setSelectedSlipItem(null)}
+          item={selectedSlipItem}
+        />
+      )}
+
+      <Dialog open={showFinalize} onOpenChange={setShowFinalize}>
+        <DialogContent className="max-w-md bg-[#111113] border-[#2A2A30] text-[#F0EBE0]">
+          <DialogHeader>
+            <DialogTitle className="text-[#F0EBE0]">Finalize Tonch</DialogTitle>
+          </DialogHeader>
+          {!canFinalize && (
+            <div className="text-sm text-red-600 mb-2">
+              All items must be in PROCESSING state before finalizing.
+            </div>
+          )}
 
     <div className="text-sm text-muted-foreground">
       This action will permanently:
@@ -168,7 +187,7 @@ const canFinalize =
         onClick={async () => {
           setFinalizing(true);
 
-          for (const item of items) {
+          for (const item of pendingItems) {
             await fetch("/api/metal-exchange/item/tonch", {
               method: "POST",
               headers: { "Content-Type": "application/json" },

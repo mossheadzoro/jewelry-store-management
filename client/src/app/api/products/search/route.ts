@@ -27,6 +27,13 @@ export async function GET(req: Request) {
       where: {
         branchId: branchId,
         quantity: { gt: 0 }, // only show items that are in stock
+        NOT: {
+          subCategory: {
+            category: {
+              name: { equals: "STAMPING CENTER", mode: "insensitive" }
+            }
+          }
+        },
         OR: isNumeric
           ? [
               { barcode: { equals: q } },

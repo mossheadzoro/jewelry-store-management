@@ -43,12 +43,12 @@ const categoryIcons = [
 function SkeletonCategoryCard() {
   return (
     <div className="rounded-xl border border-[#222] bg-[#111] p-5 space-y-4">
-      <div className="h-9 w-9 bg-[#222] rounded-full animate-pulse" />
-      <div className="h-4 w-24 bg-[#222] rounded animate-pulse" />
-      <div className="h-6 w-32 bg-[#222] rounded animate-pulse" />
+      <div className="h-9 w-9 bg-secondary rounded-full animate-pulse" />
+      <div className="h-4 w-24 bg-secondary rounded animate-pulse" />
+      <div className="h-6 w-32 bg-secondary rounded animate-pulse" />
       <div className="space-y-2">
-        <div className="h-2 w-full bg-[#222] rounded-full animate-pulse" />
-        <div className="h-3 w-28 bg-[#222] rounded animate-pulse" />
+        <div className="h-2 w-full bg-secondary rounded-full animate-pulse" />
+        <div className="h-3 w-28 bg-secondary rounded animate-pulse" />
       </div>
     </div>
   );
@@ -62,7 +62,7 @@ export default function SalesByCategorySection({
     <div className="rounded-xl border border-[#222] bg-[#0d0d0d] p-6">
       {/* Section Header */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-white">Sales by Category</h3>
+        <h3 className="text-lg font-semibold text-foreground">Sales by Category</h3>
         <button className="flex items-center gap-1.5 text-sm text-[#D4A843] hover:text-[#e6be5a] transition-colors cursor-pointer group">
           View Detailed Ledger
           <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -91,7 +91,7 @@ export default function SalesByCategorySection({
                 key={cat.categoryId}
                 className="
                   rounded-xl border border-[#1e1e1e] bg-[#111] p-5
-                  hover:border-[#2a2a2a] transition-all duration-300
+                  hover:border-onyx-border transition-all duration-300
                   group cursor-default
                 "
               >
@@ -110,13 +110,13 @@ export default function SalesByCategorySection({
                 <p className="text-sm text-[#888] mb-1">{cat.categoryName}</p>
 
                 {/* Amount */}
-                <p className="text-xl font-bold text-white tabular-nums mb-4">
+                <p className="text-xl font-bold text-foreground tabular-nums mb-4">
                   {formatCurrency(cat.totalAmount)}
                 </p>
 
                 {/* Progress Bar */}
                 <div className="space-y-2">
-                  <div className="h-1.5 w-full bg-[#1a1a1a] rounded-full overflow-hidden">
+                  <div className="h-1.5 w-full bg-onyx-elevated rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-700 ease-out"
                       style={{

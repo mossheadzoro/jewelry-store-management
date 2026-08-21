@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBranchStore } from "@/lib/store/useBranchStore";
 import {
   PiggyBank,
@@ -66,7 +67,7 @@ const STATUS_CONFIG: Record<SchemeStatus, { label: string; dot: string; color: s
   REDEEMED: { label: "Redeemed", dot: "bg-blue-400", color: "text-blue-400" },
   PARTIALLY_REDEEMED: { label: "Partial", dot: "bg-purple-400", color: "text-purple-400" },
   CANCELLED: { label: "Cancelled", dot: "bg-red-400", color: "text-red-400" },
-  EXPIRED: { label: "Expired", dot: "bg-gray-500", color: "text-gray-500" },
+  EXPIRED: { label: "Expired", dot: "bg-gray-500", color: "text-muted-foreground" },
 };
 
 const FILTER_TABS = [
@@ -81,53 +82,13 @@ const FILTER_TABS = [
 
 export default function SchemesPageClient() {
   const { selectedBranch } = useBranchStore();
-  const [schemes, setSchemes] = useState<SchemeRow[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedSchemeId, setSelectedSchemeId] = useState<string | null>(null);
-
-  const fetchSchemes = useCallback(async () => {
-    if (!selectedBranch?.id) return;
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        branchId: selectedBranch.id.toString(),
-        page: page.toString(),
-        limit: "15",
-      });
-      if (search.trim()) params.set("search", search.trim());
-
-      // Determine if filter is a status or type
-      if (activeFilter !== "all") {
-        if (["ACTIVE", "MATURED", "REDEEMED", "PARTIALLY_REDEEMED", "CANCELLED", "EXPIRED"].includes(activeFilter)) {
-          params.set("status", activeFilter);
-        } else {
-          params.set("type", activeFilter);
-        }
-      }
-
-      const res = await fetch(`/api/schemes?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSchemes(data.schemes);
-        setStats(data.stats);
-        setTotalPages(data.pagination.totalPages);
-      }
-    } catch (e) {
-      console.error("Failed to fetch schemes", e);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedBranch?.id, page, search, activeFilter]);
-
-  useEffect(() => {
-    fetchSchemes();
-  }, [fetchSchemes]);
+  const queryClient = useQueryClient();
 
   // Debounced search
   const [searchInput, setSearchInput] = useState("");
@@ -135,6 +96,37 @@ export default function SchemesPageClient() {
     const timer = setTimeout(() => setSearch(searchInput), 400);
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  const { data: queryData, isLoading } = useQuery({
+    queryKey: ["schemes", selectedBranch?.id, page, search, activeFilter],
+    queryFn: async () => {
+      if (!selectedBranch?.id) return { schemes: [], stats: null, pagination: { totalPages: 1 } };
+      const params = new URLSearchParams({
+        branchId: selectedBranch.id.toString(),
+        page: page.toString(),
+        limit: "15",
+      });
+      if (search.trim()) params.set("search", search.trim());
+      if (activeFilter !== "all") {
+        if (["ACTIVE", "MATURED", "REDEEMED", "PARTIALLY_REDEEMED", "CANCELLED", "EXPIRED"].includes(activeFilter)) {
+          params.set("status", activeFilter);
+        } else {
+          params.set("type", activeFilter);
+        }
+      }
+      const res = await fetch(`/api/schemes?${params}`);
+      if (!res.ok) throw new Error("Failed to fetch schemes");
+      return res.json();
+    },
+    enabled: !!selectedBranch?.id,
+    placeholderData: (prev: any) => prev,
+  });
+
+  const schemes = queryData?.schemes ?? [];
+  const stats: Stats | null = queryData?.stats ?? null;
+  const totalPages = queryData?.pagination?.totalPages ?? 1;
+
+  const invalidateSchemes = () => queryClient.invalidateQueries({ queryKey: ["schemes"] });
 
   const formatCurrency = (n: number) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
@@ -155,7 +147,7 @@ export default function SchemesPageClient() {
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#C9943A] to-[#E8B84B] text-black text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-[#C9943A]/20 cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#C9943A] to-[#E8B84B] text-foreground text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-[#C9943A]/20 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             New Scheme
@@ -226,7 +218,7 @@ export default function SchemesPageClient() {
               />
             </div>
             <button
-              onClick={fetchSchemes}
+              onClick={invalidateSchemes}
               className="p-2 rounded-lg border border-[#1F1F24] text-[#6B6560] hover:text-[#F0EBE0] hover:border-[#222228] bg-[#111113] transition-colors cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
@@ -250,7 +242,7 @@ export default function SchemesPageClient() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1F1F24]">
-              {loading ? (
+              {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
                     <td colSpan={8} className="px-5 py-4">
@@ -340,7 +332,7 @@ export default function SchemesPageClient() {
                 onClick={() => setPage(p)}
                 className={`w-8 h-8 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                   p === page
-                    ? "bg-[#C9943A] text-black"
+                    ? "bg-[#C9943A] text-foreground"
                     : "bg-[#111113] text-[#6B6560] hover:text-[#F0EBE0] border border-[#1F1F24]"
                 }`}
               >
@@ -357,7 +349,7 @@ export default function SchemesPageClient() {
           onClose={() => setShowCreateModal(false)}
           onCreated={() => {
             setShowCreateModal(false);
-            fetchSchemes();
+            invalidateSchemes();
           }}
         />
       )}
@@ -366,7 +358,7 @@ export default function SchemesPageClient() {
         <SchemeDetailPanel
           schemeId={selectedSchemeId}
           onClose={() => setSelectedSchemeId(null)}
-          onUpdated={fetchSchemes}
+          onUpdated={invalidateSchemes}
         />
       )}
     </main>

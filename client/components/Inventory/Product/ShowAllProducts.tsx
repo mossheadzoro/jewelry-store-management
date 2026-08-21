@@ -76,7 +76,7 @@ export default function ShowAllProducts() {
   }, [selectedBranch]);
 
   return (
-    <Card className="p-6 bg-black rounded-lg shadow-md">
+    <Card className="p-6 bg-background rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">
           All Products ({selectedBranch?.name})

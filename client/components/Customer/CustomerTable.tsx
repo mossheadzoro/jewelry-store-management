@@ -75,7 +75,7 @@ export default function CustomerTable({
   if (loading) {
     return (
       <div className="mt-6">
-        <div className="rounded-2xl bg-[#141414] border border-[#1f1f1f] overflow-hidden">
+        <div className="rounded-2xl bg-onyx-surface border border-[#1f1f1f] overflow-hidden">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="flex items-center gap-6 px-6 py-5 border-b border-[#1a1a1a] animate-pulse">
               <div className="w-11 h-11 rounded-full bg-[#1f1f1f]" />
@@ -95,11 +95,11 @@ export default function CustomerTable({
 
   if (customers.length === 0) {
     return (
-      <div className="mt-6 rounded-2xl bg-[#141414] border border-[#1f1f1f] py-20 flex flex-col items-center justify-center">
-        <div className="w-16 h-16 rounded-2xl bg-[#1a1a1a] border border-[#222] flex items-center justify-center mb-4">
+      <div className="mt-6 rounded-2xl bg-onyx-surface border border-[#1f1f1f] py-20 flex flex-col items-center justify-center">
+        <div className="w-16 h-16 rounded-2xl bg-onyx-elevated border border-[#222] flex items-center justify-center mb-4">
           <span className="text-2xl">👤</span>
         </div>
-        <h3 className="text-lg font-semibold text-white mb-1">No customers found</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-1">No customers found</h3>
         <p className="text-sm text-[#666]">Add your first customer to get started.</p>
       </div>
     );
@@ -108,7 +108,7 @@ export default function CustomerTable({
   return (
     <div className="mt-6">
       {/* Table */}
-      <div className="rounded-2xl bg-[#141414] border border-[#1f1f1f] overflow-visible">
+      <div className="rounded-2xl bg-onyx-surface border border-[#1f1f1f] overflow-visible">
         {/* Header */}
         <div className="grid grid-cols-[2fr_1.5fr_1.5fr_1fr_0.6fr] gap-4 px-6 py-3.5 border-b border-[#1f1f1f] bg-[#111]">
           <span className="text-[11px] font-semibold text-[#555] uppercase tracking-wider">Client Detail</span>
@@ -127,7 +127,7 @@ export default function CustomerTable({
           return (
             <div
               key={customer.id}
-              className={`group grid grid-cols-[2fr_1.5fr_1.5fr_1fr_0.6fr] gap-4 px-6 py-4 items-center transition-colors duration-200 hover:bg-[#1a1a1a] ${
+              className={`group grid grid-cols-[2fr_1.5fr_1.5fr_1fr_0.6fr] gap-4 px-6 py-4 items-center transition-colors duration-200 hover:bg-onyx-elevated ${
                 idx < customers.length - 1 ? "border-b border-[#1a1a1a]" : ""
               }`}
             >
@@ -143,7 +143,7 @@ export default function CustomerTable({
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => onView(customer)}
-                      className="text-[14px] font-semibold text-white truncate hover:text-[#D4A843] transition-colors cursor-pointer text-left"
+                      className="text-[14px] font-semibold text-foreground truncate hover:text-[#D4A843] transition-colors cursor-pointer text-left"
                     >
                       {customer.name}
                     </button>
@@ -167,12 +167,12 @@ export default function CustomerTable({
                           gold: "bg-[#D4A843]/15 text-[#D4A843] border-[#D4A843]/30",
                           red: "bg-red-500/10 text-red-400 border-red-500/25",
                           blue: "bg-blue-500/10 text-blue-400 border-blue-500/25",
-                          gray: "bg-gray-500/10 text-gray-400 border-gray-500/25",
+                          gray: "bg-gray-500/10 text-muted-foreground border-gray-500/25",
                           green: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
                           orange: "bg-orange-500/10 text-orange-400 border-orange-500/25",
                           purple: "bg-purple-500/10 text-purple-400 border-purple-500/25",
                         };
-                        const colorClass = colorMap[tag.color.toLowerCase()] || "bg-gray-500/10 text-gray-400 border-gray-500/25";
+                        const colorClass = colorMap[tag.color.toLowerCase()] || "bg-gray-500/10 text-muted-foreground border-gray-500/25";
                         return (
                           <span
                             key={tag.id}
@@ -203,7 +203,7 @@ export default function CustomerTable({
               {/* Engagement */}
               <div className="space-y-1">
                 <p className="text-[13px] text-[#ccc]">
-                  Total: <span className="font-semibold text-white">{customer.totalPurchases} Purchase{customer.totalPurchases !== 1 ? "s" : ""}</span>
+                  Total: <span className="font-semibold text-foreground">{customer.totalPurchases} Purchase{customer.totalPurchases !== 1 ? "s" : ""}</span>
                 </p>
                 {customer.lastPurchaseDate ? (
                   <p className="text-[11px] text-[#555]">
@@ -230,7 +230,7 @@ export default function CustomerTable({
                   </>
                 ) : (
                   <>
-                    <p className="text-[14px] font-semibold text-white">₹ 0</p>
+                    <p className="text-[14px] font-semibold text-foreground">₹ 0</p>
                     <p className="text-[11px] text-emerald-500 mt-0.5">Settled</p>
                   </>
                 )}
@@ -240,7 +240,7 @@ export default function CustomerTable({
               <div className="flex items-center justify-center gap-2">
                 <button
                   onClick={() => onMessage(customer)}
-                  className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#252525] flex items-center justify-center text-[#666] hover:text-[#D4A843] hover:border-[#D4A843]/30 transition-all cursor-pointer"
+                  className="w-8 h-8 rounded-lg bg-onyx-elevated border border-[#252525] flex items-center justify-center text-[#666] hover:text-[#D4A843] hover:border-[#D4A843]/30 transition-all cursor-pointer"
                   title="Message"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
@@ -248,7 +248,7 @@ export default function CustomerTable({
                 <div className="relative">
                   <button
                     onClick={() => setOpenMenuId(isMenuOpen ? null : customer.id)}
-                    className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#252525] flex items-center justify-center text-[#666] hover:text-white hover:border-[#333] transition-all cursor-pointer"
+                    className="w-8 h-8 rounded-lg bg-onyx-elevated border border-[#252525] flex items-center justify-center text-[#666] hover:text-foreground hover:border-border transition-all cursor-pointer"
                   >
                     <MoreVertical className="w-3.5 h-3.5" />
                   </button>
@@ -257,17 +257,17 @@ export default function CustomerTable({
                       {/* Backdrop */}
                       <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
                       {/* Menu - opens upward for last 2 rows to prevent overflow */}
-                      <div className={`absolute right-0 w-36 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl shadow-2xl shadow-black/50 z-50 py-1 overflow-hidden ${idx >= customers.length - 2 ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                      <div className={`absolute right-0 w-36 bg-onyx-elevated border border-onyx-border rounded-xl shadow-2xl shadow-black/50 z-50 py-1 overflow-hidden ${idx >= customers.length - 2 ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                         <button
                           onClick={() => { onView(customer); setOpenMenuId(null); }}
-                          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] text-[#ccc] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] text-[#ccc] hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           View
                         </button>
                         <button
                           onClick={() => { onEdit(customer); setOpenMenuId(null); }}
-                          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] text-[#ccc] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] text-[#ccc] hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                           Edit
@@ -300,7 +300,7 @@ export default function CustomerTable({
             <button
               onClick={() => onPageChange(pagination.page - 1)}
               disabled={pagination.page <= 1}
-              className="w-8 h-8 rounded-lg bg-[#141414] border border-[#1f1f1f] flex items-center justify-center text-[#666] hover:text-white hover:border-[#333] transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              className="w-8 h-8 rounded-lg bg-onyx-surface border border-[#1f1f1f] flex items-center justify-center text-[#666] hover:text-foreground hover:border-border transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -312,8 +312,8 @@ export default function CustomerTable({
                   onClick={() => onPageChange(pageNum)}
                   className={`w-8 h-8 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${
                     pageNum === pagination.page
-                      ? "bg-[#D4A843] text-black"
-                      : "bg-[#141414] border border-[#1f1f1f] text-[#666] hover:text-white hover:border-[#333]"
+                      ? "bg-[#D4A843] text-foreground"
+                      : "bg-onyx-surface border border-[#1f1f1f] text-[#666] hover:text-foreground hover:border-border"
                   }`}
                 >
                   {pageNum}
@@ -323,7 +323,7 @@ export default function CustomerTable({
             <button
               onClick={() => onPageChange(pagination.page + 1)}
               disabled={pagination.page >= pagination.totalPages}
-              className="w-8 h-8 rounded-lg bg-[#141414] border border-[#1f1f1f] flex items-center justify-center text-[#666] hover:text-white hover:border-[#333] transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              className="w-8 h-8 rounded-lg bg-onyx-surface border border-[#1f1f1f] flex items-center justify-center text-[#666] hover:text-foreground hover:border-border transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

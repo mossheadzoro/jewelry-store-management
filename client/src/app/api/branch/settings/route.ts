@@ -50,7 +50,8 @@ export async function POST(req: NextRequest) {
     const { 
       branchId, 
       name, city, state, pincode, country, // Branch specific
-      shopName, gstNumber, pan, currency, address, phoneNumbers, email, website, invoiceHeaderText, termsAndConditions, logoUrl, qrCodeUrl // BranchSettings and some overlapping
+      shopName, gstNumber, pan, currency, address, phoneNumbers, email, website, invoiceHeaderText, termsAndConditions, logoUrl, qrCodeUrl,
+      invoiceFormat, invoicePageSize, invoiceColor, termsPrintLocation, invoiceCustomizations
     } = body;
 
     if (!branchId) {
@@ -78,11 +79,13 @@ export async function POST(req: NextRequest) {
     const updatedSettings = await prisma.branchSettings.upsert({
       where: { branchId: parsedBranchId },
       update: {
-        shopName, gstNumber, pan, currency, address, phoneNumbers, email, website, invoiceHeaderText, termsAndConditions, logoUrl, qrCodeUrl
+        shopName, gstNumber, pan, currency, address, phoneNumbers, email, website, invoiceHeaderText, termsAndConditions, logoUrl, qrCodeUrl,
+        invoiceFormat, invoicePageSize, invoiceColor, termsPrintLocation, invoiceCustomizations
       },
       create: {
         branchId: parsedBranchId,
-        shopName, gstNumber, pan, currency, address, phoneNumbers, email, website, invoiceHeaderText, termsAndConditions, logoUrl, qrCodeUrl
+        shopName, gstNumber, pan, currency, address, phoneNumbers, email, website, invoiceHeaderText, termsAndConditions, logoUrl, qrCodeUrl,
+        invoiceFormat, invoicePageSize, invoiceColor, termsPrintLocation, invoiceCustomizations
       }
     });
 

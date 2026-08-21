@@ -79,7 +79,7 @@ const SubCategoryModal=({ open, setOpen, onSuccess, parentCategoryId }: Props)=>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full border border-gray-300 rounded-md p-2 bg-black text-white"
+                className="w-full border border-gray-300 rounded-md p-2 bg-background text-foreground"
               >
                 <option value="">Select category</option>
                 {categories.map((cat: any) => (

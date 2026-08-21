@@ -62,13 +62,13 @@ export default function AddCategoryForm({ open, setOpen, onSuccess }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="bg-[#0f0f0f] border-[#222] text-white w-full sm:max-w-md p-0 overflow-hidden shadow-2xl [&>button]:hidden h-auto flex flex-col">
+      <DialogContent className="bg-[#0f0f0f] border-[#222] text-foreground w-full sm:max-w-md p-0 overflow-hidden shadow-2xl [&>button]:hidden h-auto flex flex-col">
         {/* HEADER */}
         <div className="p-8 pb-4 shrink-0">
           <div className="flex justify-between items-start">
             <DialogHeader>
               <div className="flex items-center gap-3">
-                <DialogTitle className="text-3xl font-bold text-white tracking-tight">Add Category</DialogTitle>
+                <DialogTitle className="text-3xl font-bold text-foreground tracking-tight">Add Category</DialogTitle>
                 <span className="px-3 py-1 rounded-full border border-[#d4a843]/30 bg-[#d4a843]/10 text-[10px] font-bold text-[#d4a843] tracking-widest uppercase">
                   New Ledger
                 </span>
@@ -77,7 +77,7 @@ export default function AddCategoryForm({ open, setOpen, onSuccess }: Props) {
                 Create a new main category for your inventory vault.
               </DialogDescription>
             </DialogHeader>
-            <button type="button" onClick={() => setOpen(false)} className="text-[#555] hover:text-white transition-colors p-2">
+            <button type="button" onClick={() => setOpen(false)} className="text-[#555] hover:text-foreground transition-colors p-2">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
           </div>
@@ -97,7 +97,7 @@ export default function AddCategoryForm({ open, setOpen, onSuccess }: Props) {
                 value={name} 
                 onChange={(e) => setName(e.target.value)} 
                 placeholder="e.g. Gold, Diamond, Silver" 
-                className="bg-[#1a1a1a] border-[#333] text-white h-11" 
+                className="bg-onyx-elevated border-border text-foreground h-11" 
                 required 
               />
             </div>
@@ -107,22 +107,22 @@ export default function AddCategoryForm({ open, setOpen, onSuccess }: Props) {
                 value={description} 
                 onChange={(e) => setDescription(e.target.value)} 
                 placeholder="Brief description about the items in this category..." 
-                className="bg-[#1a1a1a] border-[#333] text-white resize-none h-32 custom-scrollbar" 
+                className="bg-onyx-elevated border-border text-foreground resize-none h-32 custom-scrollbar" 
               />
             </div>
           </form>
         </div>
 
         {/* FOOTER */}
-        <div className="bg-[#0a0a0a] border-t border-[#222] p-6 flex items-center justify-end shrink-0 gap-3">
-          <button type="button" onClick={() => setOpen(false)} className="text-xs font-bold text-[#aaa] uppercase tracking-wider hover:text-white transition-colors px-4 py-3">
+        <div className="bg-onyx border-t border-[#222] p-6 flex items-center justify-end shrink-0 gap-3">
+          <button type="button" onClick={() => setOpen(false)} className="text-xs font-bold text-[#aaa] uppercase tracking-wider hover:text-foreground transition-colors px-4 py-3">
             Cancel
           </button>
           <button 
             type="submit" 
             form="add-category-form"
             disabled={loading || !name.trim()} 
-            className="bg-[#d4a843] hover:bg-[#b08b35] text-black font-bold uppercase tracking-wider text-xs px-8 py-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-[#d4a843] hover:bg-[#b08b35] text-foreground font-bold uppercase tracking-wider text-xs px-8 py-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Saving..." : "Save Category"}
           </button>

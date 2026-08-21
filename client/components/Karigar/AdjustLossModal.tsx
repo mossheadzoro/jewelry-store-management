@@ -108,7 +108,7 @@ export function AdjustLossModal({
         <Button
           onClick={handleAdjust}
           disabled={loading}
-          className="w-full bg-red-500 text-white"
+          className="w-full bg-red-500 text-foreground"
         >
           {loading ? "Adjusting..." : "Confirm Adjustment"}
         </Button>

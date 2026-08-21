@@ -61,7 +61,30 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
     aadhar: "",
     dob: "",
     anniversary: "",
+    customerGroup: "",
+    optInWhatsapp: true,
+    optInSms: true,
+    optInEmail: true,
+    optInPromotions: true,
   });
+
+  const [config, setConfig] = useState<any>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const fetchConfig = async () => {
+      try {
+        const res = await fetch("/api/settings/customer");
+        if (res.ok) {
+          const data = await res.json();
+          setConfig(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch customer config", err);
+      }
+    };
+    fetchConfig();
+  }, [open]);
 
   useEffect(() => {
     if (open && customerId) {
@@ -92,6 +115,11 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
         aadhar: customer.aadhar || "",
         dob: customer.dob ? new Date(customer.dob).toISOString().split('T')[0] : "",
         anniversary: customer.anniversary ? new Date(customer.anniversary).toISOString().split('T')[0] : "",
+        customerGroup: customer.customerGroup || "",
+        optInWhatsapp: customer.optInWhatsapp ?? true,
+        optInSms: customer.optInSms ?? true,
+        optInEmail: customer.optInEmail ?? true,
+        optInPromotions: customer.optInPromotions ?? true,
       });
     } catch (err) {
       setError("Failed to load customer data.");
@@ -111,7 +139,7 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
     e.preventDefault();
     setError("");
 
-    if (!form.name.trim() || !form.mobile.trim() || !form.address.trim() || !form.city.trim() || !form.pincode.trim()) {
+    if (!form.name.trim() || !form.mobile.trim()) {
       setError("Please fill in all required fields.");
       return;
     }
@@ -143,7 +171,7 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-background/70 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -153,13 +181,13 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#1f1f1f]">
           <div className="flex items-center gap-3">
             <div>
-              <h2 className="text-[18px] font-semibold text-white">Update Customer Details</h2>
+              <h2 className="text-[18px] font-semibold text-foreground">Update Customer Details</h2>
               <p className="text-[13px] text-[#555]">Refine client dossier information.</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-transparent hover:bg-[#1a1a1a] flex items-center justify-center text-[#666] hover:text-white transition-all cursor-pointer"
+            className="w-8 h-8 rounded-lg bg-transparent hover:bg-onyx-elevated flex items-center justify-center text-[#666] hover:text-foreground transition-all cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -191,13 +219,28 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
                 <div className="col-span-2">
                   <InputField label="Email Address" value={form.email} onChange={(v) => handleChange("email", v)} placeholder="e.g. aisha.sharma@example.com" type="email" />
                 </div>
+                {config?.groups && config.groups.length > 0 && (
+                  <div className="col-span-2">
+                    <label className="block text-[12px] font-medium text-[#666] mb-1.5">Customer Group</label>
+                    <select
+                      value={form.customerGroup}
+                      onChange={(e) => handleChange("customerGroup", e.target.value)}
+                      className="w-full h-10 px-3.5 rounded-xl bg-[#2a2a2a] border border-border text-[13px] text-foreground outline-none focus:border-[#D4A843]/40 transition-colors appearance-none cursor-pointer"
+                    >
+                      <option value="">None</option>
+                      {config.groups.map((g: any) => (
+                        <option key={g.id} value={g.name}>{g.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="hidden">
                    {/* Gender is hidden in the design but we keep it in state */}
                   <label className="block text-[12px] font-medium text-[#666] mb-1.5">Gender *</label>
                   <select
                     value={form.gender}
                     onChange={(e) => handleChange("gender", e.target.value)}
-                    className="w-full h-10 px-3.5 rounded-xl bg-[#2a2a2a] border border-[#333] text-[13px] text-white outline-none focus:border-[#D4A843]/40 transition-colors appearance-none cursor-pointer"
+                    className="w-full h-10 px-3.5 rounded-xl bg-[#2a2a2a] border border-border text-[13px] text-foreground outline-none focus:border-[#D4A843]/40 transition-colors appearance-none cursor-pointer"
                   >
                     {GENDER_OPTIONS.map((g) => (
                       <option key={g.value} value={g.value}>{g.label}</option>
@@ -208,7 +251,7 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
             </div>
 
             {/* Location Details Section */}
-            <div className="bg-[#1a1a1a] p-5 rounded-xl border border-[#222]">
+            <div className="bg-onyx-elevated p-5 rounded-xl border border-[#222]">
               <div className="flex items-center gap-2 mb-4">
                  <span className="text-[#D4A843] text-sm">📍</span>
                  <h3 className="text-[14px] font-semibold text-[#D4A843]">Location Details</h3>
@@ -241,6 +284,42 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
               </div>
             </div>
 
+            {/* Communication Preferences Section */}
+            {config && (config.notifications || config.marketing) && (
+              <div className="bg-onyx-elevated p-5 rounded-xl border border-[#222] mt-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-[#D4A843] text-sm">💬</span>
+                  <h3 className="text-[14px] font-semibold text-[#D4A843]">Communication & Marketing</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {config.notifications?.whatsapp && (
+                    <label className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-[#2a2a2a] cursor-pointer hover:border-[#444] transition-colors">
+                      <input type="checkbox" checked={form.optInWhatsapp} onChange={(e) => setForm(prev => ({ ...prev, optInWhatsapp: e.target.checked }))} className="accent-[#D4A843] w-4 h-4" />
+                      <span className="text-[12px] text-[#aaa]">Opt-in to WhatsApp updates</span>
+                    </label>
+                  )}
+                  {config.notifications?.sms && (
+                    <label className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-[#2a2a2a] cursor-pointer hover:border-[#444] transition-colors">
+                      <input type="checkbox" checked={form.optInSms} onChange={(e) => setForm(prev => ({ ...prev, optInSms: e.target.checked }))} className="accent-[#D4A843] w-4 h-4" />
+                      <span className="text-[12px] text-[#aaa]">Opt-in to SMS alerts</span>
+                    </label>
+                  )}
+                  {config.notifications?.email && (
+                    <label className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-[#2a2a2a] cursor-pointer hover:border-[#444] transition-colors">
+                      <input type="checkbox" checked={form.optInEmail} onChange={(e) => setForm(prev => ({ ...prev, optInEmail: e.target.checked }))} className="accent-[#D4A843] w-4 h-4" />
+                      <span className="text-[12px] text-[#aaa]">Opt-in to Email notifications</span>
+                    </label>
+                  )}
+                  {config.marketing?.receivePromotions && (
+                    <label className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-[#2a2a2a] cursor-pointer hover:border-[#444] transition-colors">
+                      <input type="checkbox" checked={form.optInPromotions} onChange={(e) => setForm(prev => ({ ...prev, optInPromotions: e.target.checked }))} className="accent-[#D4A843] w-4 h-4" />
+                      <span className="text-[12px] text-[#aaa]">Receive Promotional Offers</span>
+                    </label>
+                  )}
+                </div>
+              </div>
+            )}
+
           </form>
         )}
 
@@ -249,14 +328,14 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
           <button
             type="button"
             onClick={onClose}
-            className="h-10 px-5 rounded-full text-[13px] font-medium text-[#ccc] bg-transparent border border-[#333] hover:text-white hover:border-[#444] transition-all cursor-pointer"
+            className="h-10 px-5 rounded-full text-[13px] font-medium text-[#ccc] bg-transparent border border-border hover:text-foreground hover:border-[#444] transition-all cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading || fetching}
-            className="h-10 px-6 rounded-full text-[13px] font-semibold bg-[#D4A843] text-black hover:bg-[#e6bc5a] transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+            className="h-10 px-6 rounded-full text-[13px] font-semibold bg-[#D4A843] text-foreground hover:bg-[#e6bc5a] transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
           >
             {loading ? (
               <>
@@ -297,7 +376,7 @@ function InputField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full h-10 px-3.5 rounded-xl border border-[#333] text-[13px] text-white placeholder:text-[#555] outline-none focus:border-[#D4A843]/40 transition-colors [color-scheme:dark]`}
+        className={`w-full h-10 px-3.5 rounded-xl border border-border text-[13px] text-foreground placeholder:text-[#555] outline-none focus:border-[#D4A843]/40 transition-colors [color-scheme:dark]`}
         style={{ backgroundColor: bg }}
       />
     </div>

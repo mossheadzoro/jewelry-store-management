@@ -26,30 +26,30 @@ export async function POST(req: Request) {
         { status: 401 }
       );
     }
-    if (session.user.role !== "ADMIN") {
+    const userRole = (session.user.systemRole || session.user.role || "").toString().toUpperCase();
+    if (userRole !== "ADMIN" && userRole !== "SUPER_ADMIN" && userRole !== "OWNER" && userRole !== "MANAGER") {
       return NextResponse.json(
-        { error: "Only administrators can lock ledger entries." },
+        { error: "Only administrators and managers can lock ledger entries." },
         { status: 403 }
       );
     }
 
     // Parse optional body
-    let lockOlderThanDays = 90;
+    let lockOlderThanDays: number | null = null;
     try {
       const body = await req.json();
-      if (body.lockOlderThanDays && typeof body.lockOlderThanDays === "number") {
+      if (typeof body.lockOlderThanDays === "number") {
         lockOlderThanDays = body.lockOlderThanDays;
       }
     } catch {
-      // No body or invalid JSON — use default
+      // No body or invalid JSON — fallback
     }
 
-    // Fetch company settings for default lock days
-    const settings = await prisma.companySettings.findFirst({
-      select: { defaultLockDays: true },
-    });
-    if (settings?.defaultLockDays) {
-      lockOlderThanDays = settings.defaultLockDays;
+    if (lockOlderThanDays === null) {
+      const settings = await prisma.companySettings.findFirst({
+        select: { defaultLockDays: true },
+      });
+      lockOlderThanDays = settings?.defaultLockDays ?? 90;
     }
 
     // Calculate cutoff date

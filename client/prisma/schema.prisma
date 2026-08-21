@@ -62,6 +62,12 @@ model BranchSettings {
   termsAndConditions  String?
   logoUrl             String?
   qrCodeUrl           String?
+  invoiceFormat       String?  @default("standard") // standard, luxury
+  invoicePageSize     String?  @default("A4") // A4, A5
+  invoiceColor        String?  @default("brand") // brand, grayscale
+  termsPrintLocation  String?  @default("front") // front, back, separate
+  invoiceCustomizations Json?
+  themeMode           String?  @default("light") // light, dark, system
   branch              Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -133,6 +139,7 @@ model User {
   UserActivityLog      UserActivityLog[]
   orderVersionsCreated OrderVersion[]
   orderDelaysReported  OrderDelayReason[]
+  AuditLog             AuditLog[]
 
   @@index([branchId])
   @@index([createdById])
@@ -208,6 +215,7 @@ model ProductItem {
   purchases          Purchase[]
   auditItems         StockAuditItem[]
   stoneDetails       StoneDetail[]
+  huidHistory        HuidHistory[]
 
   @@index([branchId])
   @@index([subCategoryId])
@@ -255,6 +263,11 @@ model Customer {
   gender               Gender
   dob                  DateTime?
   anniversary          DateTime?
+  customerGroup        String?
+  optInWhatsapp        Boolean                @default(true)
+  optInSms             Boolean                @default(true)
+  optInEmail           Boolean                @default(true)
+  optInPromotions      Boolean                @default(true)
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
   walletBalance        Float                  @default(0)
@@ -270,6 +283,9 @@ model Customer {
   ProductBooking       ProductBooking[]
   purchases            Purchase[]
   savingSchemes        SavingScheme[]
+  returnRequests       ReturnRequest[]
+  replacementRequests  ReplacementRequest[]
+  exchangeRequests     ExchangeRequest[]
 
   @@index([name])
   @@index([createdAt])
@@ -319,6 +335,8 @@ model Invoice {
   cashOutReductionPct Float?
   oldGoldCashedOut    Float?
   cashToCustomer      Float?
+  refundMethod        String?
+  refundDetails       String?
   excessGoldReturned  Float?
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
@@ -327,6 +345,9 @@ model Invoice {
   customer            Customer         @relation(fields: [customerId], references: [id])
   items               InvoiceItem[]    @relation("InvoiceToItems")
   payments            InvoicePayment[] @relation("InvoiceToPayments")
+  returnRequests      ReturnRequest[]
+  replacementRequests ReplacementRequest[]
+  exchangeRequests    ExchangeRequest[]
 
   @@index([customerId])
   @@index([branchId])
@@ -474,10 +495,13 @@ model KarigarJob {
   issuedWeight      Float
   issuedPurity      Float
   wastagePercent    Float?
+  calculationMode   String?               @default("MODE_A")
   fineUsed          Float?
   fineWastage       Float?
   remainingRawMetal Float?
   remainingAction   RemainingAction?
+  cashIssued        Float                 @default(0)
+  cashPaid          Float                 @default(0)
   status            JobStatus             @default(OPEN)
   remarks           String?
   createdAt         DateTime              @default(now())
@@ -832,13 +856,19 @@ model InventoryCostLayer {
 }
 
 model BackupLog {
-  id          String   @id @default(cuid())
-  branchId    Int
-  format      String
-  sizeBytes   Int
-  includes    String[]
-  createdById Int
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  branchId     Int
+  format       String
+  sizeBytes    Int
+  includes     String[]
+  createdById  Int
+  createdAt    DateTime @default(now())
+  driveFileId  String?
+  driveFileUrl String?
+  branchScope  String?  @default("SINGLE")
+  status       String?  @default("SUCCESS")
+  recordCounts Json?
+  type         String?  @default("BACKUP")
 }
 
 model TagDefinition {
@@ -1586,4 +1616,174 @@ model BranchApprovalMatrix {
   branch                Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@unique([branchId, actionName])
+}
+
+model SequenceTracker {
+  id           String   @id @default(cuid())
+  branchId     Int
+  categoryName String   // e.g., "Necklace"
+  lastValue    Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([branchId, categoryName])
+}
+
+model ReturnRequest {
+  id                String       @id @default(cuid())
+  originalInvoiceId Int
+  customerId        Int
+  huidNumber        String?
+  status            ReturnStatus @default(REQUESTED)
+  refundAmount      Float
+  reason            String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  invoice           Invoice      @relation(fields: [originalInvoiceId], references: [id])
+  customer          Customer     @relation(fields: [customerId], references: [id])
+  creditNote        CreditNote?
+
+  @@index([originalInvoiceId])
+  @@index([customerId])
+  @@index([huidNumber])
+}
+
+model ReplacementRequest {
+  id                String            @id @default(cuid())
+  originalInvoiceId Int
+  customerId        Int
+  oldHuidNumber     String?
+  newHuidNumber     String?
+  status            ReplacementStatus @default(REQUESTED)
+  reason            String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  invoice           Invoice           @relation(fields: [originalInvoiceId], references: [id])
+  customer          Customer          @relation(fields: [customerId], references: [id])
+
+  @@index([originalInvoiceId])
+  @@index([customerId])
+}
+
+model ExchangeRequest {
+  id                String         @id @default(cuid())
+  originalInvoiceId Int
+  customerId        Int
+  oldHuidNumber     String?
+  newHuidNumber     String?
+  status            ExchangeStatus @default(REQUESTED)
+  oldValue          Float
+  newValue          Float
+  differenceAmount  Float
+  reason            String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  invoice           Invoice        @relation(fields: [originalInvoiceId], references: [id])
+  customer          Customer       @relation(fields: [customerId], references: [id])
+  creditNote        CreditNote?
+  debitNote         DebitNote?
+
+  @@index([originalInvoiceId])
+  @@index([customerId])
+}
+
+model CreditNote {
+  id                 String           @id @default(cuid())
+  returnRequestId    String?          @unique
+  exchangeRequestId  String?          @unique
+  taxableValue       Float
+  cgstAmount         Float
+  sgstAmount         Float
+  totalAmount        Float
+  issueDate          DateTime         @default(now())
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  returnRequest      ReturnRequest?   @relation(fields: [returnRequestId], references: [id])
+  exchangeRequest    ExchangeRequest? @relation(fields: [exchangeRequestId], references: [id])
+}
+
+model DebitNote {
+  id                 String          @id @default(cuid())
+  exchangeRequestId  String          @unique
+  taxableValue       Float
+  cgstAmount         Float
+  sgstAmount         Float
+  totalAmount        Float
+  issueDate          DateTime        @default(now())
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  exchangeRequest    ExchangeRequest @relation(fields: [exchangeRequestId], references: [id])
+}
+
+model HuidHistory {
+  id             String       @id @default(cuid())
+  productItemId  Int
+  status         HuidStatus
+  referenceId    String?
+  referenceType  String?
+  remarks        String?
+  createdAt      DateTime     @default(now())
+
+  productItem    ProductItem  @relation(fields: [productItemId], references: [id])
+
+  @@index([productItemId])
+}
+
+model AuditLog {
+  id             String       @id @default(cuid())
+  entityType     String
+  entityId       String
+  action         String
+  oldValues      Json?
+  newValues      Json?
+  performedById  Int?
+  createdAt      DateTime     @default(now())
+  
+  performedBy    User?        @relation(fields: [performedById], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([performedById])
+}
+
+enum ReturnStatus {
+  REQUESTED
+  INSPECTION_PENDING
+  INSPECTED
+  APPROVED
+  REJECTED
+  REFUNDED
+  CLOSED
+}
+
+enum ReplacementStatus {
+  REQUESTED
+  INSPECTION_PENDING
+  INSPECTED
+  APPROVED
+  REJECTED
+  REPLACED
+  CLOSED
+}
+
+enum ExchangeStatus {
+  REQUESTED
+  INSPECTION_PENDING
+  INSPECTED
+  APPROVED
+  REJECTED
+  EXCHANGED
+  CLOSED
+}
+
+enum HuidStatus {
+  AVAILABLE
+  SOLD
+  RETURNED
+  REPAIR
+  MELT
+  ARCHIVED
 }

@@ -120,7 +120,7 @@ export default function InventorySettingsPanel() {
             <button 
               onClick={() => handleSave(false)} 
               disabled={saving || savingAll} 
-              className="bg-[#C9943A] text-black px-4 py-2 rounded-lg text-[13px] font-semibold hover:bg-[#E8B84B] transition-colors flex items-center gap-2"
+              className="bg-[#C9943A] text-foreground px-4 py-2 rounded-lg text-[13px] font-semibold hover:bg-[#E8B84B] transition-colors flex items-center gap-2"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {saving ? "Saving..." : "Save for this branch"}

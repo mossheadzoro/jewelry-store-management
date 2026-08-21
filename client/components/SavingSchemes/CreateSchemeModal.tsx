@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useBranchStore } from "@/lib/store/useBranchStore";
+import { useProductSettingsStore } from "@/lib/store/useProductSettingsStore";
 import {
   X,
   Search,
@@ -83,9 +84,27 @@ const SCHEME_TYPES: {
 
 export default function CreateSchemeModal({ onClose, onCreated }: CreateSchemeModalProps) {
   const { selectedBranch } = useBranchStore();
+  const { globalSettings, fetchGlobalSettings } = useProductSettingsStore();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+
+  useEffect(() => {
+    if (selectedBranch?.id) {
+      fetchGlobalSettings(selectedBranch.id);
+    }
+  }, [selectedBranch?.id, fetchGlobalSettings]);
+
+  const defaultConfig = {
+    allowedTypes: ["FIXED_MONTHLY", "ANONYMOUS_DEPOSIT", "GOLD_DEPOSIT"],
+    fixedMonthly: { minDeposit: 1000, maxDeposit: 50000, durations: [12, 24], bonusMonths: { 12: 1, 24: 2 } },
+  };
+
+  const config = globalSettings?.schemeConfig 
+    ? { ...defaultConfig, ...(globalSettings.schemeConfig as any) }
+    : defaultConfig;
+
+  const allowedSchemeTypes = SCHEME_TYPES.filter(t => config.allowedTypes.includes(t.id));
 
   // Step 1: Customer search
   const [customerSearch, setCustomerSearch] = useState("");
@@ -153,7 +172,7 @@ export default function CreateSchemeModal({ onClose, onCreated }: CreateSchemeMo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-[#0D0D0F] border border-[#1F1F24] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-[#0D0D0F] border-b border-[#1F1F24] px-6 py-4 flex items-center justify-between">
@@ -173,7 +192,7 @@ export default function CreateSchemeModal({ onClose, onCreated }: CreateSchemeMo
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                   s === step
-                    ? "bg-[#C9943A] text-black"
+                    ? "bg-[#C9943A] text-foreground"
                     : s < step
                     ? "bg-[#C9943A]/20 text-[#C9943A]"
                     : "bg-[#1A1A1D] text-[#6B6560]"
@@ -260,17 +279,22 @@ export default function CreateSchemeModal({ onClose, onCreated }: CreateSchemeMo
             <div className="space-y-4">
               <p className="text-sm text-[#6B6560] mb-2">Select scheme type for <span className="text-[#F0EBE0] font-medium">{selectedCustomer?.name}</span></p>
               <div className="grid grid-cols-1 gap-4">
-                {SCHEME_TYPES.map((t) => (
+                {allowedSchemeTypes.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => {
                       setSelectedType(t.id);
-                      setDuration(t.id === "FIXED_MONTHLY" ? 12 : 12);
+                      if (t.id === "FIXED_MONTHLY") {
+                        setDuration(config.fixedMonthly.durations[0] || 12);
+                        setMonthlyAmount(config.fixedMonthly.minDeposit);
+                      } else {
+                        setDuration(12);
+                      }
                     }}
                     className={`p-5 rounded-xl border text-left transition-all cursor-pointer ${
                       selectedType === t.id
                         ? `${t.border} bg-[#1A1A1D]`
-                        : "border-[#1F1F24] hover:border-[#333] hover:bg-[#1A1A1D]/50"
+                        : "border-[#1F1F24] hover:border-border hover:bg-[#1A1A1D]/50"
                     }`}
                   >
                     <div className="flex items-start gap-4">
@@ -281,7 +305,26 @@ export default function CreateSchemeModal({ onClose, onCreated }: CreateSchemeMo
                         <h3 className={`text-sm font-semibold ${t.color}`}>{t.title}</h3>
                         <p className="text-xs text-[#6B6560] mt-0.5">{t.subtitle}</p>
                         <ul className="mt-3 space-y-1">
-                          {t.features.map((f, i) => (
+                          {t.id === "FIXED_MONTHLY" ? (
+                            <>
+                              <li className="text-xs text-[#888] flex items-center gap-1.5">
+                                <span className={`w-1 h-1 rounded-full ${selectedType === t.id ? "bg-[#C9943A]" : "bg-[#444]"}`} />
+                                Fixed monthly deposits
+                              </li>
+                              {config.fixedMonthly.durations?.map((d: number) => (
+                                config.fixedMonthly.bonusMonths?.[d] > 0 && (
+                                  <li key={d} className="text-xs text-[#888] flex items-center gap-1.5">
+                                    <span className={`w-1 h-1 rounded-full ${selectedType === t.id ? "bg-[#C9943A]" : "bg-[#444]"}`} />
+                                    {config.fixedMonthly.bonusMonths[d]} bonus month{config.fixedMonthly.bonusMonths[d] > 1 ? 's' : ''} after {d} months
+                                  </li>
+                                )
+                              ))}
+                              <li className="text-xs text-[#888] flex items-center gap-1.5">
+                                <span className={`w-1 h-1 rounded-full ${selectedType === t.id ? "bg-[#C9943A]" : "bg-[#444]"}`} />
+                                No cash return
+                              </li>
+                            </>
+                          ) : t.features.map((f, i) => (
                             <li key={i} className="text-xs text-[#888] flex items-center gap-1.5">
                               <span className={`w-1 h-1 rounded-full ${selectedType === t.id ? "bg-[#C9943A]" : "bg-[#444]"}`} />
                               {f}
@@ -313,8 +356,8 @@ export default function CreateSchemeModal({ onClose, onCreated }: CreateSchemeMo
                   <div className="flex items-center gap-4">
                     <input
                       type="range"
-                      min={1000}
-                      max={5000}
+                      min={config.fixedMonthly.minDeposit}
+                      max={config.fixedMonthly.maxDeposit}
                       step={500}
                       value={monthlyAmount}
                       onChange={(e) => setMonthlyAmount(Number(e.target.value))}
@@ -325,8 +368,8 @@ export default function CreateSchemeModal({ onClose, onCreated }: CreateSchemeMo
                     </span>
                   </div>
                   <div className="flex justify-between text-[10px] text-[#6B6560] mt-1">
-                    <span>₹1,000</span>
-                    <span>₹5,000</span>
+                    <span>₹{config.fixedMonthly.minDeposit.toLocaleString()}</span>
+                    <span>₹{config.fixedMonthly.maxDeposit.toLocaleString()}</span>
                   </div>
                 </div>
               )}
@@ -336,14 +379,14 @@ export default function CreateSchemeModal({ onClose, onCreated }: CreateSchemeMo
                 <label className="text-sm font-medium text-[#F0EBE0] mb-2 block">Duration</label>
                 {selectedType === "FIXED_MONTHLY" ? (
                   <div className="flex gap-3">
-                    {[12, 24].map((d) => (
+                    {config.fixedMonthly.durations?.map((d: number) => (
                       <button
                         key={d}
                         onClick={() => setDuration(d)}
                         className={`flex-1 py-3 rounded-xl text-sm font-medium border transition-colors cursor-pointer ${
                           duration === d
                             ? "bg-[#C9943A]/10 border-[#C9943A]/40 text-[#C9943A]"
-                            : "border-[#1F1F24] text-[#6B6560] hover:text-[#F0EBE0] hover:border-[#333]"
+                            : "border-[#1F1F24] text-[#6B6560] hover:text-[#F0EBE0] hover:border-border"
                         }`}
                       >
                         {d} Months ({d / 12} Year{d > 12 ? "s" : ""})
@@ -401,7 +444,7 @@ export default function CreateSchemeModal({ onClose, onCreated }: CreateSchemeMo
                       <span className="text-[#6B6560]">Total Savings</span>
                       <span className="text-emerald-400 font-medium">
                         ₹{(monthlyAmount * duration).toLocaleString()}
-                        {duration >= 12 && ` + ₹${monthlyAmount.toLocaleString()} bonus`}
+                        {config.fixedMonthly.bonusMonths?.[duration] > 0 && ` + ₹${(monthlyAmount * config.fixedMonthly.bonusMonths[duration]).toLocaleString()} bonus`}
                       </span>
                     </>
                   )}
@@ -424,7 +467,7 @@ export default function CreateSchemeModal({ onClose, onCreated }: CreateSchemeMo
               <button
                 onClick={() => setStep(step + 1)}
                 disabled={(step === 1 && !selectedCustomer) || (step === 2 && !selectedType)}
-                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#C9943A] text-black text-sm font-semibold hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#C9943A] text-foreground text-sm font-semibold hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
               >
                 Next <ChevronRight className="w-4 h-4" />
               </button>
@@ -432,7 +475,7 @@ export default function CreateSchemeModal({ onClose, onCreated }: CreateSchemeMo
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#C9943A] to-[#E8B84B] text-black text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-[#C9943A]/20 cursor-pointer"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#C9943A] to-[#E8B84B] text-foreground text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-[#C9943A]/20 cursor-pointer"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                 Create Scheme

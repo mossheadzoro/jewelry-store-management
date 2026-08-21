@@ -6,11 +6,13 @@ import { X } from "lucide-react";
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 export default function CreateWholesalerModal({
   isOpen,
   onClose,
+  onSuccess,
 }: Props) {
   const [loading, setLoading] = useState(false);
 
@@ -48,7 +50,11 @@ export default function CreateWholesalerModal({
 
       if (!res.ok) throw new Error("Failed");
 
-      onClose();
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        onClose();
+      }
     } catch (err) {
       alert("Error creating wholesaler");
     } finally {
@@ -59,16 +65,16 @@ export default function CreateWholesalerModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-[#111827] w-full max-w-2xl rounded-2xl p-6 border border-[#1F2937] shadow-2xl">
+    <div className="fixed inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-card w-full max-w-2xl rounded-2xl p-6 border border-border shadow-2xl">
 
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-white">
+          <h2 className="text-xl font-semibold text-foreground">
             Create Wholesaler
           </h2>
           <button onClick={onClose}>
-            <X className="text-gray-400 hover:text-white" />
+            <X className="text-muted-foreground hover:text-foreground" />
           </button>
         </div>
 
@@ -87,11 +93,11 @@ export default function CreateWholesalerModal({
           <Input label="Pincode *" name="pincode" onChange={handleChange} />
 
           <div className="md:col-span-2">
-            <label className="text-sm text-gray-400">Address *</label>
+            <label className="text-sm text-muted-foreground">Address *</label>
             <textarea
               name="address"
               onChange={handleChange}
-              className="w-full mt-1 bg-[#0F172A] border border-[#1F2937] rounded-xl p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full mt-1 bg-input border border-border rounded-xl p-3 text-foreground focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
         </div>
@@ -100,7 +106,7 @@ export default function CreateWholesalerModal({
         <div className="flex justify-end mt-6 gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-[#1F2937] hover:bg-[#2A3444]"
+            className="px-4 py-2 rounded-xl bg-secondary hover:bg-secondary/80"
           >
             Cancel
           </button>
@@ -129,12 +135,12 @@ function Input({
 }) {
   return (
     <div>
-      <label className="text-sm text-gray-400">{label}</label>
+      <label className="text-sm text-muted-foreground">{label}</label>
       <input
         type="text"
         name={name}
         onChange={onChange}
-        className="w-full mt-1 bg-[#0F172A] border border-[#1F2937] rounded-xl p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+        className="w-full mt-1 bg-input border border-border rounded-xl p-3 text-foreground focus:ring-2 focus:ring-blue-500 outline-none"
       />
     </div>
   );

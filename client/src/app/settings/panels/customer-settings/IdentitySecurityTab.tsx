@@ -49,10 +49,6 @@ export default function IdentitySecurityTab({ config, updateConfig, isAdmin }: P
             <input type="checkbox" checked={config.registration?.autoCustomerIdGeneration ?? true} onChange={e => updateConfig('registration', 'autoCustomerIdGeneration', e.target.checked)} disabled={!isAdmin} className="accent-[#C9943A] w-4 h-4" />
             <span className="text-[12px] text-platinum">Auto Customer ID Gen</span>
           </label>
-          <label className="flex items-center gap-3 p-3 rounded-lg border border-[#1F1F24] bg-[#111113]">
-            <input type="checkbox" checked={config.registration?.manualCustomerIdAllowed ?? false} onChange={e => updateConfig('registration', 'manualCustomerIdAllowed', e.target.checked)} disabled={!isAdmin} className="accent-[#C9943A] w-4 h-4" />
-            <span className="text-[12px] text-platinum">Manual Customer ID</span>
-          </label>
           <div className="space-y-1.5 p-3 rounded-lg border border-[#1F1F24] bg-[#111113]">
             <span className="text-[11px] text-platinum-muted block">Customer Code Prefix</span>
             <input type="text" value={config.registration?.customerCodePrefix ?? "CUST"} onChange={e => updateConfig('registration', 'customerCodePrefix', e.target.value)} disabled={!isAdmin} className="w-full h-8 px-2 bg-[#0A0A0B] border border-[#1F1F24] rounded text-[12px] text-platinum outline-none focus:border-[#C9943A]/50" />

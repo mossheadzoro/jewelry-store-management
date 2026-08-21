@@ -28,7 +28,6 @@ export const settingsCategories = [
   { id: "appearance", title: "Appearance", icon: Palette },
   { id: "reports", title: "Reports Settings", icon: FileText },
   { id: "audit", title: "Audit Logs", icon: History },
-  { id: "developer", title: "API / Developer", icon: Code },
   { id: "about", title: "About", icon: Info },
 ];
 

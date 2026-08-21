@@ -15,6 +15,10 @@ import SavingSchemeSettingsPanel from "./panels/SavingSchemeSettingsPanel";
 import CustomerSettingsPanel from "./panels/CustomerSettingsPanel";
 import InventorySettingsPanel from "./panels/InventorySettingsPanel";
 import OrderBookSettingsPanel from "./panels/OrderBookSettingsPanel";
+import PrintingSettingsPanel from "./panels/PrintingSettingsPanel";
+
+import IntegrationSettingsPanel from "./panels/IntegrationSettingsPanel";
+import AppearanceSettingsPanel from "./panels/AppearanceSettingsPanel";
 
 export default function SettingsPage() {
   const [activeCategoryId, setActiveCategoryId] = useState(settingsCategories[0].id);
@@ -40,6 +44,12 @@ export default function SettingsPage() {
         return <InventorySettingsPanel />;
       case "order-book":
         return <OrderBookSettingsPanel />;
+      case "printing":
+        return <PrintingSettingsPanel />;
+      case "integrations":
+        return <IntegrationSettingsPanel />;
+      case "appearance":
+        return <AppearanceSettingsPanel />;
       default:
         // Generic Placeholder
         const category = settingsCategories.find(c => c.id === activeCategoryId);
@@ -77,7 +87,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Main Settings Content */}
-          <div className="flex-1 overflow-y-auto p-6 lg:p-8">
+          <div className="flex-1 overflow-y-auto p-6 lg:p-8 flex flex-col">
             {renderPanel()}
           </div>
         </div>

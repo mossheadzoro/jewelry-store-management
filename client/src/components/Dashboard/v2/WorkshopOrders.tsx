@@ -17,7 +17,7 @@ export function WorkshopOrders({ data }: any) {
         <Link href="/orderBook?status=PENDING" className="block">
           <div className="p-3 bg-onyx-elevated border border-onyx-border rounded-xl hover:border-gold/30 transition-colors">
             <span className="text-[11px] text-platinum-muted uppercase font-medium tracking-wider mb-1 block">Pending Orders</span>
-            <span className="text-lg font-bold text-white flex items-center gap-2">
+            <span className="text-lg font-bold text-foreground flex items-center gap-2">
               {data.pendingOrders} <Clock className="w-4 h-4 text-gold" />
             </span>
           </div>

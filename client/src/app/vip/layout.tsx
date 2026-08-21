@@ -9,9 +9,9 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a] text-white overflow-hidden">
+    <div className="flex h-screen bg-onyx text-foreground overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-[280px] bg-[#141414] border-r border-[#1f1f1f] flex flex-col hidden md:flex">
+      <aside className="w-[280px] bg-onyx-surface border-r border-[#1f1f1f] flex flex-col hidden md:flex">
         {/* Brand Area */}
         <div className="p-8 pt-10">
           <div className="flex items-center gap-3">
@@ -32,20 +32,20 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 px-4 py-4 space-y-1">
           <Link
             href="/vip"
-            className="flex items-center gap-3 px-4 py-3 text-[13px] font-medium rounded-xl bg-[#1f1f1f] text-[#D4A843] border border-[#2a2a2a]"
+            className="flex items-center gap-3 px-4 py-3 text-[13px] font-medium rounded-xl bg-[#1f1f1f] text-[#D4A843] border border-onyx-border"
           >
             <Users className="w-4 h-4" />
             Client Roster
           </Link>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium rounded-xl text-[#888] hover:bg-[#1a1a1a] hover:text-[#ccc] transition-colors">
+          <button className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium rounded-xl text-[#888] hover:bg-onyx-elevated hover:text-[#ccc] transition-colors">
             <BarChart3 className="w-4 h-4" />
             Analytics
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium rounded-xl text-[#888] hover:bg-[#1a1a1a] hover:text-[#ccc] transition-colors">
+          <button className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium rounded-xl text-[#888] hover:bg-onyx-elevated hover:text-[#ccc] transition-colors">
             <Radio className="w-4 h-4" />
             Outreach
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium rounded-xl text-[#888] hover:bg-[#1a1a1a] hover:text-[#ccc] transition-colors">
+          <button className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium rounded-xl text-[#888] hover:bg-onyx-elevated hover:text-[#ccc] transition-colors">
             <Gift className="w-4 h-4" />
             Offer Engine
           </button>
@@ -66,10 +66,10 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Top Navbar */}
-        <header className="h-[72px] bg-[#0a0a0a] border-b border-[#1f1f1f] flex items-center justify-between px-8 flex-shrink-0">
+        <header className="h-[72px] bg-onyx border-b border-[#1f1f1f] flex items-center justify-between px-8 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Sparkles className="w-6 h-6 text-[#D4A843]" />
-            <h1 className="text-[24px] font-serif tracking-wide text-white">VIP & Elite Clientele</h1>
+            <h1 className="text-[24px] font-serif tracking-wide text-foreground">VIP & Elite Clientele</h1>
           </div>
           {/* User actions */}
           <div className="flex items-center gap-4">
@@ -77,7 +77,7 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
               <input 
                 type="text" 
                 placeholder="Search Obsidian Database..."
-                className="w-[240px] h-9 bg-[#111] border border-[#222] rounded-full pl-4 pr-10 text-[12px] text-white placeholder:text-[#555] focus:outline-none focus:border-[#D4A843]/50"
+                className="w-[240px] h-9 bg-[#111] border border-[#222] rounded-full pl-4 pr-10 text-[12px] text-foreground placeholder:text-[#555] focus:outline-none focus:border-[#D4A843]/50"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#555]">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>

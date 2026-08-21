@@ -95,6 +95,10 @@ export interface RoznamaResponse {
   branch: string;
   openingStockValue: number;
   closingStockValue: number;
+  openingGrossWeight?: number;
+  openingFineWeight?: number;
+  closingGrossWeight?: number;
+  closingFineWeight?: number;
   invoicesRaised: number;
   itemsSold: number;
   totalWeightSold: number;

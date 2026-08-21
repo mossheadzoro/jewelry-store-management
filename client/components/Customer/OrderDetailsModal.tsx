@@ -333,15 +333,15 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-background/75 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal Container */}
       <div className="relative w-full max-w-2xl max-h-[90vh] bg-[#111] border border-[#222] rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1f1f1f] bg-[#141414]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1f1f1f] bg-onyx-surface">
           <div>
-            <h2 className="text-[18px] font-bold text-white flex items-center gap-2">
+            <h2 className="text-[18px] font-bold text-foreground flex items-center gap-2">
               Order #{order.orderNumber} Details
               {order.status === "CANCELLED" && (
                 <span className="text-[10px] bg-red-500/10 border border-red-500/20 text-red-400 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
@@ -355,7 +355,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#252525] flex items-center justify-center text-[#666] hover:text-white hover:border-[#333] transition-all cursor-pointer"
+            className="w-8 h-8 rounded-lg bg-onyx-elevated border border-[#252525] flex items-center justify-center text-[#666] hover:text-foreground hover:border-border transition-all cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -373,7 +373,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
                 className={`h-9 px-4 rounded-lg border text-[12px] font-semibold flex items-center gap-2 transition-all ${
                   isPrintOrderDisabled 
                   ? "bg-[#181818] border-[#222] text-[#444] cursor-not-allowed" 
-                  : "bg-[#222] border-[#333] hover:border-[#444] text-white cursor-pointer"
+                  : "bg-secondary border-border hover:border-[#444] text-foreground cursor-pointer"
                 }`}
                 title={isPrintOrderDisabled ? "Print Order Slip is disabled because the advance was refunded" : "Print standard order slip with items"}
               >
@@ -386,7 +386,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
                 className={`h-9 px-4 rounded-lg border text-[12px] font-semibold flex items-center gap-2 transition-all ${
                   isPrintAdvanceDisabled 
                   ? "bg-[#181818] border-[#222] text-[#444] cursor-not-allowed" 
-                  : "bg-[#222] border-[#333] hover:border-[#444] text-[#D4A843] cursor-pointer"
+                  : "bg-secondary border-border hover:border-[#444] text-[#D4A843] cursor-pointer"
                 }`}
                 title={isPrintAdvanceDisabled ? "Advance slip print is only active when Cancel & Store Advance is selected" : "Print updated advance slip (no items)"}
               >
@@ -399,7 +399,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="h-9 px-4 rounded-lg bg-transparent border border-[#333] text-[#ccc] text-[12px] font-semibold flex items-center gap-2 hover:bg-[#222] hover:text-white transition-all cursor-pointer"
+                  className="h-9 px-4 rounded-lg bg-transparent border border-border text-[#ccc] text-[12px] font-semibold flex items-center gap-2 hover:bg-secondary hover:text-foreground transition-all cursor-pointer"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                   Edit Order
@@ -420,7 +420,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
               <div className="flex gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-white text-[14px] font-bold">Choose Cancellation Option</h4>
+                  <h4 className="text-foreground text-[14px] font-bold">Choose Cancellation Option</h4>
                   <p className="text-[#888] text-[12px] mt-1">
                     Select how the system should settle this order's advance of ₹{Number(order.advance?.moneyAmount || 0).toLocaleString("en-IN")} and {Number(order.advance?.metalWeight || 0)}g metal.
                   </p>
@@ -430,7 +430,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
                 <button
                   onClick={() => handleCancelOrder("store")}
                   disabled={saving}
-                  className="py-3 px-4 rounded-xl bg-[#D4A843] text-black font-semibold text-[13px] hover:bg-[#e6bc5a] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="py-3 px-4 rounded-xl bg-[#D4A843] text-foreground font-semibold text-[13px] hover:bg-[#e6bc5a] transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   Cancel & Store Advance
@@ -438,7 +438,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
                 <button
                   onClick={() => handleCancelOrder("refund")}
                   disabled={saving}
-                  className="py-3 px-4 rounded-xl bg-red-500 text-white font-semibold text-[13px] hover:bg-red-600 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="py-3 px-4 rounded-xl bg-red-500 text-foreground font-semibold text-[13px] hover:bg-red-600 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   Cancel & Refund Advance
@@ -447,7 +447,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
               <div className="flex justify-end">
                 <button
                   onClick={() => setShowCancelOptions(false)}
-                  className="text-[12px] text-[#888] hover:text-white transition-colors"
+                  className="text-[12px] text-[#888] hover:text-foreground transition-colors"
                 >
                   Go Back
                 </button>
@@ -459,7 +459,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
           <div className="grid grid-cols-2 gap-6">
             
             {/* View/Edit Form Details */}
-            <div className="bg-[#141414] border border-[#222] rounded-xl p-5 space-y-4">
+            <div className="bg-onyx-surface border border-[#222] rounded-xl p-5 space-y-4">
               <h3 className="text-[12px] font-bold text-[#D4A843] uppercase tracking-wider mb-2 border-b border-[#222] pb-2">
                 Order Properties
               </h3>
@@ -472,7 +472,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
                     <select
                       value={status}
                       onChange={(e) => setStatus(e.target.value)}
-                      className="w-full h-9 px-3 rounded-lg bg-[#0c0c0c] border border-[#1f1f1f] text-[13px] text-white outline-none focus:border-[#D4A843]/40 appearance-none cursor-pointer"
+                      className="w-full h-9 px-3 rounded-lg bg-[#0c0c0c] border border-[#1f1f1f] text-[13px] text-foreground outline-none focus:border-[#D4A843]/40 appearance-none cursor-pointer"
                     >
                       {["CREATED", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "DELIVERED", "CANCELLED", "RETURNED"].map((s) => (
                         <option key={s} value={s}>{s.replace("_", " ")}</option>
@@ -486,7 +486,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
                     <select
                       value={priority}
                       onChange={(e) => setPriority(e.target.value)}
-                      className="w-full h-9 px-3 rounded-lg bg-[#0c0c0c] border border-[#1f1f1f] text-[13px] text-white outline-none focus:border-[#D4A843]/40 appearance-none cursor-pointer"
+                      className="w-full h-9 px-3 rounded-lg bg-[#0c0c0c] border border-[#1f1f1f] text-[13px] text-foreground outline-none focus:border-[#D4A843]/40 appearance-none cursor-pointer"
                     >
                       {["STANDARD", "URGENT", "RUSH"].map((p) => (
                         <option key={p} value={p}>{p}</option>
@@ -501,7 +501,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
                       type="date"
                       value={deliveryDate}
                       onChange={(e) => setDeliveryDate(e.target.value)}
-                      className="w-full h-9 px-3 rounded-lg bg-[#0c0c0c] border border-[#1f1f1f] text-[13px] text-white outline-none focus:border-[#D4A843]/40 [color-scheme:dark]"
+                      className="w-full h-9 px-3 rounded-lg bg-[#0c0c0c] border border-[#1f1f1f] text-[13px] text-foreground outline-none focus:border-[#D4A843]/40 [color-scheme:dark]"
                     />
                   </div>
 
@@ -516,7 +516,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
                       <select
                         value={karigarId}
                         onChange={(e) => setKarigarId(e.target.value)}
-                        className="w-full h-9 px-3 rounded-lg bg-[#0c0c0c] border border-[#1f1f1f] text-[13px] text-white outline-none focus:border-[#D4A843]/40 appearance-none cursor-pointer"
+                        className="w-full h-9 px-3 rounded-lg bg-[#0c0c0c] border border-[#1f1f1f] text-[13px] text-foreground outline-none focus:border-[#D4A843]/40 appearance-none cursor-pointer"
                       >
                         <option value="">Not Assigned</option>
                         {karigars.map((k) => (
@@ -532,7 +532,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
                 <div className="space-y-3.5 text-[13px]">
                   <div className="flex justify-between">
                     <span className="text-[#555]">Status</span>
-                    <span className="font-semibold text-white uppercase">{order.status.replace("_", " ")}</span>
+                    <span className="font-semibold text-foreground uppercase">{order.status.replace("_", " ")}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#555]">Priority</span>
@@ -540,15 +540,15 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#555]">Expected Delivery</span>
-                    <span className="font-semibold text-white flex items-center gap-1.5">
+                    <span className="font-semibold text-foreground flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-[#555]" />
                       {new Date(order.deliveryDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#555]">Karigar Assigned</span>
-                    <span className="font-semibold text-white">
-                      {order.karigar ? order.karigar.name : "None"}
+                    <span className="text-[#555]">Assigned To</span>
+                    <span className="font-semibold text-foreground">
+                      {order.karigar ? order.karigar.name : order.Wholesaler ? order.Wholesaler.name : "None"}
                     </span>
                   </div>
                 </div>
@@ -556,18 +556,18 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
             </div>
 
             {/* Advance held details */}
-            <div className="bg-[#141414] border border-[#222] rounded-xl p-5 space-y-4">
+            <div className="bg-onyx-surface border border-[#222] rounded-xl p-5 space-y-4">
               <h3 className="text-[12px] font-bold text-[#D4A843] uppercase tracking-wider mb-2 border-b border-[#222] pb-2">
                 Advance Ledger Deposit
               </h3>
               <div className="space-y-3 text-[13px]">
                 <div className="flex justify-between">
                   <span className="text-[#555]">Advance Receipt ID</span>
-                  <span className="font-mono text-white font-semibold">{order.advance?.advanceReceiptNumber || "—"}</span>
+                  <span className="font-mono text-foreground font-semibold">{order.advance?.advanceReceiptNumber || "—"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#555]">Cash Deposit</span>
-                  <span className="text-white font-bold">
+                  <span className="text-foreground font-bold">
                     ₹ {Number(order.advance?.moneyAmount || 0).toLocaleString("en-IN")}
                   </span>
                 </div>
@@ -584,7 +584,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
           </div>
 
           {/* Commissioned Items List */}
-          <div className="bg-[#141414] border border-[#222] rounded-xl p-5">
+          <div className="bg-onyx-surface border border-[#222] rounded-xl p-5">
             <h3 className="text-[12px] font-bold text-[#D4A843] uppercase tracking-wider mb-4 border-b border-[#222] pb-2">
               Commissioned Items List
             </h3>
@@ -598,7 +598,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
                   {order.items?.map((item: any, idx: number) => (
                     <div key={item.id || idx} className="py-3 first:pt-0 last:pb-0 flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-[14px] font-bold text-white">{item.category?.name || "Bespoke Custom"}</p>
+                        <p className="text-[14px] font-bold text-foreground">{item.category?.name || "Bespoke Custom"}</p>
                         <p className="text-[12px] text-[#666] mt-0.5">{item.description || "No description provided."}</p>
                       </div>
                       <div className="text-right">
@@ -617,7 +617,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
           </div>
 
           {/* Notes section */}
-          <div className="bg-[#141414] border border-[#222] rounded-xl p-5">
+          <div className="bg-onyx-surface border border-[#222] rounded-xl p-5">
             <h3 className="text-[12px] font-bold text-[#D4A843] uppercase tracking-wider mb-2 border-b border-[#222] pb-2">
               Special Order Instructions / Notes
             </h3>
@@ -626,7 +626,7 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Enter custom crafting notes, designer specifications, customer constraints..."
-                className="w-full min-h-[80px] p-3 rounded-lg bg-[#0c0c0c] border border-[#1f1f1f] text-[13px] text-white placeholder:text-[#444] outline-none focus:border-[#D4A843]/40 resize-y"
+                className="w-full min-h-[80px] p-3 rounded-lg bg-[#0c0c0c] border border-[#1f1f1f] text-[13px] text-foreground placeholder:text-[#444] outline-none focus:border-[#D4A843]/40 resize-y"
               />
             ) : (
               <p className="text-[13px] text-[#888] leading-relaxed italic">
@@ -638,17 +638,17 @@ export default function OrderDetailsModal({ open, order, onClose, onSuccess, cus
 
         {/* Footer (only visible when editing) */}
         {isEditing && (
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#1f1f1f] bg-[#141414]">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#1f1f1f] bg-onyx-surface">
             <button
               onClick={() => setIsEditing(false)}
-              className="h-9 px-4 rounded-lg text-[13px] text-[#999] bg-[#1a1a1a] border border-[#252525] hover:text-white transition-all cursor-pointer"
+              className="h-9 px-4 rounded-lg text-[13px] text-[#999] bg-onyx-elevated border border-[#252525] hover:text-foreground transition-all cursor-pointer"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="h-9 px-4 rounded-lg text-[13px] font-semibold bg-[#D4A843] text-black hover:bg-[#e6bc5a] transition-all flex items-center gap-2 cursor-pointer"
+              className="h-9 px-4 rounded-lg text-[13px] font-semibold bg-[#D4A843] text-foreground hover:bg-[#e6bc5a] transition-all flex items-center gap-2 cursor-pointer"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               Save Changes

@@ -1,11 +1,13 @@
 import { format } from "date-fns";
 
-export const formatINR = (amount: number): string =>
-  new Intl.NumberFormat("en-IN", {
+export const formatINR = (amount: number): string => {
+  const safeNum = isNaN(amount) || amount === null || amount === undefined ? 0 : amount;
+  return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(safeNum);
+};
 
 export const formatWeight = (grams: number): string =>
   `${(grams || 0).toFixed(3)}g`;

@@ -8,6 +8,12 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ProductDetailsModal } from "../../../../../components/Inventory/Product/ProductDetailsModal";
 import { printBarcodes } from "@/lib/barcodePrinter";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useStampingCart } from "@/lib/store/useStampingCart";
+import { useBranchStore } from "@/lib/store/useBranchStore";
+import { ShieldCheck, Truck, Loader2, CheckCircle, Calendar } from "lucide-react";
+import axios from "axios";
+import { toast } from "sonner";
+import ReceiveStampingForm from "../../../../../components/Inventory/Product/ReceiveStampingForm";
 
 interface Product {
   id: number;
@@ -59,6 +65,25 @@ export default function SubcategoryDetailPage() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
+  const { cart, addToCart, removeFromCart, clearCart, isInCart } = useStampingCart();
+  const { selectedBranch } = useBranchStore();
+  const [isIssuingToStamping, setIsIssuingToStamping] = useState(false);
+
+  // Receive form state
+  const [receivingProduct, setReceivingProduct] = useState<Product | null>(null);
+  const [isReceiving, setIsReceiving] = useState(false);
+  const [receiveForm, setReceiveForm] = useState({
+    name: "",
+    categoryId: "",
+    subCategoryId: "",
+    barcode: "",
+    productCode: "",
+    purity: "",
+    ntWeight: "",
+    gsWeight: "",
+  });
+  const [allCategories, setAllCategories] = useState<any[]>([]);
+
   const [showFilters, setShowFilters] = useState(false);
   const [selectedPurity, setSelectedPurity] = useState<number[]>([]);
   const [weightFilter, setWeightFilter] = useState("");
@@ -93,16 +118,31 @@ export default function SubcategoryDetailPage() {
 
   const catName = data?.subCategory?.category?.name || "Category";
   const subName = data?.subCategory?.name || "Subcategory";
+  
+  const isUnmarked = catName.toUpperCase() === "UNMARKED JEWELLERY";
+  const isStamping = catName.toUpperCase() === "STAMPING CENTER";
+
+  useEffect(() => {
+    if (isStamping) {
+      // Fetch categories for receive modal
+      fetch("/api/inventory/ledger")
+        .then(res => res.json())
+        .then(data => {
+          if (data.branchCategories) setAllCategories(data.branchCategories);
+        })
+        .catch(console.error);
+    }
+  }, [isStamping]);
 
   return (
     <SidebarProvider>
       <AppSidebar />
-      <div className="min-h-screen bg-[#0a0a0a] text-white p-8 w-full">
+      <div className="min-h-screen bg-onyx text-foreground p-8 w-full">
         {/* Breadcrumb */}
-        <div className="bg-[#141414] border border-gray-800/50 rounded-xl px-5 py-3 mb-8 flex items-center gap-2 text-xs uppercase tracking-widest">
-          <span className="text-gray-500 cursor-pointer hover:text-gray-300" onClick={() => router.push("/inventory")}>Home</span>
+        <div className="bg-onyx-surface border border-border/50 rounded-xl px-5 py-3 mb-8 flex items-center gap-2 text-xs uppercase tracking-widest">
+          <span className="text-muted-foreground cursor-pointer hover:text-foreground/80" onClick={() => router.push("/inventory")}>Home</span>
           <span className="text-gray-700">›</span>
-          <span className="text-gray-500 cursor-pointer hover:text-gray-300" onClick={() => router.push(`/inventory/category/${data?.subCategory?.category?.id || ""}`)}>
+          <span className="text-muted-foreground cursor-pointer hover:text-foreground/80" onClick={() => router.push(`/inventory/category/${data?.subCategory?.category?.id || ""}`)}>
             {catName}
           </span>
           <span className="text-gray-700">›</span>
@@ -111,7 +151,7 @@ export default function SubcategoryDetailPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-light text-gray-300 mb-1">{subName}</h1>
+          <h1 className="text-4xl font-light text-foreground/80 mb-1">{subName}</h1>
           <p className="text-sm text-gray-600">Viewing {data?.totalCount || 0} items in category.</p>
         </div>
 
@@ -121,7 +161,7 @@ export default function SubcategoryDetailPage() {
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 border px-4 py-2 rounded-xl text-sm transition-all ${
               showFilters
-                ? "bg-yellow-500 text-black border-yellow-500 font-semibold"
+                ? "bg-yellow-500 text-foreground border-yellow-500 font-semibold"
                 : "text-yellow-500 border-yellow-700/40 hover:bg-yellow-900/20"
             }`}
           >
@@ -129,7 +169,7 @@ export default function SubcategoryDetailPage() {
           </button>
 
           {showFilters && (
-            <div className="absolute top-12 right-0 bg-[#141414] border border-gray-800 rounded-2xl p-6 shadow-2xl z-20 w-80 mt-2 space-y-6">
+            <div className="absolute top-12 right-0 bg-onyx-surface border border-border rounded-2xl p-6 shadow-2xl z-20 w-80 mt-2 space-y-6">
               {/* Purity Checkboxes */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-[#d4a843] mb-3">Purity</h4>
@@ -137,7 +177,7 @@ export default function SubcategoryDetailPage() {
                   {[24, 22, 18, 14, 9].map((k) => {
                     const isChecked = selectedPurity.includes(k);
                     return (
-                      <label key={k} className="flex items-center gap-2 cursor-pointer text-sm text-gray-300 hover:text-white">
+                      <label key={k} className="flex items-center gap-2 cursor-pointer text-sm text-foreground/80 hover:text-foreground">
                         <input
                           type="checkbox"
                           checked={isChecked}
@@ -149,7 +189,7 @@ export default function SubcategoryDetailPage() {
                             }
                             setPage(1);
                           }}
-                          className="accent-[#d4a843] rounded border-gray-800 bg-[#1a1a1a]"
+                          className="accent-[#d4a843] rounded border-border bg-onyx-elevated"
                         />
                         <span>{k}K Purity</span>
                       </label>
@@ -161,7 +201,7 @@ export default function SubcategoryDetailPage() {
               {/* Weight Search */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-[#d4a843] mb-2">Weight Range (Nt Wt)</h4>
-                <p className="text-[10px] text-gray-500 mb-3">Entering e.g. 5 searches for 4.5g to 5.9g</p>
+                <p className="text-[10px] text-muted-foreground mb-3">Entering e.g. 5 searches for 4.5g to 5.9g</p>
                 <div className="flex gap-2">
                   <input
                     type="number"
@@ -171,7 +211,7 @@ export default function SubcategoryDetailPage() {
                       setPage(1);
                     }}
                     placeholder="Enter base weight..."
-                    className="bg-[#1a1a1a] border border-gray-800 rounded-xl px-4 py-2 text-sm text-white w-full focus:outline-none focus:border-yellow-500"
+                    className="bg-onyx-elevated border border-border rounded-xl px-4 py-2 text-sm text-foreground w-full focus:outline-none focus:border-yellow-500"
                   />
                   {weightFilter && (
                     <button
@@ -179,7 +219,7 @@ export default function SubcategoryDetailPage() {
                         setWeightFilter("");
                         setPage(1);
                       }}
-                      className="text-xs bg-[#222] border border-[#333] px-3 rounded-xl hover:bg-[#333]"
+                      className="text-xs bg-secondary border border-border px-3 rounded-xl hover:bg-secondary"
                     >
                       Clear
                     </button>
@@ -188,45 +228,46 @@ export default function SubcategoryDetailPage() {
               </div>
 
               {/* Reset All */}
-              <div className="flex justify-between items-center border-t border-gray-800/50 pt-4">
+              <div className="flex justify-between items-center border-t border-border/50 pt-4">
                 <button
                   onClick={() => {
                     setSelectedPurity([]);
                     setWeightFilter("");
                     setPage(1);
                   }}
-                  className="text-xs text-gray-500 hover:text-white transition-colors"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Reset All
                 </button>
-                <span className="text-[10px] text-gray-500">Auto-applies</span>
+                <span className="text-[10px] text-muted-foreground">Auto-applies</span>
               </div>
             </div>
           )}
         </div>
 
         {/* Inventory Table */}
-        <div className="bg-[#141414] border border-gray-800/50 rounded-2xl overflow-hidden">
+        <div className="bg-onyx-surface border border-border/50 rounded-2xl overflow-hidden">
           {/* Table header with search */}
-          <div className="flex justify-between items-center p-5 border-b border-gray-800/50">
+          <div className="flex justify-between items-center p-5 border-b border-border/50">
             <h2 className="text-lg font-semibold">Inventory List</h2>
-            <div className="flex items-center bg-[#1a1a1a] border border-gray-800 rounded-xl px-4 py-2 gap-2 w-72">
-              <Search size={16} className="text-gray-500" />
+            <div className="flex items-center bg-onyx-elevated border border-border rounded-xl px-4 py-2 gap-2 w-72">
+              <Search size={16} className="text-muted-foreground" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 placeholder="Search by Barcode, Product Code, or HUID..."
-                className="bg-transparent outline-none text-white w-full text-sm placeholder:text-gray-600"
+                className="bg-transparent outline-none text-foreground w-full text-sm placeholder:text-gray-600"
               />
             </div>
           </div>
 
           {/* Table */}
           <table className="w-full text-left text-sm">
-            <thead className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest border-b border-gray-800/50">
+            <thead className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest border-b border-border/50">
               <tr>
+                {isUnmarked && <th className="p-4 w-10">Select</th>}
                 <th className="p-4">Image</th>
                 <th className="p-4">Product Details</th>
                 <th className="p-4">Code / HUID</th>
@@ -237,15 +278,27 @@ export default function SubcategoryDetailPage() {
             </thead>
             <tbody className="divide-y divide-gray-800/30">
               {loading ? (
-                <tr><td colSpan={6} className="p-10 text-center text-gray-500">Loading products...</td></tr>
+                <tr><td colSpan={6} className="p-10 text-center text-muted-foreground">Loading products...</td></tr>
               ) : !data || data.products.length === 0 ? (
-                <tr><td colSpan={6} className="p-10 text-center text-gray-500">No products found.</td></tr>
+                <tr><td colSpan={6} className="p-10 text-center text-muted-foreground">No products found.</td></tr>
               ) : data.products.map((p) => {
                 const status = getStatusInfo(p);
                 return (
-                  <tr key={p.id} className="hover:bg-[#1a1a1a] transition-colors">
+                  <tr key={p.id} className="hover:bg-onyx-elevated transition-colors">
+                    {isUnmarked && (
+                      <td className="p-4">
+                        <div 
+                          onClick={() => isInCart(p.id) ? removeFromCart(p.id) : addToCart(p)}
+                          className={`w-5 h-5 rounded border flex items-center justify-center cursor-pointer transition-colors ${
+                            isInCart(p.id) ? "bg-yellow-500 border-yellow-500" : "border-gray-600 hover:border-gray-400"
+                          }`}
+                        >
+                          {isInCart(p.id) && <CheckCircle className="w-3 h-3 text-foreground" />}
+                        </div>
+                      </td>
+                    )}
                     <td className="p-4">
-                      <div className="w-14 h-14 bg-[#1e1e1e] rounded-xl overflow-hidden flex items-center justify-center">
+                      <div className="w-14 h-14 bg-card rounded-xl overflow-hidden flex items-center justify-center">
                         {p.image ? (
                           <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
                         ) : (
@@ -254,16 +307,16 @@ export default function SubcategoryDetailPage() {
                       </div>
                     </td>
                     <td className="p-4">
-                      <p className="font-semibold text-white">{p.name}</p>
-                      <p className="text-xs text-gray-500">{p.description || "—"}</p>
+                      <p className="font-semibold text-foreground">{p.name}</p>
+                      <p className="text-xs text-muted-foreground">{p.description || "—"}</p>
                     </td>
                     <td className="p-4">
-                      <p className="font-mono text-gray-300">{p.productCode}</p>
-                      <p className="text-xs text-gray-500 font-mono">HUID: {p.huidNumber || "—"}</p>
+                      <p className="font-mono text-foreground/80">{p.productCode}</p>
+                      <p className="text-xs text-muted-foreground font-mono">HUID: {p.huidNumber || "—"}</p>
                     </td>
                     <td className="p-4">
-                      <span className="inline-block bg-[#1e1e1e] border border-gray-700 text-xs px-2 py-0.5 rounded-md mb-1">{getPurityLabel(p.purity)}</span>
-                      <p className="text-xs text-gray-400">{p.ntWeight}g • {p.gsWeight}g GS</p>
+                      <span className="inline-block bg-card border border-border text-xs px-2 py-0.5 rounded-md mb-1">{getPurityLabel(p.purity)}</span>
+                      <p className="text-xs text-muted-foreground">{p.ntWeight}g • {p.gsWeight}g GS</p>
                     </td>
                     <td className="p-4">
                       {status.label === "Reserved" && p.inventoryLedger && p.inventoryLedger.length > 0 ? (
@@ -275,10 +328,10 @@ export default function SubcategoryDetailPage() {
                                 <span className={`text-xs font-medium ${status.color} underline decoration-dashed underline-offset-2`}>{status.label}</span>
                               </span>
                             </TooltipTrigger>
-                            <TooltipContent className="bg-[#1a1a1a] border border-gray-800 text-gray-200">
+                            <TooltipContent className="bg-onyx-elevated border border-border text-foreground/90">
                               <p className="font-semibold text-yellow-500 mb-1">Reservation Details</p>
-                              <p>Type: <span className="text-white">{p.inventoryLedger[0].refType}</span></p>
-                              {p.inventoryLedger[0].refId && <p>Ref ID: <span className="text-white font-mono">{p.inventoryLedger[0].refId}</span></p>}
+                              <p>Type: <span className="text-foreground">{p.inventoryLedger[0].refType}</span></p>
+                              {p.inventoryLedger[0].refId && <p>Ref ID: <span className="text-foreground font-mono">{p.inventoryLedger[0].refId}</span></p>}
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -291,27 +344,47 @@ export default function SubcategoryDetailPage() {
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex justify-end gap-3 items-center">
-                        <button
-                          onClick={() => { setSelectedProduct(p); setIsModalOpen(true); }}
-                          className="text-gray-500 hover:text-emerald-400 transition-colors inline-flex items-center text-xs"
-                          title="View Details"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        <button
-                          onClick={() => handlePrintBarcode(p)}
-                          className="text-gray-500 hover:text-blue-400 transition-colors inline-flex items-center text-xs"
-                          title="Print Barcode"
-                        >
-                          <Printer size={16} />
-                        </button>
-                        <button
-                          onClick={() => router.push(`/inventory/product/${p.id}`)}
-                          className="text-gray-500 hover:text-yellow-500 transition-colors inline-flex items-center text-xs"
-                          title="Edit Product"
-                        >
-                          <Edit size={16} />
-                        </button>
+                        {isStamping ? (
+                          <button
+                            onClick={() => {
+                              setReceivingProduct(p);
+                              setReceiveForm({
+                                ...receiveForm,
+                                name: p.name || "",
+                                ntWeight: p.ntWeight?.toString() || "",
+                                gsWeight: p.gsWeight?.toString() || "",
+                                purity: p.purity?.toString() || "",
+                              });
+                            }}
+                            className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold text-xs rounded-lg transition-all flex items-center gap-1"
+                          >
+                            <ShieldCheck size={14} /> Receive
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => { setSelectedProduct(p); setIsModalOpen(true); }}
+                              className="text-muted-foreground hover:text-emerald-400 transition-colors inline-flex items-center text-xs"
+                              title="View Details"
+                            >
+                              <Eye size={16} />
+                            </button>
+                            <button
+                              onClick={() => handlePrintBarcode(p)}
+                              className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center text-xs"
+                              title="Print Barcode"
+                            >
+                              <Printer size={16} />
+                            </button>
+                            <button
+                              onClick={() => router.push(`/inventory/product/${p.id}`)}
+                              className="text-muted-foreground hover:text-yellow-500 transition-colors inline-flex items-center text-xs"
+                              title="Edit Product"
+                            >
+                              <Edit size={16} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -322,15 +395,15 @@ export default function SubcategoryDetailPage() {
 
           {/* Pagination */}
           {data && data.totalPages > 0 && (
-            <div className="flex justify-between items-center p-5 border-t border-gray-800/50 text-sm text-gray-400">
+            <div className="flex justify-between items-center p-5 border-t border-border/50 text-sm text-muted-foreground">
               <span>
-                Showing {((data.page - 1) * 10) + 1} to {Math.min(data.page * 10, data.totalCount)} of <strong className="text-white">{data.totalCount}</strong> results
+                Showing {((data.page - 1) * 10) + 1} to {Math.min(data.page * 10, data.totalCount)} of <strong className="text-foreground">{data.totalCount}</strong> results
               </span>
               <div className="flex gap-1">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="w-8 h-8 flex items-center justify-center rounded bg-[#1a1a1a] hover:bg-[#222] disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="w-8 h-8 flex items-center justify-center rounded bg-onyx-elevated hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -338,7 +411,7 @@ export default function SubcategoryDetailPage() {
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`w-8 h-8 flex items-center justify-center rounded text-sm ${page === p ? "bg-yellow-600 text-black font-bold" : "bg-[#1a1a1a] hover:bg-[#222]"}`}
+                    className={`w-8 h-8 flex items-center justify-center rounded text-sm ${page === p ? "bg-yellow-600 text-foreground font-bold" : "bg-onyx-elevated hover:bg-secondary"}`}
                   >
                     {p}
                   </button>
@@ -347,7 +420,7 @@ export default function SubcategoryDetailPage() {
                 {data.totalPages > 5 && (
                   <button
                     onClick={() => setPage(data.totalPages)}
-                    className={`w-8 h-8 flex items-center justify-center rounded text-sm ${page === data.totalPages ? "bg-yellow-600 text-black font-bold" : "bg-[#1a1a1a] hover:bg-[#222]"}`}
+                    className={`w-8 h-8 flex items-center justify-center rounded text-sm ${page === data.totalPages ? "bg-yellow-600 text-foreground font-bold" : "bg-onyx-elevated hover:bg-secondary"}`}
                   >
                     {data.totalPages}
                   </button>
@@ -355,7 +428,7 @@ export default function SubcategoryDetailPage() {
                 <button
                   onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
                   disabled={page >= data.totalPages}
-                  className="w-8 h-8 flex items-center justify-center rounded bg-[#1a1a1a] hover:bg-[#222] disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="w-8 h-8 flex items-center justify-center rounded bg-onyx-elevated hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <ChevronRight size={16} />
                 </button>
@@ -374,6 +447,56 @@ export default function SubcategoryDetailPage() {
           if (selectedProduct) router.push(`/inventory/product/${selectedProduct.id}`);
         }}
       />
+
+      {/* Floating Cart for Stamping Center */}
+      {isUnmarked && cart.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border p-4 flex items-center justify-between shadow-[0_-10px_40px_rgba(0,0,0,0.5)] lg:pl-64">
+          <div>
+            <p className="text-sm text-muted-foreground font-semibold">{cart.length} item(s) selected</p>
+            <p className="text-xs text-muted-foreground">Ready to send to Stamping Center</p>
+          </div>
+          <button
+            onClick={async () => {
+              if (!selectedBranch?.id) return;
+              setIsIssuingToStamping(true);
+              try {
+                await axios.post("/api/inventory/stamping/issue", {
+                  branchId: selectedBranch.id,
+                  productIds: cart.map(c => c.id)
+                });
+                toast.success(`Successfully sent ${cart.length} items to Stamping Center!`);
+                clearCart();
+                fetchData(); // Refresh
+              } catch (error) {
+                toast.error("Failed to send items");
+              } finally {
+                setIsIssuingToStamping(false);
+              }
+            }}
+            disabled={isIssuingToStamping}
+            className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-foreground font-bold text-sm rounded-lg flex items-center gap-2 transition-all disabled:opacity-50"
+          >
+            {isIssuingToStamping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Truck className="w-4 h-4" />}
+            Send to Stamping
+          </button>
+        </div>
+      )}
+
+      {/* RECEIVE STAMPING PRODUCT MODAL */}
+      {isStamping && receivingProduct && (
+        <ReceiveStampingForm
+          open={!!receivingProduct}
+          setOpen={(val) => {
+            if (!val) setReceivingProduct(null);
+          }}
+          branches={[]} // or pass branches if you have them available in this scope
+          stampingProduct={receivingProduct}
+          onSuccess={() => {
+            setReceivingProduct(null);
+            fetchData();
+          }}
+        />
+      )}
     </SidebarProvider>
   );
 }

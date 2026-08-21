@@ -60,7 +60,7 @@ export function ReceiveAdvanceDrawer({ booking, isOpen, onClose, onConfirm }: Re
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Drawer */}
       <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-[480px] bg-onyx-surface border-l border-onyx-border overflow-y-auto">
