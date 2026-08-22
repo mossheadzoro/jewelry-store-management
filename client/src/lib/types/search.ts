@@ -14,7 +14,8 @@ export type SearchEntityType =
   | 'wholesaler'
   | 'scheme'
   | 'huid'
-  | 'advance';
+  | 'advance'
+  | 'rfid';
 
 export type QueryType =
   | 'invoice_number'
@@ -28,6 +29,7 @@ export type QueryType =
   | 'barcode'
   | 'scheme_number'
   | 'advance_receipt'
+  | 'rfid_epc'
   | 'text_search';
 
 export type MatchType = 'exact' | 'prefix' | 'contains' | 'fuzzy';
@@ -150,6 +152,7 @@ export const STAGE_2_ENTITIES: SearchEntityType[] = [
   'scheme',
   'huid',
   'advance',
+  'rfid',
 ];
 
 // --- All searchable entities ---
@@ -170,4 +173,5 @@ export const ENTITY_CONFIG: Record<SearchEntityType, { label: string; pluralLabe
   scheme:     { label: 'Saving Scheme',  pluralLabel: 'Saving Schemes',   icon: '🐷', color: '#FBBF24' },
   huid:       { label: 'HUID',          pluralLabel: 'HUIDs',            icon: '🏷️', color: '#818CF8' },
   advance:    { label: 'Advance',       pluralLabel: 'Advances',         icon: '💰', color: '#4ADE80' },
+  rfid:       { label: 'RFID Tag',      pluralLabel: 'RFID Tags',        icon: '📡', color: '#EAB308' },
 };

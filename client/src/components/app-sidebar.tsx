@@ -21,6 +21,7 @@ import {
   IconSettings,
   IconUsers,
   IconReceiptRefund,
+  IconRadio,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -85,6 +86,11 @@ const data = {
       title: "Saving Schemes",
       url: "/saving-schemes",
       icon: IconPigMoney,
+    },
+    {
+      title: "RFID Hub",
+      url: "/rfid/dashboard",
+      icon: IconRadio,
     },
   ],
   navClouds: [

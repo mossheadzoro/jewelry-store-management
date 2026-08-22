@@ -24,6 +24,8 @@ const PATTERNS: { type: QueryType; regex: RegExp; entities: SearchEntityType[] }
   { type: 'mobile', regex: /^\d{10}$/, entities: ['customer', 'karigar', 'wholesaler'] },
   // HUID: 6 char alphanumeric (hallmark unique ID)
   { type: 'huid', regex: /^[A-Z0-9]{6}$/i, entities: ['product', 'huid'] },
+  // RFID EPC: 16-32 char hex string (often starting with E280 or 3034)
+  { type: 'rfid_epc', regex: /^(E2[0-9A-F]{14,30}|[0-9A-F]{24})$/i, entities: ['rfid', 'product'] },
   // Barcode patterns (product codes often start with letters + digits)
   { type: 'barcode', regex: /^[A-Z]{2,4}-?\d{3,10}$/i, entities: ['product'] },
 ];

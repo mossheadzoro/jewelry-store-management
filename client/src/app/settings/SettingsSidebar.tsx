@@ -6,7 +6,7 @@ import {
   Building2, Users, Package, DollarSign, PiggyBank, 
   TrendingUp, UserSquare2, Boxes, ShoppingCart, Ticket, 
   Bell, Printer, Link, Shield, Database, Palette, 
-  FileText, History, Code, Info 
+  FileText, History, Code, Info, Radio 
 } from "lucide-react";
 
 export const settingsCategories = [
@@ -14,6 +14,7 @@ export const settingsCategories = [
   { id: "users", title: "User & Roles", icon: Users },
   { id: "products", title: "Product Settings", icon: Package },
   { id: "financial", title: "Financial Settings", icon: DollarSign },
+  { id: "rfid", title: "RFID Hardware & Engine", icon: Radio },
   { id: "schemes", title: "Saving Scheme", icon: PiggyBank },
   { id: "gold-rate", title: "Gold Rate Settings", icon: TrendingUp },
   { id: "customers", title: "Customer Settings", icon: UserSquare2 },

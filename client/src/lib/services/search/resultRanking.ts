@@ -16,6 +16,7 @@ const MATCH_TYPE_SCORES: Record<MatchType, number> = {
 const ENTITY_BONUS: Record<SearchEntityType, number> = {
   customer: 50,
   invoice: 40,
+  rfid: 35,
   product: 30,
   order: 25,
   booking: 20,

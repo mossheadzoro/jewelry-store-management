@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Loader2, Plus, Search, ScanLine, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, Search, ScanLine, AlertTriangle, Radio } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
-// Removing AddProductModal from here as it's now meant to be handled in BillingPage or we can leave it here if it's tightly coupled.
-// But wait, ProductSearch has AddProductModal inside it currently. I'll keep it exactly as it was logically, just change the UI.
 import AddProductModal from "./AddProductModal";
+import RFIDBillingScanModal from "./RFIDBillingScanModal";
 
 interface Product {
   id: number;
@@ -38,6 +37,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({ branchId, onSelect, billi
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const [rfidModalOpen, setRfidModalOpen] = useState(false);
 
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
 
@@ -104,6 +104,15 @@ const ProductSearch: React.FC<ProductSearchProps> = ({ branchId, onSelect, billi
           className="flex-1 bg-transparent border-none outline-none text-[#e8e8e8] placeholder-[#666] text-sm md:text-base"
         />
         <div className="flex items-center gap-2 ml-4 border-l border-border pl-4">
+          <button
+            type="button"
+            onClick={() => setRfidModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1 bg-gold/15 hover:bg-gold/25 border border-gold/30 text-gold rounded-full text-xs font-semibold transition-colors cursor-pointer"
+            title="Scan items on RFID counter pad"
+          >
+            <Radio className="w-3.5 h-3.5 animate-pulse" />
+            <span>RFID Tray</span>
+          </button>
           {loading ? (
              <Loader2 className="animate-spin w-4 h-4 text-[#888]" />
           ) : (
@@ -112,6 +121,15 @@ const ProductSearch: React.FC<ProductSearchProps> = ({ branchId, onSelect, billi
           <span className="text-[#888] text-sm font-medium tracking-wide">Find</span>
         </div>
       </div>
+
+      <RFIDBillingScanModal
+        open={rfidModalOpen}
+        onOpenChange={setRfidModalOpen}
+        branchId={branchId}
+        onAddProducts={(items) => {
+          items.forEach((p) => onSelect(p));
+        }}
+      />
 
       {/* DROPDOWN SEARCH RESULTS */}
       {results.length > 0 && (

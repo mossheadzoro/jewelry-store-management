@@ -364,3 +364,41 @@ export function buildAdvanceResult(
     score: calculateScore(matchType, 'advance', raw.createdAt, raw.moneyAmount),
   };
 }
+
+export function buildRfidTagResult(
+  raw: any,
+  matchType: MatchType,
+  branchName: string = '',
+): SearchResultDTO {
+  const item = raw.productItem;
+  const status = raw.status || 'UNASSIGNED';
+
+  return {
+    id: raw.id,
+    entityType: 'rfid',
+    title: raw.epc,
+    subtitle: item ? `${item.name} (${item.productCode})` : 'Unassigned Tag',
+    description: [
+      item?.subCategory?.category?.name,
+      raw.currentZone?.name ? `Zone: ${raw.currentZone.name}` : null,
+      raw.lastSeenAt ? `Last Seen: ${new Date(raw.lastSeenAt).toLocaleDateString('en-IN')}` : null,
+    ].filter(Boolean).join(' · '),
+    badges: [
+      {
+        label: status,
+        variant: status === 'ACTIVE' ? ('success' as const) : status === 'SUSPENDED' ? ('warning' as const) : ('outline' as const),
+      },
+    ],
+    metrics: [
+      { label: 'Status', value: status },
+      { label: 'RSSI', value: raw.lastRssi ? `${raw.lastRssi} dBm` : '—' },
+      { label: 'Zone', value: raw.currentZone?.name || 'Showroom' },
+    ],
+    branchName,
+    branchId: raw.branchId,
+    navigationUrl: `/rfid/tags`,
+    matchType,
+    score: calculateScore(matchType, 'product', raw.createdAt),
+  };
+}
+

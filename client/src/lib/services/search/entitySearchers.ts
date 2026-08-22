@@ -21,6 +21,7 @@ import {
   buildSchemeResult,
   buildHuidResult,
   buildAdvanceResult,
+  buildRfidTagResult,
 } from './searchResultBuilder';
 
 // Utility: get branch name map for display
@@ -492,3 +493,45 @@ export async function searchAdvances(
     return buildAdvanceResult(r, mt);
   });
 }
+
+export async function searchRfidTags(
+  query: string,
+  scope: SearchPermissionScope,
+  limit: number = 5,
+): Promise<SearchResultDTO[]> {
+  const branchMap = await branchNameMap();
+  const where: any = {
+    OR: [
+      { epc: { contains: query, mode: 'insensitive' } },
+      { tid: { contains: query, mode: 'insensitive' } },
+      { productItem: { name: { contains: query, mode: 'insensitive' } } },
+      { productItem: { productCode: { contains: query, mode: 'insensitive' } } },
+      { productItem: { barcode: { contains: query, mode: 'insensitive' } } },
+      { productItem: { huidNumber: { contains: query, mode: 'insensitive' } } },
+    ],
+  };
+
+  if (!scope.isGlobal && scope.branchIds.length > 0) {
+    where.branchId = { in: scope.branchIds };
+  }
+
+  const results = await prisma.rFIDTag.findMany({
+    where,
+    include: {
+      productItem: {
+        include: {
+          subCategory: { include: { category: true } },
+        },
+      },
+      currentZone: true,
+    },
+    take: limit,
+    orderBy: { updatedAt: 'desc' },
+  });
+
+  return results.map((r: any) => {
+    const mt = determineMatchType(query, r.epc);
+    return buildRfidTagResult(r, mt, branchMap[r.branchId] || '');
+  });
+}
+

@@ -30,6 +30,7 @@ import {
   searchSchemes,
   searchHuids,
   searchAdvances,
+  searchRfidTags,
 } from './entitySearchers';
 
 // Map entity types to their searcher functions
@@ -44,6 +45,7 @@ const SEARCHER_MAP: Record<SearchEntityType, (query: string, scope: any, limit: 
   scheme: searchSchemes,
   huid: searchHuids,
   advance: searchAdvances,
+  rfid: searchRfidTags,
 };
 
 export async function search(request: SearchRequest): Promise<SearchResponse> {

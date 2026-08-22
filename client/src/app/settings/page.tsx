@@ -19,6 +19,7 @@ import PrintingSettingsPanel from "./panels/PrintingSettingsPanel";
 
 import IntegrationSettingsPanel from "./panels/IntegrationSettingsPanel";
 import AppearanceSettingsPanel from "./panels/AppearanceSettingsPanel";
+import RFIDSettingsClient from "@/components/RFID/RFIDSettingsClient";
 
 export default function SettingsPage() {
   const [activeCategoryId, setActiveCategoryId] = useState(settingsCategories[0].id);
@@ -34,6 +35,8 @@ export default function SettingsPage() {
         return <ProductSettingsPanel />;
       case "financial":
         return <FinancialSettingsPanel />;
+      case "rfid":
+        return <RFIDSettingsClient />;
       case "schemes":
         return <SavingSchemeSettingsPanel />;
       case "gold-rate":

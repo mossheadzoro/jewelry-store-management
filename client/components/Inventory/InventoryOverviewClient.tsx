@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, Minus, ArrowUpRight, ArrowDownLeft, Hash, Gem, CircleDollarSign, Diamond } from "lucide-react";
+import { Search, Plus, Minus, ArrowUpRight, ArrowDownLeft, Hash, Gem, CircleDollarSign, Diamond, Radio } from "lucide-react";
 import { useBranchStore } from "@/lib/store/useBranchStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -132,12 +132,17 @@ export default function InventoryClient() {
         </div>
         <div className="flex gap-3">
           <button
+            onClick={() => router.push("/rfid/dashboard")}
+            className="flex items-center gap-2 bg-gold/15 hover:bg-gold/25 border border-gold/40 text-gold font-semibold px-5 py-3 rounded-2xl text-sm transition-colors cursor-pointer shadow-sm"
+          >
+            <Radio size={18} className="animate-pulse" /> RFID HUB
+          </button>
+          <button
             onClick={() => setAddCategoryOpen(true)}
             className="flex items-center gap-2 bg-secondary hover:bg-secondary border border-[#444] text-foreground font-semibold px-6 py-3 rounded-2xl text-sm transition-colors"
           >
             <Plus size={18} /> ADD NEW CATEGORY
           </button>
-
         </div>
       </div>
 
