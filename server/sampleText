@@ -1,0 +1,56 @@
+Test 1: Enroll in 2FA & Save Backup Recovery Codes
+Open your browser and go to http://localhost:3000/settings?tab=security.
+Click the "My TOTP & Recovery Codes" tab.
+Click the gold "Setup Authenticator App" button:
+Step 1: Enter your current account password to authorize setup.
+Step 2: Scan the displayed QR Code with Google Authenticator, Microsoft Authenticator, or 1Password on your phone (or copy the manual key).
+Step 3: Enter the 6-digit code from your phone and click "Verify & Activate".
+You will see your 10 Emergency Backup Recovery Codes (e.g. 1E67-1707-7958):
+Click "Copy All" or "Download" to save them.
+Test 2: Test 2FA & Emergency Recovery Login
+Sign out or open an Incognito window and go to http://localhost:3000/login.
+Enter your Email and Password and click "Sign In to Dashboard".
+2FA Challenge Screen:
+The screen will automatically prompt you for your 6-Digit Passcode.
+Enter the current 6-digit code from your phone authenticator → You will be logged in immediately.
+Testing Emergency Backup Code:
+Sign out and sign in again.
+On the 2FA screen, click "Use Backup Recovery Code".
+Enter one of your saved 12-character recovery codes (e.g. XXXX-XXXX-XXXX) → You will be logged in, and that single code is marked as consumed.
+Test 3: Test Role-Based 2FA Matrix & Security Policies
+Go to http://localhost:3000/settings?tab=security → "2FA Policy & RBAC Grid".
+Customize policy enforcement per role:
+Set Administrator to Mandatory (Required).
+Set Sales Staff to Optional (User Decides) or Disabled.
+Click "Save Policies" at the top right.
+Test 4: Test Branch IP Whitelisting & Emergency Lockout Shield
+Go to http://localhost:3000/settings?tab=security → "Branch IP Whitelist".
+Notice your Current IP is detected and shows a green "Permitted Connection" badge.
+Click "Add IP / CIDR Rule":
+Enter an IP address or subnet (e.g. 103.25.10.0/24 or your office static IP).
+Assign to a specific Branch or All Branches.
+Click "Save Allowed Rule".
+Emergency Lockout Test:
+Try setting enforcement to Restrict All Employees and deleting the only active rule that covers your current IP.
+The system will block the action with: "Emergency Lockout Protection: Removing this rule will lock your current IP address out of the ERP."
+Test 5: Test Google reCAPTCHA v3 (External Integrations)
+Go to http://localhost:3000/settings?tab=integrations → click "2FA & Security".
+Enter your Google reCAPTCHA v3 Site Key and Secret Key.
+Click "Test Connection":
+It will perform a live verification against Google's servers and display latency & status.
+Click "Save Credentials".
+Test 6: Test Active Sessions & Security Audit Logs
+Go to http://localhost:3000/settings?tab=security → "Active Sessions & Devices":
+View your active login session with browser, OS, IP address, and last active timestamp.
+Click "Revoke" to remotely sign out any session.
+Go to "Security Audit Logs":
+See an append-only log of recent events (LOGIN_SUCCESS, 2FA_ENABLED, 2FA_VERIFICATION_SUCCESS, SECURITY_POLICY_CHANGED).
+Use the search bar or event dropdown to filter logs.
+Test 7: Test Email Sender Name & BIS Hallmarked Signature
+Go to http://localhost:3000/settings?tab=business (or Branch Settings) and update your Shop Name (e.g. Royal Heritage Jewels).
+Go to http://localhost:3000/settings?tab=integrations → "Email Service".
+Click "Send Test Email" to dasankandura@gmail.com.
+Open your email inbox and verify:
+Sender Name: Displays Royal Heritage Jewels.
+System Branding: Displays MOUAL ERP Software.
+Footer: Displays Thank you for choosing Royal Jewels. All jewellery is 100% BIS Hallmarked. © 2026 MOUAL ERP Software.

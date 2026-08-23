@@ -1,67 +1,47 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
+// client/src/app/api/upload/productImage/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import cloudinary from "@/lib/cloudinary";
+import { writeFile } from "fs/promises";
+import path from "path";
+import os from "os";
 
-let r2: S3Client | null = null;
-if (process.env.R2_ENDPOINT && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY) {
-  r2 = new S3Client({
-    region: 'auto',
-    endpoint: process.env.R2_ENDPOINT,
-    credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-    },
-  });
-}
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get("file") as File;
+    const folder = (formData.get("folder") as string) || "products";
 
-    if (!file || typeof file === 'string') {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    if (!file || typeof file === "string") {
+      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    const ext = (file.name || 'captured_image.png').split('.').pop() || 'png';
-    const randomHex = crypto.randomBytes(16).toString('hex');
-    const filename = `${randomHex}.${ext}`;
-    const key = `products/${filename}`;
+    // Temporary file path for Cloudinary upload
+    const tempDir = os.tmpdir();
+    const tempFilePath = path.join(tempDir, `${Date.now()}_${file.name || "product_image.png"}`);
 
-    // 1. Save to local public/uploads/products/ so browser can always render /uploads/products/filename
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'products');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
+    await writeFile(tempFilePath, buffer);
 
-    const filePath = path.join(uploadsDir, filename);
-    fs.writeFileSync(filePath, buffer);
-    const localUrl = `/uploads/products/${filename}`;
+    // Upload directly to Cloudinary
+    const upload = await cloudinary.uploader.upload(tempFilePath, {
+      folder: folder,
+      resource_type: "image",
+    });
 
-    // 2. Also sync to Cloudflare R2 if configured
-    if (r2 && process.env.R2_BUCKET_NAME) {
-      try {
-        const command = new PutObjectCommand({
-          Bucket: process.env.R2_BUCKET_NAME,
-          Key: key,
-          Body: buffer,
-          ContentType: file.type || 'image/png',
-        });
-        await r2.send(command);
-      } catch (r2Err) {
-        console.warn('R2 Upload skipped/failed, using local URL:', r2Err);
-      }
-    }
-
-    return NextResponse.json({ imageUrl: localUrl });
-
+    return NextResponse.json({
+      imageUrl: upload.secure_url,
+      url: upload.secure_url,
+      public_id: upload.public_id,
+    });
   } catch (error: any) {
-    console.error('Image upload failed:', error);
-    return NextResponse.json({ error: error.message || 'Failed to process image upload' }, { status: 500 });
+    console.error("Cloudinary product image upload failed:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to process image upload to Cloudinary" },
+      { status: 500 }
+    );
   }
 }

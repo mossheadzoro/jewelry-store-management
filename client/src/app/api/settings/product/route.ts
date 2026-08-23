@@ -118,6 +118,32 @@ export async function PUT(req: NextRequest) {
       });
     }
 
+    // Record Audit Event
+    try {
+      const { AuditLogService } = await import("@/lib/audit/AuditLogService");
+      const isGoldRate = goldRateConfig !== undefined;
+      await AuditLogService.recordBusinessEvent({
+        req,
+        module: isGoldRate ? "METAL" : "SETTINGS",
+        action: isGoldRate ? "METAL.RATE_CHANGED" : "SETTINGS.SETTINGS_UPDATED",
+        entityType: isGoldRate ? "GOLD_RATE_CONFIG" : "PRODUCT_SETTINGS",
+        entityId: String(branchId),
+        entityDisplayName: isGoldRate ? "Gold Rate Settings" : "Product Settings",
+        description: isGoldRate
+          ? `Updated gold rate configuration for branch #${branchId}`
+          : `Updated product settings for branch #${branchId}`,
+        after: updateData,
+        context: {
+          branchId,
+          userId: session.user.id ? parseInt(session.user.id, 10) : undefined,
+          userNameSnapshot: session.user.name || undefined,
+          roleSnapshot: session.user.role || undefined,
+        },
+      });
+    } catch (auditErr) {
+      console.error("Audit log failed in product settings:", auditErr);
+    }
+
     return NextResponse.json(settings);
   } catch (error) {
     console.error("Failed to update product settings:", error);

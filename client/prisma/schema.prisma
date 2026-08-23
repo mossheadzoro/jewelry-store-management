@@ -153,6 +153,10 @@ model User {
   rfidExceptionsAuthorized RFIDException[]    @relation("ExceptionAuthorizedBy")
   rfidAssignmentsPerformed RFIDAssignmentHistory[] @relation("AssignmentPerformedBy")
   rfidAssignmentsAuthorized RFIDAssignmentHistory[] @relation("AssignmentAuthorizedBy")
+  backupsCreated           BackupRecord[]         @relation("BackupCreatedBy")
+  restoresRequested        RestoreAudit[]         @relation("RestoreRequestedBy")
+  restoresAuthorized       RestoreAudit[]         @relation("RestoreAuthorizedBy")
+  userSecurity             UserSecurity?
 
   @@index([branchId])
   @@index([createdById])
@@ -2214,4 +2218,585 @@ model RFIDSettings {
 
   branch                         Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
 }
+
+// ==========================================
+// BACKUP & RESTORE SUBSYSTEM MODELS
+// ==========================================
+
+enum BackupType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  MANUAL
+  PRE_RESTORE_SAFETY
+  PRE_MIGRATION
+}
+
+enum BackupStatus {
+  QUEUED
+  RUNNING
+  COMPRESSING
+  ENCRYPTING
+  UPLOADING
+  VERIFYING
+  VERIFIED
+  FAILED
+  EXPIRED
+  RESTORING
+  RESTORED
+}
+
+enum BackupStorageType {
+  R2
+  S3_COMPATIBLE
+  AWS_S3
+  LOCAL_STORAGE
+}
+
+model BackupRecord {
+  id                      String            @id @default(cuid())
+  backupId                String            @unique // Human-friendly e.g. BKP-20260822-0100-XYZ
+  type                    BackupType        @default(MANUAL)
+  status                  BackupStatus      @default(QUEUED)
+  
+  startedAt               DateTime?
+  completedAt             DateTime?
+  durationMs              Int?
+
+  databaseProvider        String            @default("PostgreSQL")
+  databaseName            String?
+  
+  applicationVersion      String            @default("v1.0.0")
+  prismaVersion           String?
+  latestMigration         String?
+  tablesCount             Int?
+  recordsCount            Int?
+
+  fileName                String
+  storageProvider         BackupStorageType @default(R2)
+  storageBucket           String
+  storageKey              String
+
+  rawSize                 BigInt?           // Uncompressed size
+  fileSize                BigInt            // Encrypted compressed size
+  checksum                String            // SHA-256
+  checksumAlgorithm       String            @default("SHA-256")
+  
+  isEncrypted             Boolean           @default(true)
+  encryptionAlgorithm     String            @default("AES-256-GCM")
+  
+  isVerified              Boolean           @default(false)
+  verificationStartedAt   DateTime?
+  verificationCompletedAt DateTime?
+  restoreTestedAt         DateTime?
+  restoreTestPassed       Boolean?
+
+  errorMessage            String?
+  errorDetails            Json?
+  retryCount              Int               @default(0)
+
+  createdById             Int?
+  createdBy               User?             @relation("BackupCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  
+  events                  Json?             // Array of timeline events [{timestamp, stage, message}]
+  metadata                Json?             // Additional metadata (table counts, schema checksums, etc.)
+
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+
+  restoreAudits           RestoreAudit[]
+
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@index([isVerified])
+}
+
+model BackupSettings {
+  id                             Int       @id @default(1)
+  enabled                        Boolean   @default(true)
+  frequency                      String    @default("DAILY") // DAILY, HOURLY, WEEKLY
+  scheduleTime                   String    @default("01:00") // HH:MM
+  timezone                       String    @default("Asia/Kolkata")
+  
+  retentionDaily                 Int       @default(30)
+  retentionWeekly                Int       @default(12)
+  retentionMonthly               Int       @default(12)
+  
+  storageProvider                String    @default("r2")
+  storageBucket                  String?
+  
+  // Cloudflare R2 Credentials & Storage Config
+  r2AccountId                    String?
+  r2BucketName                   String?   @default("moual-backup")
+  r2Endpoint                     String?
+  r2AccessKeyId                  String?
+  r2SecretAccessKey              String?
+  r2Region                       String?   @default("auto")
+  
+  // Local OS Filesystem Storage Config
+  localBackupPath                String?   @default("/MoualDB-Backups")
+  saveLocalCopy                  Boolean   @default(true)
+  
+  // Connection status & telemetry
+  r2Connected                    Boolean   @default(false)
+  r2LastTestedAt                 DateTime?
+  r2LatencyMs                    Int?
+  
+  requirePreRestoreBackup        Boolean   @default(true)
+  require2FAForRestore           Boolean   @default(true)
+  maintenanceModeDuringRestore   Boolean   @default(true)
+  
+  lastSuccessfulBackupAt         DateTime?
+  lastVerifiedBackupAt           DateTime?
+  nextScheduledBackupAt          DateTime?
+  
+  createdAt                      DateTime  @default(now())
+  updatedAt                      DateTime  @updatedAt
+}
+
+model RestoreAudit {
+  id                     String        @id @default(cuid())
+  restoreId              String        @unique // RESTORE-20260822-XYZ
+  backupRecordId         String
+  backupRecord           BackupRecord  @relation(fields: [backupRecordId], references: [id], onDelete: Cascade)
+  
+  targetDatabaseType     String        // TEMPORARY, PRODUCTION
+  status                 String        // REQUESTED, PREVIEW_PASSED, PREVIEW_FAILED, IN_PROGRESS, COMPLETED, FAILED, ROLLED_BACK
+  
+  isDryRun               Boolean       @default(false)
+  preRestoreBackupId     String?       // ID of safety backup taken before production restore
+  
+  migrationCompatibility Json?         // { backupMigration, currentMigration, compatible, warnings }
+  validationResults      Json?         // { connectionPassed, tablesPassed, constraintsPassed, recordCounts }
+  
+  startedAt              DateTime      @default(now())
+  completedAt            DateTime?
+  durationMs             Int?
+  
+  requestedById          Int
+  requestedBy            User          @relation("RestoreRequestedBy", fields: [requestedById], references: [id])
+  authorizedById         Int?
+  authorizedBy           User?         @relation("RestoreAuthorizedBy", fields: [authorizedById], references: [id])
+  
+  errorMessage           String?
+  logs                   Json?
+  
+  createdAt              DateTime      @default(now())
+
+  @@index([backupRecordId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SystemMaintenanceState {
+  id            Int       @id @default(1)
+  isMaintenance Boolean   @default(false)
+  reason        String?
+  startedAt     DateTime?
+  startedById   Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ==========================================
+// MULTI-PROVIDER TENANT-AWARE EMAIL SYSTEM
+// ==========================================
+
+model EmailSettings {
+  id                        String    @id @default(cuid())
+  tenantId                  String    @default("default-tenant")
+  branchId                  Int?      // null = global tenant default, number = branch specific override
+  isInherited               Boolean   @default(true)
+  
+  // Provider Selection
+  provider                  String    @default("ERP_MANAGED") // ERP_MANAGED, CUSTOM_SMTP, BREVO, RESEND, SES, GWORKSPACE, M365
+  
+  // Custom SMTP Configuration (AES-256-GCM Encrypted)
+  smtpHost                  String?
+  smtpPort                  Int?      @default(587)
+  smtpEncryption            String?   @default("STARTTLS") // STARTTLS, SSL, NONE
+  smtpUsername              String?
+  smtpPasswordEncrypted     String?
+  
+  // Direct Provider API Configuration (Optional)
+  providerApiKeyEncrypted   String?
+  
+  // Sender Identity & Branding
+  senderName                String?   @default("Jewellery ERP")
+  senderEmail               String?   @default("no-reply@jewelleryerp.com")
+  replyTo                   String?
+  companyLogoUrl            String?
+  emailSignature            String?
+  businessAddress           String?
+  phone                     String?
+  website                   String?
+  gstin                     String?
+  
+  // Auto Dispatch Preferences (Categorized JSON)
+  dispatchPreferences       Json?
+  
+  // Usage & Quota Telemetry
+  monthlyLimit              Int       @default(5000)
+  monthlyUsage              Int       @default(0)
+  
+  // Verification State
+  lastVerifiedAt            DateTime?
+  verificationStatus        String?   @default("PENDING") // VERIFIED, FAILED, PENDING
+  verificationError         String?
+  latencyMs                 Int?
+  
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@unique([tenantId, branchId])
+  @@index([tenantId])
+  @@index([branchId])
+}
+
+model EmailJob {
+  id                 String    @id @default(cuid())
+  tenantId           String    @default("default-tenant")
+  branchId           Int?
+  
+  recipient          String
+  cc                 String?
+  bcc                String?
+  templateId         String?
+  subject            String
+  bodyHtml           String?   @db.Text
+  bodyText           String?   @db.Text
+  attachments        Json?
+  payload            Json?
+  
+  provider           String    // ERP_MANAGED, CUSTOM_SMTP, etc.
+  status             String    @default("QUEUED") // QUEUED, SENDING, SENT, DELIVERED, FAILED, BOUNCED, CANCELLED
+  attempts           Int       @default(0)
+  maxAttempts        Int       @default(3)
+  
+  scheduledAt        DateTime  @default(now())
+  sentAt             DateTime?
+  deliveredAt        DateTime?
+  failedAt           DateTime?
+  
+  errorCode          String?
+  errorMessage       String?
+  providerMessageId  String?
+  
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([createdAt])
+}
+
+model EmailAuditLog {
+  id                 String    @id @default(cuid())
+  tenantId           String    @default("default-tenant")
+  branchId           Int?
+  userId             Int?
+  userEmail          String?
+  action             String    // CONFIG_UPDATED, CREDENTIAL_REPLACED, TEST_EMAIL_SENT, PROVIDER_CHANGED, ALL_BRANCHES_APPLIED
+  details            Json?
+  ipAddress          String?
+  createdAt          DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([createdAt])
+}
+
+// ==========================================
+// ENTERPRISE 2FA & SECURITY ACCESS CONTROL
+// ==========================================
+
+model UserSecurity {
+  id                        String    @id @default(cuid())
+  tenantId                  String    @default("default-tenant")
+  userId                    Int       @unique
+  twoFactorEnabled          Boolean   @default(false)
+  twoFactorMethod           String    @default("TOTP") // TOTP, SMS_DLT
+  totpSecretEncrypted       String?
+  totpEnabledAt             DateTime?
+  failedTwoFactorAttempts   Int       @default(0)
+  lockedUntil               DateTime?
+  lastTwoFactorVerifiedAt   DateTime?
+  
+  user                      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model RecoveryCode {
+  id                 String    @id @default(cuid())
+  tenantId           String    @default("default-tenant")
+  userId             Int
+  codeHash           String
+  used               Boolean   @default(false)
+  usedAt             DateTime?
+  createdAt          DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([used])
+}
+
+model TenantSecurityPolicy {
+  id                                  String    @id @default(cuid())
+  tenantId                            String    @unique @default("default-tenant")
+  
+  // 2FA Policies
+  twoFactorEnabled                    Boolean   @default(false)
+  allowUserDisable2FA                 Boolean   @default(true)
+  require2FAAfterPasswordReset        Boolean   @default(true)
+  require2FAForNewDevices             Boolean   @default(false)
+  rememberTrustedDevice               Boolean   @default(true)
+  trustedDeviceDurationDays           Int       @default(30)
+  twoFactorRoles                      Json?     // Map of Role => "REQUIRED" | "OPTIONAL" | "DISABLED"
+  requireEnrollmentAfterFirstLogin    Boolean   @default(false)
+  enrollmentGracePeriodHours          Int       @default(24)
+  blockAccessUntilEnrolled            Boolean   @default(false)
+  
+  // TOTP Configuration
+  totpIssuer                          String    @default("MOUAL ERP")
+  totpAlgorithm                       String    @default("SHA-1")
+  totpDigits                          Int       @default(6)
+  totpPeriod                          Int       @default(30)
+  totpTolerance                       Int       @default(1)
+  
+  // reCAPTCHA Policies
+  recaptchaEnabled                    Boolean   @default(false)
+  recaptchaActions                    Json?     // { login: true, passwordReset: true, recovery: true }
+  recaptchaLoginThreshold             Float     @default(0.50)
+  recaptchaPasswordResetThreshold     Float     @default(0.70)
+  recaptchaRecoveryThreshold          Float     @default(0.80)
+  
+  // IP Whitelisting Policies
+  ipWhitelistEnabled                  Boolean   @default(false)
+  ipWhitelistMode                     String    @default("MONITOR_ONLY") // DISABLED, MONITOR_ONLY, RESTRICT_ADMIN_MANAGER, RESTRICT_ALL
+  
+  // Login & Lockout Protection
+  maxLoginAttempts                    Int       @default(5)
+  lockoutDurationMinutes              Int       @default(15)
+  progressiveLockout                  Boolean   @default(true)
+  rateLimitLogin                      Boolean   @default(true)
+  rateLimitPasswordReset              Boolean   @default(true)
+  rateLimit2FA                        Boolean   @default(true)
+  notifyAdminOnSuspiciousLogin        Boolean   @default(true)
+  
+  // Session Security
+  sessionTimeoutMinutes               Int       @default(480) // 8 hours
+  idleTimeoutMinutes                  Int       @default(30)
+  maxConcurrentSessions               Int       @default(5)
+  requireStepUpAuth                   Boolean   @default(true)
+  invalidateSessionsOnPasswordChange  Boolean   @default(true)
+  invalidateSessionsOn2FAReset        Boolean   @default(true)
+  
+  createdAt                           DateTime  @default(now())
+  updatedAt                           DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+model SecurityIntegrationConfig {
+  id                          String    @id @default(cuid())
+  tenantId                    String    @unique @default("default-tenant")
+  
+  // Google reCAPTCHA v3 Credentials (Encrypted Secret)
+  recaptchaSiteKey            String?
+  recaptchaSecretKeyEncrypted String?
+  recaptchaEnvironment        String    @default("PRODUCTION") // PRODUCTION, TEST
+  recaptchaStatus             String    @default("NOT_CONFIGURED") // CONNECTED, NOT_CONFIGURED, ERROR
+  recaptchaLastTestedAt       DateTime?
+  
+  // IP Security & Proxy Setup
+  ipDetectionMode             String    @default("AUTO") // AUTO, DIRECT, REVERSE_PROXY
+  trustedProxies              String[]  @default([])
+  proxyHeader                 String    @default("AUTO") // AUTO, X-Forwarded-For, CF-Connecting-IP, X-Real-IP
+  
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+model IpWhitelistRule {
+  id                 String    @id @default(cuid())
+  tenantId           String    @default("default-tenant")
+  branchId           Int?
+  ipCidr             String
+  description        String
+  status             String    @default("ACTIVE") // ACTIVE, DISABLED
+  appliesToRoles     String[]  @default([]) // Empty = all roles
+  createdById        Int?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([status])
+}
+
+model SecurityAuditLog {
+  id                 String    @id @default(cuid())
+  tenantId           String    @default("default-tenant")
+  userId             Int?
+  userEmail          String?
+  branchId           Int?
+  eventType          String    // LOGIN_SUCCESS, LOGIN_FAILED, LOGIN_BLOCKED, 2FA_ENABLED, IP_BLOCKED, etc.
+  action             String
+  success            Boolean
+  ipAddress          String?
+  userAgent          String?
+  reason             String?
+  metadata           Json?
+  createdAt          DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([createdAt])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, userId, createdAt])
+  @@index([tenantId, eventType, createdAt])
+}
+
+model UserSessionRecord {
+  id                 String    @id @default(cuid())
+  tenantId           String    @default("default-tenant")
+  userId             Int
+  sessionTokenHash   String    @unique
+  device             String?
+  browser            String?
+  os                 String?
+  ipAddress          String?
+  location           String?
+  lastActiveAt       DateTime  @default(now())
+  expiresAt          DateTime
+  isRevoked          Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([isRevoked])
+}
+
+model TrustedDevice {
+  id                 String    @id @default(cuid())
+  tenantId           String    @default("default-tenant")
+  userId             Int
+  deviceTokenHash    String    @unique
+  deviceName         String
+  browser            String?
+  ipAddress          String?
+  lastUsedAt         DateTime  @default(now())
+  expiresAt          DateTime
+  createdAt          DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model SecurityChallenge {
+  id                 String    @id @default(cuid())
+  challengeToken     String    @unique
+  tenantId           String    @default("default-tenant")
+  userId             Int
+  purpose            String    @default("2FA_LOGIN") // 2FA_LOGIN, STEP_UP
+  expiresAt          DateTime
+  used               Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([challengeToken])
+  @@index([used])
+}
+
+// ==========================================
+// ENTERPRISE AUDIT & ACTIVITY TRACKING
+// ==========================================
+
+model EnterpriseAuditLog {
+  id                     String    @id @default(cuid())
+  tenantId               String    @default("default-tenant")
+  userId                 Int?
+  userNameSnapshot       String?
+  roleSnapshot           String?
+  branchId               Int?
+  branchNameSnapshot     String?
+  module                 String    // BILLING, INVENTORY, METAL, PAYMENTS, USERS, SECURITY, SETTINGS, etc.
+  action                 String    // BILLING.INVOICE_CREATED, INVENTORY.STOCK_ADJUSTED, etc.
+  entityType             String?   // INVOICE, PRODUCT, METAL_EXCHANGE, USER, etc.
+  entityId               String?
+  entityDisplayName      String?
+  description            String?
+  before                 Json?
+  after                  Json?
+  changedFields          String[]  @default([])
+  reason                 String?
+  approvalId             String?
+  approvedById           Int?
+  approvedByNameSnapshot String?
+  ipAddress              String?
+  userAgent              String?
+  deviceInfo             String?
+  requestId              String?
+  correlationId          String?
+  status                 String    @default("SUCCESS") // SUCCESS, FAILED, BLOCKED, DENIED, PENDING
+  failureReason          String?
+  severity               String    @default("INFO")    // INFO, LOW, MEDIUM, HIGH, CRITICAL
+  isSecurityEvent        Boolean   @default(false)
+  metadata               Json?
+  createdAt              DateTime  @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, userId, createdAt])
+  @@index([tenantId, module, createdAt])
+  @@index([tenantId, action, createdAt])
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, branchId, createdAt])
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, severity, createdAt])
+  @@index([tenantId, ipAddress, createdAt])
+  @@index([tenantId, correlationId])
+}
+
+model TechnicalRequestLog {
+  id                     String    @id @default(cuid())
+  tenantId               String    @default("default-tenant")
+  requestId              String
+  method                 String
+  route                  String
+  statusCode             Int
+  responseTimeMs         Int
+  ipAddress              String?
+  userId                 Int?
+  userNameSnapshot       String?
+  userAgent              String?
+  createdAt              DateTime  @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, route, createdAt])
+  @@index([tenantId, statusCode, createdAt])
+  @@index([tenantId, userId, createdAt])
+}
+
+model AuditRetentionPolicy {
+  id                        String    @id @default(cuid())
+  tenantId                  String    @unique @default("default-tenant")
+  businessLogRetentionDays  Int       @default(365)
+  technicalLogRetentionDays Int       @default(30)
+  autoArchiveEnabled        Boolean   @default(false)
+  highRiskAlertEmail        String?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+
+
 

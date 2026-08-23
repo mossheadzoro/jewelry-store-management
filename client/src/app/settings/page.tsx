@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { SettingsSidebar, settingsCategories } from "./SettingsSidebar";
 
-// Placeholder imports for panels
+// Panel imports
 import BusinessSettingsPanel from "./panels/BusinessSettingsPanel";
 import FinancialSettingsPanel from "./panels/FinancialSettingsPanel";
 import GoldRateSettingsPanel from "./panels/GoldRateSettingsPanel";
@@ -16,13 +17,37 @@ import CustomerSettingsPanel from "./panels/CustomerSettingsPanel";
 import InventorySettingsPanel from "./panels/InventorySettingsPanel";
 import OrderBookSettingsPanel from "./panels/OrderBookSettingsPanel";
 import PrintingSettingsPanel from "./panels/PrintingSettingsPanel";
-
 import IntegrationSettingsPanel from "./panels/IntegrationSettingsPanel";
 import AppearanceSettingsPanel from "./panels/AppearanceSettingsPanel";
 import RFIDSettingsClient from "@/components/RFID/RFIDSettingsClient";
+import BackupSettingsPanel from "./panels/BackupSettingsPanel";
+import NotificationSettingsPanel from "./panels/NotificationSettingsPanel";
+import SecuritySettingsPanel from "./panels/SecuritySettingsPanel";
+import AuditLogsSettingsPanel from "./panels/AuditLogsSettingsPanel";
 
-export default function SettingsPage() {
-  const [activeCategoryId, setActiveCategoryId] = useState(settingsCategories[0].id);
+function SettingsContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const tabParam = searchParams.get("tab");
+  const initialCategory =
+    tabParam && settingsCategories.some((c) => c.id === tabParam)
+      ? tabParam
+      : settingsCategories[0].id;
+
+  const [activeCategoryId, setActiveCategoryId] = useState(initialCategory);
+
+  // Sync state if URL query param changes
+  useEffect(() => {
+    if (tabParam && settingsCategories.some((c) => c.id === tabParam)) {
+      setActiveCategoryId(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleSelectCategory = (id: string) => {
+    setActiveCategoryId(id);
+    router.replace(`/settings?tab=${id}`, { scroll: false });
+  };
 
   // Render the selected content
   const renderPanel = () => {
@@ -37,6 +62,8 @@ export default function SettingsPage() {
         return <FinancialSettingsPanel />;
       case "rfid":
         return <RFIDSettingsClient />;
+      case "backup":
+        return <BackupSettingsPanel />;
       case "schemes":
         return <SavingSchemeSettingsPanel />;
       case "gold-rate":
@@ -47,15 +74,20 @@ export default function SettingsPage() {
         return <InventorySettingsPanel />;
       case "order-book":
         return <OrderBookSettingsPanel />;
+      case "notifications":
+        return <NotificationSettingsPanel />;
       case "printing":
         return <PrintingSettingsPanel />;
       case "integrations":
         return <IntegrationSettingsPanel />;
+      case "security":
+        return <SecuritySettingsPanel />;
+      case "audit":
+        return <AuditLogsSettingsPanel />;
       case "appearance":
         return <AppearanceSettingsPanel />;
       default:
-        // Generic Placeholder
-        const category = settingsCategories.find(c => c.id === activeCategoryId);
+        const category = settingsCategories.find((c) => c.id === activeCategoryId);
         return (
           <div className="bg-onyx-surface rounded-xl gold-border p-8 flex flex-col items-center justify-center min-h-[400px] text-center">
             <div className="w-16 h-16 rounded-full bg-gold/10 flex items-center justify-center mb-4">
@@ -86,7 +118,7 @@ export default function SettingsPage() {
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row max-w-[1600px] w-full mx-auto">
           {/* Settings Nav */}
           <div className="w-full md:w-64 flex-shrink-0 border-r border-onyx-border bg-onyx-elevated overflow-y-auto hidden md:block">
-            <SettingsSidebar activeCategoryId={activeCategoryId} onSelect={setActiveCategoryId} />
+            <SettingsSidebar activeCategoryId={activeCategoryId} onSelect={handleSelectCategory} />
           </div>
 
           {/* Main Settings Content */}
@@ -99,3 +131,10 @@ export default function SettingsPage() {
   );
 }
 
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-platinum-muted animate-pulse">Loading settings...</div>}>
+      <SettingsContent />
+    </Suspense>
+  );
+}

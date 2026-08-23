@@ -457,6 +457,41 @@ export async function POST(req: Request) {
       return newInvoice;
     });
 
+    // Record Business Audit Event
+    try {
+      const { AuditLogService } = await import("@/lib/audit/AuditLogService");
+      await AuditLogService.recordBusinessEvent({
+        req,
+        module: "BILLING",
+        action: "BILLING.INVOICE_CREATED",
+        entityType: "INVOICE",
+        entityId: String(invoice.id),
+        entityDisplayName: `Invoice #${invoice.invoiceNumber}`,
+        description: `Created invoice #${invoice.invoiceNumber} for ₹${invoice.totalAmount}`,
+        after: {
+          invoiceNumber: invoice.invoiceNumber,
+          customerId: invoice.customerId,
+          totalAmount: invoice.totalAmount,
+          itemCount: products.length,
+          paymentCount: payments.length,
+        },
+        context: {
+          branchId,
+        },
+        metadata: {
+          productsSummary: products.map((p: any) => ({
+            name: p.name,
+            grossWeight: p.grossWeight,
+            netWeight: p.netWeight,
+            price: p.price,
+          })),
+          paymentsSummary: payments,
+        },
+      });
+    } catch (auditErr) {
+      console.error("Audit log failed in invoice creation:", auditErr);
+    }
+
     return NextResponse.json({
       message: "Invoice created successfully!",
       invoice,

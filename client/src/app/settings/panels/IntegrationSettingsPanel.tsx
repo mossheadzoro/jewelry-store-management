@@ -12,7 +12,7 @@ import { useBranchStore } from "@/lib/store/useBranchStore";
 import { useProductSettingsStore } from "@/lib/store/useProductSettingsStore";
 import { useUserStore } from "@/lib/store/useUserStore";
 
-// Import all 20 modular integration tabs
+// Import modular integration tabs
 import PaymentGatewayTab from "./integration-settings/PaymentGatewayTab";
 import WhatsAppIntegrationTab from "./integration-settings/WhatsAppIntegrationTab";
 import SmsIntegrationTab from "./integration-settings/SmsIntegrationTab";
@@ -25,12 +25,8 @@ import GoldRateIntegrationTab from "./integration-settings/GoldRateIntegrationTa
 import CloudStorageTab from "./integration-settings/CloudStorageTab";
 import PrinterHardwareTab from "./integration-settings/PrinterHardwareTab";
 import PosDeviceTab from "./integration-settings/PosDeviceTab";
-import ApiManagementTab from "./integration-settings/ApiManagementTab";
-import WebhooksTab from "./integration-settings/WebhooksTab";
-import NotificationServicesTab from "./integration-settings/NotificationServicesTab";
 import AiIntegrationTab from "./integration-settings/AiIntegrationTab";
 import CalendarIntegrationTab from "./integration-settings/CalendarIntegrationTab";
-import BackupIntegrationTab from "./integration-settings/BackupIntegrationTab";
 import SecurityIntegrationTab from "./integration-settings/SecurityIntegrationTab";
 import ThirdPartyServicesTab from "./integration-settings/ThirdPartyServicesTab";
 
@@ -50,28 +46,19 @@ const CATEGORIZED_INTEGRATIONS = [
       { id: "whatsapp", num: 4, label: "WhatsApp Business API", icon: MessageSquare, desc: "Meta Business API, Template Management, Auto Invoice, Reminders" },
       { id: "sms", num: 5, label: "SMS Gateway (DLT)", icon: Send, desc: "MSG91, Twilio, Fast2SMS, DLT Header, OTP Settings, Templates" },
       { id: "email", num: 6, label: "Email & SMTP Server", icon: Mail, desc: "SMTP Host/Port, Sender Email & Name, Email Templates, Auto Dispatch" },
-      { id: "notifications", num: 7, label: "Notification Services", icon: Bell, desc: "Firebase Cloud Push, Desktop Alerts, Browser Web Push, Mobile App" },
-    ]
-  },
-  {
-    category: "API & Webhooks",
-    items: [
-      { id: "apimgmt", num: 8, label: "API Management", icon: Key, desc: "Public/Secret API Keys, OAuth 2.0 Tokens, Access Control, Rate Limits" },
-      { id: "webhooks", num: 9, label: "Outgoing Webhooks", icon: Webhook, desc: "Invoice, Order, Customer, Inventory & Payment Events, Retry Settings" },
     ]
   },
   {
     category: "Cloud & Storage",
     items: [
-      { id: "cloud", num: 10, label: "Cloud Storage Vault", icon: Cloud, desc: "AWS S3, Cloudflare R2, Google Drive, OneDrive, Dropbox, Vault Sync" },
-      { id: "backup", num: 11, label: "Backup & Recovery", icon: Database, desc: "Automated Snapshots, Cloud Backup, Local Disk Backup, Point-In-Time Restore" },
+      { id: "cloud", num: 7, label: "Cloud Storage Vault", icon: Cloud, desc: "Cloudflare R2 Object Storage Vault, Local OS Disk Directory, Dual Persistence" },
     ]
   },
   {
     category: "AI Settings",
     items: [
-      { id: "ai", num: 12, label: "AI & Machine Vision", icon: Sparkles, desc: "OpenAI GPT-4o, Google Gemini, Claude, Tag OCR, Image AI & Voice Assistant" },
-      { id: "security", num: 13, label: "Security & 2FA", icon: ShieldCheck, desc: "Google/Microsoft 2FA Authenticator, DLT OTP Route, reCAPTCHA v3, IP Whitelist" },
+      { id: "ai", num: 8, label: "AI & Machine Vision", icon: Sparkles, desc: "OpenAI GPT-4o, Google Gemini, Claude, Tag OCR, Image AI & Voice Assistant" },
+      { id: "security", num: 9, label: "Security & 2FA", icon: ShieldCheck, desc: "Google/Microsoft 2FA Authenticator, DLT OTP Route, reCAPTCHA v3, IP Whitelist" },
     ]
   }
 ];
@@ -156,12 +143,8 @@ export default function IntegrationSettingsPanel() {
       case "cloud": return <CloudStorageTab config={integrationConfig} updateConfig={updateConfig} isAdmin={isAdmin} />;
       case "hardware": return <PrinterHardwareTab config={integrationConfig} updateConfig={updateConfig} isAdmin={isAdmin} />;
       case "pos": return <PosDeviceTab config={integrationConfig} updateConfig={updateConfig} isAdmin={isAdmin} />;
-      case "apimgmt": return <ApiManagementTab config={integrationConfig} updateConfig={updateConfig} isAdmin={isAdmin} />;
-      case "webhooks": return <WebhooksTab config={integrationConfig} updateConfig={updateConfig} isAdmin={isAdmin} />;
-      case "notifications": return <NotificationServicesTab config={integrationConfig} updateConfig={updateConfig} isAdmin={isAdmin} />;
       case "ai": return <AiIntegrationTab config={integrationConfig} updateConfig={updateConfig} isAdmin={isAdmin} />;
       case "calendar": return <CalendarIntegrationTab config={integrationConfig} updateConfig={updateConfig} isAdmin={isAdmin} />;
-      case "backup": return <BackupIntegrationTab config={integrationConfig} updateConfig={updateConfig} isAdmin={isAdmin} />;
       case "security": return <SecurityIntegrationTab config={integrationConfig} updateConfig={updateConfig} isAdmin={isAdmin} />;
       case "thirdparty": return <ThirdPartyServicesTab config={integrationConfig} updateConfig={updateConfig} isAdmin={isAdmin} />;
       default: return null;
@@ -196,10 +179,10 @@ export default function IntegrationSettingsPanel() {
         <div>
           <h2 className="text-[20px] font-heading font-semibold text-platinum flex items-center gap-2">
             <Link className="w-5 h-5 text-gold" />
-            System Integrations (20 Suites)
+            System Integrations (9 Suites)
           </h2>
           <p className="text-[13px] text-platinum-muted mt-0.5">
-            Configure payment gateways, communications, GST compliance, hardware, AI, cloud storage, and APIs.
+            Configure payment gateways, communications, GST compliance, accounting, AI, and cloud storage.
           </p>
         </div>
 
@@ -234,7 +217,7 @@ export default function IntegrationSettingsPanel() {
             <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-platinum-muted" />
             <input
               type="text"
-              placeholder="Search 20 integrations..."
+              placeholder="Search integrations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#111113] border border-[#1F1F24] rounded-lg pl-8 pr-3 py-1.5 text-[12px] text-platinum placeholder:text-platinum-muted focus:border-gold outline-none"

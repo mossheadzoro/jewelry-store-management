@@ -89,6 +89,29 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    // Automatically sync shop name and branding to Email & Notification Settings
+    try {
+      const emailUpdateData: any = {};
+      if (shopName || name) emailUpdateData.senderName = shopName || name;
+      if (gstNumber) emailUpdateData.gstin = gstNumber;
+      if (phoneNumbers) emailUpdateData.phone = phoneNumbers;
+      if (website) emailUpdateData.website = website;
+      if (logoUrl) emailUpdateData.companyLogoUrl = logoUrl;
+      if (address) emailUpdateData.businessAddress = address;
+
+      if (Object.keys(emailUpdateData).length > 0) {
+        await prisma.emailSettings.updateMany({
+          where: {
+            tenantId: "default-tenant",
+            OR: [{ branchId: parsedBranchId }, { branchId: 0 }, { branchId: null }],
+          },
+          data: emailUpdateData,
+        });
+      }
+    } catch (emailSyncErr) {
+      console.warn("Could not sync EmailSettings on branch update", emailSyncErr);
+    }
+
     return NextResponse.json({ message: "Updated successfully" }, { status: 200 });
   } catch (err) {
     console.error("Error saving branch settings:", err);
