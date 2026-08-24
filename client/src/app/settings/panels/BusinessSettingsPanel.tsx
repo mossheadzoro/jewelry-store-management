@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Building2, Save } from "lucide-react";
+import { Building2, Save, Sparkles, UserPlus, Plus } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ export default function BusinessSettingsPanel() {
   const isAdmin = user?.systemRole === "ADMIN" || user?.role === "ADMIN";
   
   const { branches, selectedBranch, branchSettings, fetchBranchSettings } = useBranchStore();
+  const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -116,16 +118,17 @@ export default function BusinessSettingsPanel() {
       });
       if (res.data.url) {
         setFormData(prev => ({ ...prev, [field]: res.data.url }));
+        toast.success("Image uploaded successfully");
       }
     } catch (error) {
       console.error("Upload failed", error);
-      alert("Failed to upload image");
+      toast.error("Failed to upload image");
     }
   };
 
   const handleSave = async () => {
     if (!selectedBranch) {
-      alert("Please select a branch first");
+      toast.error("Please select a branch first");
       return;
     }
     
@@ -135,12 +138,12 @@ export default function BusinessSettingsPanel() {
         branchId: selectedBranch.id,
         ...formData
       });
-      alert("Business settings saved successfully!");
+      toast.success("Business settings saved successfully!");
       fetchBranchSettings(selectedBranch.id);
       useBranchStore.getState().fetchAllBranches(); // refresh branch names if changed
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.error || "Failed to save settings.");
+      toast.error(err.response?.data?.error || "Failed to save settings.");
     } finally {
       setSaving(false);
     }
@@ -161,42 +164,71 @@ export default function BusinessSettingsPanel() {
         </div>
 
         {isAdmin && (
-          <Dialog>
+          <Dialog open={isQuickCreateOpen} onOpenChange={setIsQuickCreateOpen}>
             <DialogTrigger asChild>
               <Button
-                className="bg-gold text-onyx hover:bg-gold-light transition-colors border-none"
-                variant="outline"
+                className="bg-gradient-to-r from-[#d4a843] to-[#b88628] hover:from-[#e0b853] hover:to-[#c79532] text-black font-semibold text-[13px] h-10 px-4 rounded-xl shadow-lg shadow-[#d4a843]/20 flex items-center gap-2 active:scale-[0.98] transition-all border-none"
               >
-                Quick Create
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span>Quick Create</span>
               </Button>
             </DialogTrigger>
 
-            <DialogContent className="sm:max-w-[600px] mt-6">
-              <DialogTitle>Quick Create</DialogTitle>
-              <DialogHeader>
-                <DialogDescription>
-                  Create a Branch, Manager or Salesman.
-                </DialogDescription>
-              </DialogHeader>
+            <DialogContent className="sm:max-w-[650px] bg-[#09090b] border border-[#d4a843]/30 shadow-[0_0_60px_-15px_rgba(212,168,67,0.2)] rounded-2xl p-0 overflow-hidden text-foreground">
+              {/* Luxury Modal Header */}
+              <div className="bg-gradient-to-b from-[#18181b] to-[#0f0f12] px-6 py-5 border-b border-[#27272a] relative">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#d4a843]/20 to-[#d4a843]/5 border border-[#d4a843]/30 flex items-center justify-center text-[#d4a843] shadow-inner">
+                    <Sparkles className="w-5 h-5 text-[#d4a843]" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-[17px] font-semibold text-foreground tracking-tight">
+                      Quick Entity Provisioning
+                    </DialogTitle>
+                    <DialogDescription className="text-[12px] text-zinc-400 mt-0.5">
+                      Fast-track setup for a new store branch or staff member.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </div>
 
-              <ScrollArea className="max-h-[80vh] px-4 pb-4">
-                <Tabs defaultValue="branch" className="mt-4">
-                  <TabsList className="grid w-max grid-cols-2">
-                    <TabsTrigger value="branch">Branch</TabsTrigger>
-                    <TabsTrigger value="manager">Manager/Salesman</TabsTrigger>
+              <div className="p-6">
+                <Tabs defaultValue="branch" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 bg-[#121215] border border-[#27272a] p-1 rounded-xl h-11">
+                    <TabsTrigger
+                      value="branch"
+                      className="rounded-lg text-[13px] font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#d4a843] data-[state=active]:to-[#b88628] data-[state=active]:text-black data-[state=active]:shadow-md transition-all flex items-center justify-center gap-2"
+                    >
+                      <Building2 className="w-4 h-4" />
+                      <span>New Branch Location</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="manager"
+                      className="rounded-lg text-[13px] font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#d4a843] data-[state=active]:to-[#b88628] data-[state=active]:text-black data-[state=active]:shadow-md transition-all flex items-center justify-center gap-2"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>Staff / Manager Account</span>
+                    </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="branch">
-                    <h3 className="text-lg font-medium mt-4">Create Branch</h3>
-                    <AddBranchForm />
-                  </TabsContent>
+                  <ScrollArea className="max-h-[60vh] mt-4 pr-1">
+                    <TabsContent value="branch" className="mt-0 focus-visible:outline-none">
+                      <AddBranchForm
+                        onSuccess={() => setIsQuickCreateOpen(false)}
+                        onCancel={() => setIsQuickCreateOpen(false)}
+                      />
+                    </TabsContent>
 
-                  <TabsContent value="manager">
-                    <h3 className="text-lg font-medium mb-2">Create Manager</h3>
-                    <AddUserForm branches={branches} />
-                  </TabsContent>
+                    <TabsContent value="manager" className="mt-0 focus-visible:outline-none">
+                      <AddUserForm
+                        branches={branches}
+                        onSuccess={() => setIsQuickCreateOpen(false)}
+                        onCancel={() => setIsQuickCreateOpen(false)}
+                      />
+                    </TabsContent>
+                  </ScrollArea>
                 </Tabs>
-              </ScrollArea>
+              </div>
             </DialogContent>
           </Dialog>
         )}

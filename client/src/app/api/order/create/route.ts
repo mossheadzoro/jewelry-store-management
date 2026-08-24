@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
-import { prisma } from "../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { Prisma } from "@prisma/client";

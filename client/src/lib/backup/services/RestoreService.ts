@@ -1,6 +1,6 @@
 // client/src/lib/backup/services/RestoreService.ts
 
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { PostgresRestoreEngine } from "../database/PostgresRestoreEngine";
 import { PostgresSchemaValidator } from "../database/PostgresSchemaValidator";
 import { BackupCrypto } from "../crypto/BackupCrypto";
@@ -80,7 +80,7 @@ export class RestoreService {
 
     // 3. Evaluate Schema and Migration Compatibility
     const validator = new PostgresSchemaValidator();
-    const compatibilityReport = await validator.validateCompatibility(latestMigration || undefined);
+    const compatibilityReport = await validator.validateCompatibility(latestMigration || null);
 
     // 4. Record Restore Audit (if DB tables exist)
     const restoreId = this.generateRestoreId();

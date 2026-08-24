@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { encryptBuffer } from "@/lib/services/KycEncryption";
 import fs from "fs";
 import path from "path";

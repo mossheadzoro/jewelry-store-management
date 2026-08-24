@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { Console } from "console";
 
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 // GET /api/products/search?q=ring&branchId=1
 export async function GET(req: Request) {

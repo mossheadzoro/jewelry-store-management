@@ -1,63 +1,57 @@
-"use client"
+// client/src/components/app-sidebar.tsx
+"use client";
 
-import * as React from "react"
+import * as React from "react";
+import { useSession } from "next-auth/react";
 import {
-  IconCamera,
   IconChartBar,
-  IconDashboard,
   IconDatabase,
-  IconFileAi,
-  IconFileDescription,
-  IconFileWord,
-  IconFolder,
-  IconGridGoldenratio,
-  IconHammer,
-  IconHelp,
-  IconInnerShadowTop,
   IconListDetails,
+  IconFolder,
   IconPigMoney,
+  IconBook,
   IconReport,
-  IconSearch,
-  IconSettings,
+  IconFileWord,
+  IconHammer,
+  IconGridGoldenratio,
   IconUsers,
-  IconReceiptRefund,
+  IconUserCheck,
+  IconSettings,
+  IconSearch,
+  IconDashboard,
   IconRadio,
-} from "@tabler/icons-react"
+  IconHelp,
+} from "@tabler/icons-react";
 
-import { NavDocuments } from "@/components/nav-documents"
-import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
-import { NavUser } from "@/components/nav-user"
+import { NavMain } from "@/components/nav-main";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import BranchSelector from "../../components/BranchSelector"
-import { useRouter } from "next/navigation"
+  SidebarSeparator,
+} from "@/components/ui/sidebar";
+import BranchSelector from "../../components/BranchSelector";
 
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  navMain: [
-    {
-      title: "Home Dashboard",
-      url: "/dashboard",
-      icon: IconDashboard,
-    },
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { data: session } = useSession();
+  const userRole = (session?.user?.role || "SALESMAN").toUpperCase();
+
+  const isManagerOrAdmin =
+    userRole === "ADMIN" ||
+    userRole === "MANAGER" ||
+    userRole === "SUPER_ADMIN" ||
+    userRole === "OWNER";
+
+  // Sector 1: Core Operations & Jewellery Management (Visible to all staff)
+  const operations = [
     {
       title: "Inventory",
       url: "/inventory",
       icon: IconChartBar,
     },
-     {
+    {
       title: "Stock Ledger",
       url: "/inventory/ledger",
       icon: IconDatabase,
@@ -67,20 +61,10 @@ const data = {
       url: "/billing",
       icon: IconListDetails,
     },
-     {
+    {
       title: "Sales",
       url: "/sales",
       icon: IconFolder,
-    },
-    {
-      title: "Customers",
-      url: "/customer",
-      icon: IconUsers,
-    },
-    {
-      title: "Returns & Exchanges",
-      url: "/returns",
-      icon: IconReceiptRefund,
     },
     {
       title: "Saving Schemes",
@@ -88,122 +72,113 @@ const data = {
       icon: IconPigMoney,
     },
     {
-      title: "RFID Hub",
-      url: "/rfid/dashboard",
-      icon: IconRadio,
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
+      title: "Book Products",
+      url: "/book-products",
+      icon: IconBook,
     },
     {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
+      title: "Order Book",
+      url: "/orderBook",
+      icon: IconReport,
     },
     {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "/settings",
-      icon: IconSettings,
+      title: "Metal Exchange and Reports",
+      url: "/metalExchange",
+      icon: IconFileWord,
     },
     {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
+      title: "Karigar Panel",
+      url: "/karigar",
+      icon: IconHammer,
     },
+    {
+      title: "Wholesaler Panel",
+      url: "/wholesaler",
+      icon: IconGridGoldenratio,
+    },
+  ];
+
+  // Sector 2: People & Relationships (Staffs restricted to Manager/Admin)
+  const people = [
+    {
+      title: "Customers",
+      url: "/customer",
+      icon: IconUsers,
+    },
+    ...(isManagerOrAdmin
+      ? [
+          {
+            title: "Staffs",
+            url: "/staff",
+            icon: IconUserCheck,
+          },
+        ]
+      : []),
+  ];
+
+  // Sector 3: System & Tools (Settings restricted to Manager/Admin)
+  const system = [
+    ...(isManagerOrAdmin
+      ? [
+          {
+            title: "Settings",
+            url: "/settings",
+            icon: IconSettings,
+          },
+        ]
+      : []),
     {
       title: "Search",
       url: "/search",
       icon: IconSearch,
     },
-  ],
-  documents: [
     {
-      name: "Book Products",
-      url: "/book-products",
-      icon: IconDatabase,
+      title: "Home Dashboard",
+      url: "/dashboard",
+      icon: IconDashboard,
     },
     {
-      name: "Order Book",
-      url: "/orderBook",
-      icon: IconReport,
+      title: "RFID Hub",
+      url: "/rfid/dashboard",
+      icon: IconRadio,
     },
-    {
-      name: "Metal Exchange Reports",
-      url: "/metalExchange",
-      icon: IconFileWord,
-    },
-    {
-      name: "Karigar Panel",
-      url: "/karigar",
-      icon: IconHammer,
-    },
-    {
-      name: "Whole-Saler Panel",
-      url: "/wholesaler",
-      icon: IconGridGoldenratio,
-    },
-  ],
-}
-
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-
-  const router = useRouter()
+    ...(isManagerOrAdmin
+      ? [
+          {
+            title: "Get Help",
+            url: "/settings?tab=about",
+            icon: IconHelp,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
         <BranchSelector />
       </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+
+      <SidebarContent className="space-y-1 py-1 overflow-x-hidden">
+        {/* Sector 1: Core Operations */}
+        <NavMain items={operations} />
+
+        {/* Sector Divider & Gap */}
+        <SidebarSeparator className="my-1.5 opacity-60" />
+
+        {/* Sector 2: Customers & Staffs */}
+        <NavMain items={people} />
+
+        {/* Sector Divider & Gap */}
+        <SidebarSeparator className="my-1.5 opacity-60" />
+
+        {/* Sector 3: System, Dashboard & Help */}
+        <NavMain items={system} />
       </SidebarContent>
+
       <SidebarFooter>
         <NavUser />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

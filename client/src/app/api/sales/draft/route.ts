@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../../libs/prisma";
-import { insertLedgerEntry } from "../../../../../libs/inventoryLedger"; // Adjust path if needed
+import { prisma } from "@/lib/prisma";
+import { insertLedgerEntry } from "@/lib/inventoryLedger"; // Adjust path if needed
 
 // POST: Create or Update a Draft (Pause Billing)
 export async function POST(req: Request) {

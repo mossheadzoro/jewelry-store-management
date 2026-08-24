@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { prisma } from "../../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 export async function PUT(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;

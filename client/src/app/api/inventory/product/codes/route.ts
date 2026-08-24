@@ -1,6 +1,6 @@
 // src/app/api/inventory/product/codes/route.ts
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { generateCodesHelper } from "../../../../../../src/lib/actions/generateCodes";
 
 export async function POST(req: Request) {

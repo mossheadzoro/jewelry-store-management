@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Save, Loader2 } from "lucide-react";
+import { X, Save, Loader2, Shield, UserCheck, Lock } from "lucide-react";
 
 interface CustomerData {
   id: number;
@@ -18,6 +18,7 @@ interface CustomerData {
   aadhar: string | null;
   dob: string | null;
   anniversary: string | null;
+  customerGroup: string | null;
 }
 
 interface EditCustomerModalProps {
@@ -25,6 +26,7 @@ interface EditCustomerModalProps {
   onClose: () => void;
   onSuccess: () => void;
   customerId: number | null;
+  userRole?: string;
 }
 
 const GENDER_OPTIONS = [
@@ -42,11 +44,24 @@ const INDIAN_STATES = [
   "Uttarakhand", "West Bengal",
 ];
 
-export default function EditCustomerModal({ open, onClose, onSuccess, customerId }: EditCustomerModalProps) {
+export default function EditCustomerModal({
+  open,
+  onClose,
+  onSuccess,
+  customerId,
+  userRole = "SALESMAN",
+}: EditCustomerModalProps) {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState("");
-  
+  const [reason, setReason] = useState("");
+
+  const isManagerOrAdmin =
+    userRole === "ADMIN" ||
+    userRole === "MANAGER" ||
+    userRole === "SUPER_ADMIN" ||
+    userRole === "OWNER";
+
   const [form, setForm] = useState({
     name: "",
     mobile: "",
@@ -95,12 +110,13 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
   const fetchCustomerDetails = async (id: number) => {
     setFetching(true);
     setError("");
+    setReason("");
     try {
       const res = await fetch(`/api/customer/${id}`);
       if (!res.ok) throw new Error("Failed to fetch customer details");
       const data = await res.json();
       const customer = data.customer;
-      
+
       setForm({
         name: customer.name || "",
         mobile: customer.mobile || "",
@@ -113,8 +129,8 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
         pan: customer.pan || "",
         gstin: customer.gstin || "",
         aadhar: customer.aadhar || "",
-        dob: customer.dob ? new Date(customer.dob).toISOString().split('T')[0] : "",
-        anniversary: customer.anniversary ? new Date(customer.anniversary).toISOString().split('T')[0] : "",
+        dob: customer.dob ? new Date(customer.dob).toISOString().split("T")[0] : "",
+        anniversary: customer.anniversary ? new Date(customer.anniversary).toISOString().split("T")[0] : "",
         customerGroup: customer.customerGroup || "",
         optInWhatsapp: customer.optInWhatsapp ?? true,
         optInSms: customer.optInSms ?? true,
@@ -149,7 +165,10 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
       const res = await fetch(`/api/customer/${customerId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          reason: reason.trim() || undefined,
+        }),
       });
 
       if (!res.ok) {
@@ -180,16 +199,40 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#1f1f1f]">
           <div className="flex items-center gap-3">
+            <div
+              className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
+                isManagerOrAdmin
+                  ? "bg-[#D4A843]/10 border-[#D4A843]/30 text-[#D4A843]"
+                  : "bg-blue-500/10 border-blue-500/30 text-blue-400"
+              }`}
+            >
+              {isManagerOrAdmin ? <Shield className="w-4.5 h-4.5" /> : <UserCheck className="w-4.5 h-4.5" />}
+            </div>
             <div>
-              <h2 className="text-[18px] font-semibold text-foreground">Update Customer Details</h2>
-              <p className="text-[13px] text-[#555]">Refine client dossier information.</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-[17px] font-semibold text-foreground">Update Customer Dossier</h2>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
+                    isManagerOrAdmin
+                      ? "bg-[#D4A843]/15 text-[#D4A843] border-[#D4A843]/30"
+                      : "bg-blue-500/15 text-blue-400 border-blue-500/30"
+                  }`}
+                >
+                  {userRole} Mode
+                </span>
+              </div>
+              <p className="text-[12px] text-[#555]">
+                {isManagerOrAdmin
+                  ? "Full Governance: Modifying profile attributes with comprehensive change ledger tracking."
+                  : "Operational Edit: Updating customer contacts & preferences with audit logging."}
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-transparent hover:bg-onyx-elevated flex items-center justify-center text-[#666] hover:text-foreground transition-all cursor-pointer"
+            className="w-8 h-8 rounded-lg bg-onyx-elevated border border-[#252525] flex items-center justify-center text-[#666] hover:text-foreground transition-all cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -199,7 +242,7 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
             <p className="text-[#666] text-[14px]">Loading customer details...</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-6 py-5 space-y-6 scrollbar-thin scrollbar-thumb-[#222] scrollbar-track-transparent">
+          <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-6 py-5 space-y-5 scrollbar-thin scrollbar-thumb-[#222] scrollbar-track-transparent">
             {/* Error */}
             {error && (
               <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[13px]">
@@ -207,25 +250,47 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
               </div>
             )}
 
+            {/* Reason for Update (Recorded into Audit Ledger) */}
+            <div className="p-3.5 rounded-xl border border-[#D4A843]/20 bg-[#D4A843]/5">
+              <label className="block text-[11px] font-bold text-[#D4A843] uppercase tracking-wider mb-1.5">
+                Reason for Update (Audit Ledger Note)
+              </label>
+              <input
+                type="text"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g. Updated primary phone number upon client request at front desk"
+                className="w-full h-9 px-3 rounded-lg bg-[#0c0c0c] border border-[#222] text-[12px] text-foreground placeholder:text-[#444] outline-none focus:border-[#D4A843]/50 transition-colors"
+              />
+            </div>
+
             {/* Personal Info Section */}
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                 <span className="text-[#D4A843] text-sm">👤</span>
-                 <h3 className="text-[14px] font-semibold text-[#D4A843]">Personal Information</h3>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[#D4A843] text-sm">👤</span>
+                <h3 className="text-[13px] font-semibold text-[#D4A843]">Personal Details</h3>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <InputField label="Full Name" value={form.name} onChange={(v) => handleChange("name", v)} placeholder="e.g. Aisha Sharma" />
-                <InputField label="Mobile Number" value={form.mobile} onChange={(v) => handleChange("mobile", v)} placeholder="e.g. +91 98765 43210" />
+                <InputField label="Full Name *" value={form.name} onChange={(v) => handleChange("name", v)} placeholder="e.g. Aisha Sharma" />
+                <InputField label="Mobile Number *" value={form.mobile} onChange={(v) => handleChange("mobile", v)} placeholder="e.g. 9876543210" />
                 <div className="col-span-2">
                   <InputField label="Email Address" value={form.email} onChange={(v) => handleChange("email", v)} placeholder="e.g. aisha.sharma@example.com" type="email" />
                 </div>
                 {config?.groups && config.groups.length > 0 && (
                   <div className="col-span-2">
-                    <label className="block text-[12px] font-medium text-[#666] mb-1.5">Customer Group</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-[12px] font-medium text-[#888]">Customer Group</label>
+                      {!isManagerOrAdmin && (
+                        <span className="text-[10px] text-[#666] flex items-center gap-1">
+                          <Lock className="w-3 h-3 text-[#555]" /> Manager Only
+                        </span>
+                      )}
+                    </div>
                     <select
                       value={form.customerGroup}
+                      disabled={!isManagerOrAdmin}
                       onChange={(e) => handleChange("customerGroup", e.target.value)}
-                      className="w-full h-10 px-3.5 rounded-xl bg-[#2a2a2a] border border-border text-[13px] text-foreground outline-none focus:border-[#D4A843]/40 transition-colors appearance-none cursor-pointer"
+                      className="w-full h-10 px-3.5 rounded-xl bg-[#0c0c0c] border border-[#1f1f1f] text-[13px] text-foreground outline-none focus:border-[#D4A843]/40 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                     >
                       <option value="">None</option>
                       {config.groups.map((g: any) => (
@@ -234,92 +299,125 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
                     </select>
                   </div>
                 )}
-                <div className="hidden">
-                   {/* Gender is hidden in the design but we keep it in state */}
-                  <label className="block text-[12px] font-medium text-[#666] mb-1.5">Gender *</label>
-                  <select
-                    value={form.gender}
-                    onChange={(e) => handleChange("gender", e.target.value)}
-                    className="w-full h-10 px-3.5 rounded-xl bg-[#2a2a2a] border border-border text-[13px] text-foreground outline-none focus:border-[#D4A843]/40 transition-colors appearance-none cursor-pointer"
-                  >
-                    {GENDER_OPTIONS.map((g) => (
-                      <option key={g.value} value={g.value}>{g.label}</option>
-                    ))}
-                  </select>
-                </div>
               </div>
             </div>
 
             {/* Location Details Section */}
-            <div className="bg-onyx-elevated p-5 rounded-xl border border-[#222]">
-              <div className="flex items-center gap-2 mb-4">
-                 <span className="text-[#D4A843] text-sm">📍</span>
-                 <h3 className="text-[14px] font-semibold text-[#D4A843]">Location Details</h3>
+            <div className="bg-onyx-elevated p-4 rounded-xl border border-[#222]">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[#D4A843] text-sm">📍</span>
+                <h3 className="text-[13px] font-semibold text-[#D4A843]">Location & Residence</h3>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-3">
-                  <InputField bg="#2a2a2a" label="Street Address" value={form.address} onChange={(v) => handleChange("address", v)} placeholder="42, Velvet Avenue, Sector 5" />
+                  <InputField bg="#0c0c0c" label="Street Address" value={form.address} onChange={(v) => handleChange("address", v)} placeholder="42, Velvet Avenue, Sector 5" />
                 </div>
-                <InputField bg="#2a2a2a" label="City" value={form.city} onChange={(v) => handleChange("city", v)} placeholder="Mumbai" />
-                <InputField bg="#2a2a2a" label="State" value={form.state} onChange={(v) => handleChange("state", v)} placeholder="Maharashtra" />
-                <InputField bg="#2a2a2a" label="Pincode" value={form.pincode} onChange={(v) => handleChange("pincode", v)} placeholder="400001" />
+                <InputField bg="#0c0c0c" label="City" value={form.city} onChange={(v) => handleChange("city", v)} placeholder="Mumbai" />
+                <div>
+                  <label className="block text-[12px] font-medium text-[#888] mb-1.5">State</label>
+                  <select
+                    value={form.state}
+                    onChange={(e) => handleChange("state", e.target.value)}
+                    className="w-full h-10 px-3.5 rounded-xl bg-[#0c0c0c] border border-border text-[13px] text-foreground outline-none focus:border-[#D4A843]/40 transition-colors appearance-none cursor-pointer"
+                  >
+                    {INDIAN_STATES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                <InputField bg="#0c0c0c" label="Pincode" value={form.pincode} onChange={(v) => handleChange("pincode", v)} placeholder="400001" />
               </div>
             </div>
 
-            {/* Milestones & Financial Section */}
-            <div className="grid grid-cols-2 gap-6">
+            {/* Milestones & Tax Identifiers */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                   <span className="text-[#D4A843] text-sm">📅</span>
-                   <h3 className="text-[14px] font-semibold text-[#D4A843]">Milestones</h3>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[#D4A843] text-sm">📅</span>
+                  <h3 className="text-[13px] font-semibold text-[#D4A843]">Milestones</h3>
                 </div>
-                <InputField bg="#2a2a2a" label="Date of Birth" value={form.dob} onChange={(v) => handleChange("dob", v)} type="date" />
+                <InputField bg="#0c0c0c" label="Date of Birth" value={form.dob} onChange={(v) => handleChange("dob", v)} type="date" />
+                <div className="mt-3">
+                  <InputField bg="#0c0c0c" label="Anniversary" value={form.anniversary} onChange={(v) => handleChange("anniversary", v)} type="date" />
+                </div>
               </div>
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                   <span className="text-[#D4A843] text-sm">🏦</span>
-                   <h3 className="text-[14px] font-semibold text-[#D4A843]">Financial</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#D4A843] text-sm">🛡️</span>
+                    <h3 className="text-[13px] font-semibold text-[#D4A843]">Tax Identifiers</h3>
+                  </div>
+                  {!isManagerOrAdmin && (
+                    <span className="text-[10px] text-[#666] flex items-center gap-1">
+                      <Lock className="w-3 h-3 text-[#555]" /> Protected
+                    </span>
+                  )}
                 </div>
-                <InputField bg="#2a2a2a" label="PAN Number" value={form.pan} onChange={(v) => handleChange("pan", v)} placeholder="ABCDE1234F" />
+                <InputField
+                  bg="#0c0c0c"
+                  label="PAN Number"
+                  value={form.pan}
+                  onChange={(v) => handleChange("pan", v)}
+                  placeholder="ABCDE1234F"
+                  disabled={!isManagerOrAdmin && !!form.pan}
+                />
+                <div className="mt-3">
+                  <InputField
+                    bg="#0c0c0c"
+                    label="GSTIN Number"
+                    value={form.gstin}
+                    onChange={(v) => handleChange("gstin", v)}
+                    placeholder="22AAAAA0000A1Z5"
+                    disabled={!isManagerOrAdmin && !!form.gstin}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Communication Preferences Section */}
-            {config && (config.notifications || config.marketing) && (
-              <div className="bg-onyx-elevated p-5 rounded-xl border border-[#222] mt-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-[#D4A843] text-sm">💬</span>
-                  <h3 className="text-[14px] font-semibold text-[#D4A843]">Communication & Marketing</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {config.notifications?.whatsapp && (
-                    <label className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-[#2a2a2a] cursor-pointer hover:border-[#444] transition-colors">
-                      <input type="checkbox" checked={form.optInWhatsapp} onChange={(e) => setForm(prev => ({ ...prev, optInWhatsapp: e.target.checked }))} className="accent-[#D4A843] w-4 h-4" />
-                      <span className="text-[12px] text-[#aaa]">Opt-in to WhatsApp updates</span>
-                    </label>
-                  )}
-                  {config.notifications?.sms && (
-                    <label className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-[#2a2a2a] cursor-pointer hover:border-[#444] transition-colors">
-                      <input type="checkbox" checked={form.optInSms} onChange={(e) => setForm(prev => ({ ...prev, optInSms: e.target.checked }))} className="accent-[#D4A843] w-4 h-4" />
-                      <span className="text-[12px] text-[#aaa]">Opt-in to SMS alerts</span>
-                    </label>
-                  )}
-                  {config.notifications?.email && (
-                    <label className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-[#2a2a2a] cursor-pointer hover:border-[#444] transition-colors">
-                      <input type="checkbox" checked={form.optInEmail} onChange={(e) => setForm(prev => ({ ...prev, optInEmail: e.target.checked }))} className="accent-[#D4A843] w-4 h-4" />
-                      <span className="text-[12px] text-[#aaa]">Opt-in to Email notifications</span>
-                    </label>
-                  )}
-                  {config.marketing?.receivePromotions && (
-                    <label className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-[#2a2a2a] cursor-pointer hover:border-[#444] transition-colors">
-                      <input type="checkbox" checked={form.optInPromotions} onChange={(e) => setForm(prev => ({ ...prev, optInPromotions: e.target.checked }))} className="accent-[#D4A843] w-4 h-4" />
-                      <span className="text-[12px] text-[#aaa]">Receive Promotional Offers</span>
-                    </label>
-                  )}
-                </div>
+            {/* Communication Preferences */}
+            <div className="p-4 rounded-xl border border-[#222] bg-[#0c0c0c]">
+              <h3 className="text-[12px] font-semibold text-[#888] uppercase tracking-wider mb-2.5">
+                Communication Preferences
+              </h3>
+              <div className="grid grid-cols-2 gap-2.5">
+                <label className="flex items-center gap-2 p-2 rounded-lg border border-[#1a1a1a] bg-onyx-elevated cursor-pointer hover:border-[#333] transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={form.optInWhatsapp}
+                    onChange={(e) => setForm((prev) => ({ ...prev, optInWhatsapp: e.target.checked }))}
+                    className="accent-[#D4A843] w-4 h-4"
+                  />
+                  <span className="text-[12px] text-[#aaa]">WhatsApp Alerts</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg border border-[#1a1a1a] bg-onyx-elevated cursor-pointer hover:border-[#333] transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={form.optInSms}
+                    onChange={(e) => setForm((prev) => ({ ...prev, optInSms: e.target.checked }))}
+                    className="accent-[#D4A843] w-4 h-4"
+                  />
+                  <span className="text-[12px] text-[#aaa]">SMS Notifications</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg border border-[#1a1a1a] bg-onyx-elevated cursor-pointer hover:border-[#333] transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={form.optInEmail}
+                    onChange={(e) => setForm((prev) => ({ ...prev, optInEmail: e.target.checked }))}
+                    className="accent-[#D4A843] w-4 h-4"
+                  />
+                  <span className="text-[12px] text-[#aaa]">Email Invoices</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg border border-[#1a1a1a] bg-onyx-elevated cursor-pointer hover:border-[#333] transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={form.optInPromotions}
+                    onChange={(e) => setForm((prev) => ({ ...prev, optInPromotions: e.target.checked }))}
+                    className="accent-[#D4A843] w-4 h-4"
+                  />
+                  <span className="text-[12px] text-[#aaa]">Exclusive Promotions</span>
+                </label>
               </div>
-            )}
-
+            </div>
           </form>
         )}
 
@@ -328,19 +426,19 @@ export default function EditCustomerModal({ open, onClose, onSuccess, customerId
           <button
             type="button"
             onClick={onClose}
-            className="h-10 px-5 rounded-full text-[13px] font-medium text-[#ccc] bg-transparent border border-border hover:text-foreground hover:border-[#444] transition-all cursor-pointer"
+            className="h-10 px-5 rounded-xl text-[13px] font-medium text-[#ccc] bg-transparent border border-border hover:text-foreground hover:border-[#444] transition-all cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading || fetching}
-            className="h-10 px-6 rounded-full text-[13px] font-semibold bg-[#D4A843] text-foreground hover:bg-[#e6bc5a] transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+            className="h-10 px-6 rounded-xl text-[13px] font-semibold bg-[#D4A843] text-foreground hover:bg-[#e6bc5a] transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
           >
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Saving...
+                Saving Changes...
               </>
             ) : (
               "Save Changes"
@@ -359,7 +457,8 @@ function InputField({
   onChange,
   placeholder = "",
   type = "text",
-  bg = "#2a2a2a"
+  bg = "#0c0c0c",
+  disabled = false,
 }: {
   label: string;
   value: string;
@@ -367,6 +466,7 @@ function InputField({
   placeholder?: string;
   type?: string;
   bg?: string;
+  disabled?: boolean;
 }) {
   return (
     <div>
@@ -374,9 +474,10 @@ function InputField({
       <input
         type={type}
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full h-10 px-3.5 rounded-xl border border-border text-[13px] text-foreground placeholder:text-[#555] outline-none focus:border-[#D4A843]/40 transition-colors [color-scheme:dark]`}
+        className={`w-full h-10 px-3.5 rounded-xl border border-border text-[13px] text-foreground placeholder:text-[#555] outline-none focus:border-[#D4A843]/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed [color-scheme:dark]`}
         style={{ backgroundColor: bg }}
       />
     </div>

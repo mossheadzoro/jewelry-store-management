@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function requireAuth(req: Request, options?: { module?: string, requireBranch?: boolean }) {
@@ -68,7 +68,7 @@ export async function requireAuth(req: Request, options?: { module?: string, req
   }
 
   // 2. Role / Permission Validation
-  if (options?.module && user.systemRole !== "ADMIN" && user.systemRole !== "OWNER" && user.systemRole !== "SUPER_ADMIN") {
+  if (options?.module && user.systemRole !== "ADMIN") {
     // Determine the action based on HTTP method
     let action = "view";
     if (req.method === "POST") action = "create";

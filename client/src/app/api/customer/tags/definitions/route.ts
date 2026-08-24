@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { ensureSystemTagsExist } from "../../../../../lib/services/TagRuleEngine";
 
 // GET: Fetch all active tag definitions

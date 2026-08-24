@@ -1,7 +1,7 @@
 // client/src/app/api/security/2fa/verify/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { SecurityService } from "@/lib/security/SecurityService";
 import { SecurityCrypto } from "@/lib/security/SecurityCrypto";
 

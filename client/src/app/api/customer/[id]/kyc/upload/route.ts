@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { encryptBuffer } from "@/lib/services/KycEncryption";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
+import { AuditLogService } from "@/lib/audit/AuditLogService";
+import { AuditActions, AuditModules } from "@/lib/audit/AuditRegistry";
 import fs from "fs";
 import path from "path";
 
@@ -16,6 +20,7 @@ export async function POST(
   }
 
   try {
+    const session = await getServerSession(authOptions);
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const documentType = formData.get("documentType") as string | null;
@@ -65,9 +70,43 @@ export async function POST(
       },
     });
 
+    // Record Business Audit Event
+    try {
+      await AuditLogService.recordBusinessEvent({
+        req,
+        module: AuditModules.CUSTOMERS,
+        action: AuditActions.KYC_DOCUMENT_UPLOADED,
+        entityType: "CUSTOMER",
+        entityId: String(customerId),
+        entityDisplayName: customer.name,
+        description: `Uploaded KYC document (${documentType}: ${file.name}) for customer ${customer.name}`,
+        after: {
+          documentId: doc.id,
+          documentType: doc.documentType,
+          fileName: doc.fileName,
+          notes: doc.notes,
+          uploadedAt: doc.uploadedAt,
+        },
+        context: {
+          userId: session?.user?.id ? parseInt(session.user.id, 10) : undefined,
+          userNameSnapshot: session?.user?.name || "Staff Member",
+          roleSnapshot: session?.user?.role || "SALESMAN",
+          branchId: session?.user?.branchId ? parseInt(session.user.branchId, 10) : undefined,
+        },
+        metadata: {
+          documentType,
+          fileName: file.name,
+          fileSize: fileBuffer.length,
+        },
+      });
+    } catch (auditErr) {
+      console.error("[KycUpload] Failed to record audit log:", auditErr);
+    }
+
     return NextResponse.json({ success: true, document: doc });
   } catch (err) {
     console.error("Error uploading KYC document:", err);
     return NextResponse.json({ error: "Server error during upload" }, { status: 500 });
   }
 }
+

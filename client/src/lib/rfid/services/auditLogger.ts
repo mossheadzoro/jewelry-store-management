@@ -1,6 +1,6 @@
 // client/src/lib/rfid/services/auditLogger.ts
 
-import { prisma } from '@libs/prisma';
+import { prisma } from "@/lib/prisma";
 
 export async function logRFIDTagAssignment(params: {
   tagId: string;

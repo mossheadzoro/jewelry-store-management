@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { prisma } from "../../../../../../libs/prisma"
-import { insertLedgerEntry } from "../../../../../../libs/inventoryLedger"
+import { prisma } from "@/lib/prisma"
+import { insertLedgerEntry } from "@/lib/inventoryLedger"
 
 async function getOrCreateFineGoldProduct(tx: any, branchId: number) {
   let product = await tx.productItem.findFirst({

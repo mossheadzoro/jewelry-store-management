@@ -1,7 +1,7 @@
 // client/src/app/api/rfid/scans/[id]/approve/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@libs/prisma';
+import { prisma } from "@/lib/prisma";
 import { requireAuth } from '@/lib/authGuard';
 import { rfidReconciliationEngine } from '@/lib/rfid/services/reconciliationEngine';
 import { rfidExceptionService } from '@/lib/rfid/services/exceptionService';

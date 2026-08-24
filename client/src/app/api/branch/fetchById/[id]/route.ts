@@ -1,5 +1,5 @@
 import { NextResponse } from "next/dist/server/web/spec-extension/response";
-import { prisma } from "../../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

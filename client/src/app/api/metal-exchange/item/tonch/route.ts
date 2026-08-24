@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { prisma } from "../../../../../../libs/prisma"
+import { prisma } from "@/lib/prisma"
 import { logAudit } from "../../audit/log"
 import { roundFineGold } from "@/lib/fineGold"
 

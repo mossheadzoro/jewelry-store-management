@@ -33,11 +33,12 @@ export function calculateDeliverySettlement(
 
   let lockedMetalValue = 0;
 
-  if (booking.deliveryRatePlan === "OPTION_A_MARKET_RATE" || booking.deliveryRatePlan === "MARKET_RATE") {
+  const plan = booking.deliveryRatePlan as string;
+  if (plan === "OPTION_A_MARKET_RATE" || plan === "MARKET_RATE") {
     lockedMetalValue = 0;
-  } else if (booking.deliveryRatePlan === "OPTION_D_FIXED_RATE" || booking.deliveryRatePlan === "FIXED_RATE") {
+  } else if (plan === "OPTION_D_FIXED_RATE" || plan === "FIXED_RATE" || plan === "LOCK_NOW") {
     lockedMetalValue = originalMetalValue;
-  } else if (booking.deliveryRatePlan === "OPTION_B_15_DAY_LOCK") {
+  } else if (plan === "OPTION_B_15_DAY_LOCK" || plan === "SPLIT") {
     const isExpired = Date.now() > new Date(booking.expiryDate).getTime();
     if (booking.rateLockStatus === "FULL_LOCK" && !isExpired) {
       lockedMetalValue = originalMetalValue;

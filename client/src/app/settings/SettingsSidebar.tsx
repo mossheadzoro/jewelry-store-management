@@ -11,7 +11,6 @@ import {
 
 export const settingsCategories = [
   { id: "business", title: "Business Settings", icon: Building2 },
-  { id: "users", title: "User & Roles", icon: Users },
   { id: "products", title: "Product Settings", icon: Package },
   { id: "financial", title: "Financial Settings", icon: DollarSign },
   { id: "rfid", title: "RFID Hardware & Engine", icon: Radio },

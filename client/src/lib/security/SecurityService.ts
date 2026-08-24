@@ -1,7 +1,7 @@
 // client/src/lib/security/SecurityService.ts
 // Enterprise 2FA, TOTP RFC 6238, reCAPTCHA v3 & IP Security Engine
 
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { SecurityCrypto } from "./SecurityCrypto";
 import ipaddr from "ipaddr.js";
 import { generateSecret, generateURI, verifySync } from "otplib";

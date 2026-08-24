@@ -1,6 +1,6 @@
 // client/src/lib/rfid/services/reconciliationEngine.ts
 
-import { prisma } from '@libs/prisma';
+import { prisma } from "@/lib/prisma";
 import {
   ReconciliationItem,
   ReconciliationSummary,

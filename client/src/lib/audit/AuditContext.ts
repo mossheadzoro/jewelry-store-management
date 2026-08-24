@@ -5,7 +5,7 @@ import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { SecurityService } from "@/lib/security/SecurityService";
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 export interface AuditRequestContext {
   tenantId: string;

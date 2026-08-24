@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { deliverBookingSchema } from "@/schemas/booking";
 import { calculateDeliverySettlement } from "@/lib/booking-logic";
 
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

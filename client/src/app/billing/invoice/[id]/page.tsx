@@ -2,7 +2,7 @@
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { prisma } from "../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 import PrintButton from "./PrintButton";
 import StandardInvoiceTemplate from "@/components/Billing/Templates/StandardInvoiceTemplate";
 import LuxuryInvoiceTemplate from "@/components/Billing/Templates/LuxuryInvoiceTemplate";

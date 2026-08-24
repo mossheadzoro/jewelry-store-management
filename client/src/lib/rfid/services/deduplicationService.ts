@@ -1,6 +1,6 @@
 // client/src/lib/rfid/services/deduplicationService.ts
 
-import { prisma } from '@libs/prisma';
+import { prisma } from "@/lib/prisma";
 import { RawRFIDReadPacket, NormalizedRFIDObservation } from '../types';
 
 interface BufferedRead {

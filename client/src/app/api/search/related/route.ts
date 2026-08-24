@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
-import { prisma } from '@libs/prisma';
+import { prisma } from "@/lib/prisma";
 import { RelatedEntity, SearchEntityType } from '@/lib/types/search';
 
 export async function GET(req: NextRequest) {

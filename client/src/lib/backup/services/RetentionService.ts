@@ -1,6 +1,6 @@
 // client/src/lib/backup/services/RetentionService.ts
 
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { StorageFactory } from "../storage/StorageFactory";
 
 export interface RetentionCleanupReport {

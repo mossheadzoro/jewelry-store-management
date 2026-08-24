@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/authGuard";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +45,26 @@ export async function GET(req: Request) {
       });
     }
 
+    const kycStatusParam = searchParams.get("kycStatus");
+    if (kycStatusParam === "VERIFIED") {
+      conditions.push({
+        CustomerDocument: {
+          some: { verified: true },
+        },
+      });
+    } else if (kycStatusParam === "PENDING") {
+      conditions.push({
+        AND: [
+          { CustomerDocument: { some: {} } },
+          { CustomerDocument: { none: { verified: true } } },
+        ],
+      });
+    } else if (kycStatusParam === "MISSING") {
+      conditions.push({
+        CustomerDocument: { none: {} },
+      });
+    }
+
     if (conditions.length > 0) {
       where.AND = conditions;
     }
@@ -58,6 +78,13 @@ export async function GET(req: Request) {
       take: limit,
       orderBy: { createdAt: "desc" },
       include: {
+        CustomerDocument: {
+          select: {
+            id: true,
+            documentType: true,
+            verified: true,
+          },
+        },
         tags: {
           include: {
             tagDefinition: true,
@@ -128,6 +155,23 @@ export async function GET(req: Request) {
         tier = "GOLD";
       }
 
+      // KYC Status calculation
+      const docs = customer.CustomerDocument || [];
+      const hasVerifiedDoc = docs.some((d) => d.verified);
+      const hasAnyDoc = docs.length > 0;
+      let kycStatus: "VERIFIED" | "PENDING" | "MISSING" = "MISSING";
+      if (hasVerifiedDoc) {
+        kycStatus = "VERIFIED";
+      } else if (hasAnyDoc) {
+        kycStatus = "PENDING";
+      }
+
+      // PML Compliance check (₹2,00,000 threshold or corporate)
+      const isHighValue = totalSpent >= 200000;
+      const isCorporate = !!(customer as any).gstin;
+      const requiresKyc = isHighValue || isCorporate;
+      const isPmlCompliant = !requiresKyc || hasVerifiedDoc;
+
       // Generate customer code
       const customerCode = `AT-${customer.id.toString().padStart(4, "0")}`;
 
@@ -142,6 +186,9 @@ export async function GET(req: Request) {
         gender: customer.gender,
         customerCode,
         tier,
+        kycStatus,
+        isPmlCompliant,
+        kycDocsCount: docs.length,
         totalPurchases: totalInvoices,
         totalSpent,
         lastPurchaseDate,

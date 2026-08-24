@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { prisma } from "../../../../../../libs/prisma"
-import { insertLedgerEntry } from "../../../../../../libs/inventoryLedger"
+import { prisma } from "@/lib/prisma"
+import { insertLedgerEntry } from "@/lib/inventoryLedger"
 
 const TONCH_MAP: Record<string, number> = {
   K22: 0.92,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { prisma } from "../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -118,7 +118,7 @@ export async function PUT(req: NextRequest) {
       });
     }
 
-    // Record Audit Event
+    // Record Audit Event & Gold Rate Ledger
     try {
       const { AuditLogService } = await import("@/lib/audit/AuditLogService");
       const isGoldRate = goldRateConfig !== undefined;
@@ -140,6 +140,19 @@ export async function PUT(req: NextRequest) {
           roleSnapshot: session.user.role || undefined,
         },
       });
+
+      // If manual gold rate was updated, write to Gold Rate History Ledger
+      if (isGoldRate && goldRateConfig?.manualRates && goldRateConfig.isLive === false) {
+        const { GoldRateLedgerService } = await import("@/lib/services/GoldRateLedgerService");
+        await GoldRateLedgerService.recordManualRate(
+          applyToAllBranches ? null : branchId,
+          goldRateConfig.manualRates,
+          {
+            name: session.user.name || "Store Administrator",
+            role: session.user.role || "ADMIN",
+          }
+        );
+      }
     } catch (auditErr) {
       console.error("Audit log failed in product settings:", auditErr);
     }

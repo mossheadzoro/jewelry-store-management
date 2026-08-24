@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 // POST: Manage manual tag assignments for a customer
 export async function POST(req: Request) {

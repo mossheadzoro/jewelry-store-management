@@ -7,7 +7,7 @@
 // - How to apply branch scoping
 // ============================================================================
 
-import { prisma } from '@libs/prisma';
+import { prisma } from "@/lib/prisma";
 import { SearchPermissionScope, SearchResultDTO } from '@/lib/types/search';
 import { determineMatchType } from './resultRanking';
 import {

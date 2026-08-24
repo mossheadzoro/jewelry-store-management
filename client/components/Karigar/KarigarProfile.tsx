@@ -1,6 +1,6 @@
 import Image from "next/image"
 import { notFound } from "next/navigation"
-import { prisma } from "../../libs/prisma"
+import { prisma } from "@/lib/prisma"
 
 export default async function KarigarProfile({
   params,

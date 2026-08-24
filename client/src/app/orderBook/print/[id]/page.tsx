@@ -1,4 +1,4 @@
-import { prisma } from "../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 import PrintButton from "./PrintButton";
 
 export default async function PrintOrderSlip({

@@ -1,4 +1,4 @@
-import { prisma } from "../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 export async function getNextSequence(tx: any, branchId: number, categoryName: string, increment: boolean = false): Promise<number> {
   if (increment) {

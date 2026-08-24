@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 // SEARCH PRODUCTS
 export async function GET(req: NextRequest) {

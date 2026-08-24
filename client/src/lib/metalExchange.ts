@@ -1,6 +1,6 @@
 
 import { Prisma } from "@prisma/client"
-import { prisma } from "../../libs/prisma"
+import { prisma } from "@/lib/prisma"
 
 export async function getActiveMetalExchangeSession(
   branchId: number,

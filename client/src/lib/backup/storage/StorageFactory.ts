@@ -2,7 +2,7 @@
 
 import { BackupStorageProvider } from "./BackupStorageProvider";
 import { S3CompatibleStorageProvider, S3StorageConfig } from "./S3CompatibleStorageProvider";
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 export class StorageFactory {
   private static instance: BackupStorageProvider | null = null;

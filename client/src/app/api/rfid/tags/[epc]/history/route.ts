@@ -1,7 +1,7 @@
 // client/src/app/api/rfid/tags/[epc]/history/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@libs/prisma';
+import { prisma } from "@/lib/prisma";
 import { requireAuth } from '@/lib/authGuard';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ epc: string }> }) {

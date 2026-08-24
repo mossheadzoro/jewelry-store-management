@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { logAudit } from "../../audit/log"
-import { prisma } from "../../../../../../libs/prisma"
+import { prisma } from "@/lib/prisma"
 
 export async function POST(req: Request) {
   const { sessionId, authorizedBy } = await req.json()

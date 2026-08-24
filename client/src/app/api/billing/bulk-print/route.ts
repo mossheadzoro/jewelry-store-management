@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 // GET: Preview — returns invoice count and IDs in a range
 export async function GET(req: NextRequest) {

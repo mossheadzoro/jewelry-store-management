@@ -4,6 +4,7 @@ import { IconCirclePlusFilled, IconMail, type Icon } from "@tabler/icons-react";
 import {
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -13,18 +14,25 @@ import { useRouter } from "next/navigation";
 
 export function NavMain({
   items,
+  label,
 }: {
   items: {
     title: string;
     url: string;
     icon?: Icon;
   }[];
+  label?: string;
 }) {
   const router = useRouter();
 
   return (
     <SidebarGroup>
-      <SidebarGroupContent className="flex flex-col gap-2">
+      {label && (
+        <SidebarGroupLabel className="text-[10px] uppercase font-bold tracking-wider text-platinum-muted px-2 mb-1">
+          {label}
+        </SidebarGroupLabel>
+      )}
+      <SidebarGroupContent className="flex flex-col gap-1">
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>

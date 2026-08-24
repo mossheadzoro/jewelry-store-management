@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 // POST /api/schemes/[id]/redeem — Apply scheme balance to an invoice
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {

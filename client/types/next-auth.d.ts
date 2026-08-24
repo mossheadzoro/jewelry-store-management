@@ -31,3 +31,6 @@ declare module "next-auth/jwt" {
     email?: string;
   }
 }
+
+declare module "qrcode";
+

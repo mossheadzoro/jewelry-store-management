@@ -1,6 +1,6 @@
 // client/src/lib/backup/services/MaintenanceModeService.ts
 
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 export class MaintenanceModeService {
   private static cachedState: { isMaintenance: boolean; expiresAt: number } | null = null;

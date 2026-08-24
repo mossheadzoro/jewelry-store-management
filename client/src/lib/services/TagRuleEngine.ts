@@ -1,4 +1,4 @@
-import { prisma } from "../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 export const SYSTEM_TAGS = [
   {

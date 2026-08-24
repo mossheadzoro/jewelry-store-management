@@ -445,8 +445,8 @@ function BookingDetailContent() {
         <div className="bg-onyx-surface rounded-xl gold-border p-6">
           <h3 className="text-[14px] font-medium text-platinum mb-6">Financial Ledger</h3>
           <div className="space-y-4">
-            {ledger.map((entry) => {
-              const config = ledgerIcons[entry.type] || ledgerIcons.BOOKING_CREATED;
+            {ledger.map((entry: any) => {
+              const config = (ledgerIcons as any)[entry.type] || ledgerIcons.BOOKING_CREATED;
               const Icon = config.icon;
               return (
                 <div key={entry.id} className="flex items-start gap-4 p-4 rounded-lg bg-onyx-elevated border border-onyx-border">
@@ -529,16 +529,16 @@ function BookingDetailContent() {
               </tr>
             </thead>
             <tbody>
-              {auditLog.map((entry) => (
+              {auditLog.map((entry: any) => (
                 <tr key={entry.id} className="border-b border-onyx-border/50 hover:bg-onyx-elevated/50 transition-colors">
                   <td className="p-4 text-[12px] text-platinum-muted tabular-nums">{format(new Date(entry.timestamp), "dd MMM yy, hh:mm a")}</td>
                   <td className="p-4 text-[12px] text-platinum font-medium">{entry.action}</td>
                   <td className="p-4 text-[12px] text-platinum-muted">{entry.changedBy}</td>
                   <td className="p-4">
                     <div className="flex flex-wrap gap-1.5">
-                      {Object.entries(entry.details).map(([k, v]) => (
+                      {Object.entries(entry.details || {}).map(([k, v]) => (
                         <span key={k} className="px-2 py-0.5 rounded bg-onyx-elevated border border-onyx-border text-[10px] text-platinum-muted">
-                          <span className="text-platinum">{k}:</span> {String(v)}
+                          {k}: {String(v)}
                         </span>
                       ))}
                     </div>
@@ -550,17 +550,24 @@ function BookingDetailContent() {
         </div>
       )}
 
+      {/* Dialogs */}
+      <RateLockDialog
+        booking={booking}
+        isOpen={activeDialog === "rateLock"}
+        onClose={() => setActiveDialog(null)}
+        onConfirm={(data) => lockRate({ bookingId: booking.id, ...data })}
+      />
+      <CancelBookingDialog
+        booking={booking}
+        isOpen={activeDialog === "cancel"}
+        onClose={() => setActiveDialog(null)}
+        onConfirm={(data) => cancelBooking({ bookingId: booking.id, ...data })}
+      />
       <ReceiveAdvanceDrawer
         booking={booking}
         isOpen={activeDialog === "advance"}
         onClose={() => setActiveDialog(null)}
         onConfirm={(data) => addAdvance({ bookingId: booking.id, advanceType: data.type, cashAmount: data.amount, metalWeight: data.metalWeight, paymentRef: data.paymentRef })}
-      />
-      <CancellationDialog
-        booking={booking}
-        isOpen={activeDialog === "cancel"}
-        onClose={() => setActiveDialog(null)}
-        onConfirm={(data) => cancelBooking({ bookingId: booking.id, ...data })}
       />
       <DeliverySettlementDialog
         booking={booking}
@@ -572,7 +579,7 @@ function BookingDetailContent() {
         booking={booking}
         isOpen={activeDialog === "transfer"}
         onClose={() => setActiveDialog(null)}
-        onConfirm={(data) => transferBooking({ bookingId: booking.id, destinationBranchId: data.toBranchId, ...data })}
+        onConfirm={(data: any) => transferBooking({ bookingId: booking.id, destinationBranchId: data.destinationBranchId || data.toBranchId, reason: data.reason, notes: data.notes })}
       />
     </div>
   );

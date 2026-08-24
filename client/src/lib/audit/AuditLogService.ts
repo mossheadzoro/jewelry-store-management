@@ -1,7 +1,7 @@
 // client/src/lib/audit/AuditLogService.ts
 // Centralized Enterprise Audit Logging & Activity Tracking Service
 
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { AuditContext, AuditRequestContext } from "./AuditContext";
 import { AuditDiffEngine } from "./AuditDiffEngine";
 import { AuditRedactor } from "./AuditRedactor";

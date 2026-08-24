@@ -1,6 +1,6 @@
 // client/src/lib/email/queue/EmailQueueService.ts
 
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { EmailProviderFactory } from "../providers/EmailProviderFactory";
 import { SendEmailOptions } from "../providers/EmailProvider";
 

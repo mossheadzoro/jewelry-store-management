@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../../libs/prisma";
-import { insertLedgerEntry } from "../../../../../libs/inventoryLedger";
+import { prisma } from "@/lib/prisma";
+import { insertLedgerEntry } from "@/lib/inventoryLedger";
 
 export async function GET(
   req: Request,

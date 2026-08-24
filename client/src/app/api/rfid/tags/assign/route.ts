@@ -1,7 +1,7 @@
 // client/src/app/api/rfid/tags/assign/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@libs/prisma';
+import { prisma } from "@/lib/prisma";
 import { requireAuth } from '@/lib/authGuard';
 import { logRFIDTagAssignment } from '@/lib/rfid/services/auditLogger';
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 // ─── Wholesale rounded purity % for Gold ─────────────────────────────────────
 // In wholesale business, purities are rounded: 22K=92, 20K=83, 18K=75, etc.

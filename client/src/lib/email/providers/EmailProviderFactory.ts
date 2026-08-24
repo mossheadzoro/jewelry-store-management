@@ -4,7 +4,7 @@ import { EmailProvider } from "./EmailProvider";
 import { CustomSmtpEmailProvider, SmtpConfig } from "./CustomSmtpEmailProvider";
 import { ErpManagedEmailProvider } from "./ErpManagedEmailProvider";
 import { EmailCrypto } from "../crypto/EmailCrypto";
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 export class EmailProviderFactory {
   /**

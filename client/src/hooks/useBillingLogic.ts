@@ -78,7 +78,8 @@ export function useBillingLogic(isEditMode?: boolean) {
   useEffect(() => {
     if (isEditMode) return; // User requested: rate API should not work in edit mode
 
-    fetch('/api/gold-rates')
+    const branchQuery = selectedBranch?.id ? `?branchId=${selectedBranch.id}` : "";
+    fetch(`/api/gold-rates${branchQuery}`)
       .then(res => res.json())
       .then(data => {
         if (data.ratesPerGram) {
@@ -86,7 +87,7 @@ export function useBillingLogic(isEditMode?: boolean) {
         }
       })
       .catch(console.error);
-  }, [isEditMode]);
+  }, [isEditMode, selectedBranch?.id]);
 
   // 🔥 Payments
   const [payments, setPayments] = useState<any[]>([
@@ -268,7 +269,8 @@ export function useBillingLogic(isEditMode?: boolean) {
 
   const refreshRates = async () => {
     try {
-      const res = await fetch("/api/gold-rates");
+      const branchQuery = selectedBranch?.id ? `?branchId=${selectedBranch.id}` : "";
+      const res = await fetch(`/api/gold-rates${branchQuery}`);
       const data = await res.json();
       if (data.ratesPerGram) {
         setLiveRates(data.ratesPerGram);

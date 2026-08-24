@@ -1,6 +1,6 @@
 // // src/app/api/inventory/product/create/route.ts
 // import { NextRequest, NextResponse } from 'next/server';
-// import { prisma } from '../../../../../../libs/prisma';
+// import { prisma } from "@/lib/prisma";
 // import { z } from 'zod';
 
 // // Define Zod schemas for validation
@@ -119,8 +119,8 @@
 
 // src/app/api/inventory/product/create/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../../../libs/prisma';
-import { insertLedgerEntry } from '../../../../../../libs/inventoryLedger';
+import { prisma } from "@/lib/prisma";
+import { insertLedgerEntry } from "@/lib/inventoryLedger";
 import { type } from 'arktype';
 import { generateCodesHelper } from '../../../../../../src/lib/actions/generateCodes';
 

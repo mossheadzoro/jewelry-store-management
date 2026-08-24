@@ -1,6 +1,6 @@
 // client/src/lib/rfid/services/readerManager.ts
 
-import { prisma } from '@libs/prisma';
+import { prisma } from "@/lib/prisma";
 import { RFIDReaderAdapter } from '../adapters/RFIDReaderAdapter';
 import { MockRFIDReaderAdapter } from '../adapters/MockRFIDReaderAdapter';
 import { GenericTcpReaderAdapter } from '../adapters/GenericTcpReaderAdapter';

@@ -11,6 +11,10 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  ShieldCheck,
+  ShieldAlert,
+  Shield,
+  FileText,
 } from "lucide-react";
 
 export interface CustomerTagData {
@@ -32,6 +36,9 @@ export interface CustomerRow {
   gender: string;
   customerCode: string;
   tier: "VIP" | "GOLD" | "REGULAR";
+  kycStatus?: "VERIFIED" | "PENDING" | "MISSING";
+  isPmlCompliant?: boolean;
+  kycDocsCount?: number;
   totalPurchases: number;
   totalSpent: number;
   lastPurchaseDate: string | null;
@@ -53,6 +60,7 @@ interface CustomerTableProps {
   customers: CustomerRow[];
   pagination: Pagination;
   loading?: boolean;
+  userRole?: string;
   onPageChange: (page: number) => void;
   onEdit: (customer: CustomerRow) => void;
   onDelete: (customer: CustomerRow) => void;
@@ -64,6 +72,7 @@ export default function CustomerTable({
   customers,
   pagination,
   loading,
+  userRole = "SALESMAN",
   onPageChange,
   onEdit,
   onDelete,
@@ -71,6 +80,12 @@ export default function CustomerTable({
   onMessage,
 }: CustomerTableProps) {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+
+  const isManagerOrAdmin =
+    userRole === "ADMIN" ||
+    userRole === "MANAGER" ||
+    userRole === "SUPER_ADMIN" ||
+    userRole === "OWNER";
 
   if (loading) {
     return (
@@ -100,7 +115,7 @@ export default function CustomerTable({
           <span className="text-2xl">👤</span>
         </div>
         <h3 className="text-lg font-semibold text-foreground mb-1">No customers found</h3>
-        <p className="text-sm text-[#666]">Add your first customer to get started.</p>
+        <p className="text-sm text-[#666]">Add your first customer or adjust search/filters to get started.</p>
       </div>
     );
   }
@@ -110,9 +125,10 @@ export default function CustomerTable({
       {/* Table */}
       <div className="rounded-2xl bg-onyx-surface border border-[#1f1f1f] overflow-visible">
         {/* Header */}
-        <div className="grid grid-cols-[2fr_1.5fr_1.5fr_1fr_0.6fr] gap-4 px-6 py-3.5 border-b border-[#1f1f1f] bg-[#111]">
+        <div className="grid grid-cols-[1.8fr_1.3fr_1.1fr_1.2fr_1fr_0.6fr] gap-4 px-6 py-3.5 border-b border-[#1f1f1f] bg-[#111]">
           <span className="text-[11px] font-semibold text-[#555] uppercase tracking-wider">Client Detail</span>
           <span className="text-[11px] font-semibold text-[#555] uppercase tracking-wider">Location & Contact</span>
+          <span className="text-[11px] font-semibold text-[#555] uppercase tracking-wider">KYC & Compliance</span>
           <span className="text-[11px] font-semibold text-[#555] uppercase tracking-wider">Engagement</span>
           <span className="text-[11px] font-semibold text-[#555] uppercase tracking-wider text-right">Outstanding</span>
           <span className="text-[11px] font-semibold text-[#555] uppercase tracking-wider text-center">Actions</span>
@@ -123,11 +139,12 @@ export default function CustomerTable({
           const initials = getInitials(customer.name);
           const avatarColor = getAvatarColor(customer.name);
           const isMenuOpen = openMenuId === customer.id;
+          const kycStatus = customer.kycStatus || "MISSING";
 
           return (
             <div
               key={customer.id}
-              className={`group grid grid-cols-[2fr_1.5fr_1.5fr_1fr_0.6fr] gap-4 px-6 py-4 items-center transition-colors duration-200 hover:bg-onyx-elevated ${
+              className={`group grid grid-cols-[1.8fr_1.3fr_1.1fr_1.2fr_1fr_0.6fr] gap-4 px-6 py-4 items-center transition-colors duration-200 hover:bg-onyx-elevated ${
                 idx < customers.length - 1 ? "border-b border-[#1a1a1a]" : ""
               }`}
             >
@@ -141,7 +158,7 @@ export default function CustomerTable({
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <button 
+                    <button
                       onClick={() => onView(customer)}
                       className="text-[14px] font-semibold text-foreground truncate hover:text-[#D4A843] transition-colors cursor-pointer text-left"
                     >
@@ -172,7 +189,9 @@ export default function CustomerTable({
                           orange: "bg-orange-500/10 text-orange-400 border-orange-500/25",
                           purple: "bg-purple-500/10 text-purple-400 border-purple-500/25",
                         };
-                        const colorClass = colorMap[tag.color.toLowerCase()] || "bg-gray-500/10 text-muted-foreground border-gray-500/25";
+                        const colorClass =
+                          colorMap[tag.color.toLowerCase()] ||
+                          "bg-gray-500/10 text-muted-foreground border-gray-500/25";
                         return (
                           <span
                             key={tag.id}
@@ -192,7 +211,7 @@ export default function CustomerTable({
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-[#D4A843]" />
-                  <span className="text-[13px] text-[#999] truncate">{customer.city}</span>
+                  <span className="text-[13px] text-[#999] truncate">{customer.city || "Not Specified"}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-[#555]" />
@@ -200,10 +219,38 @@ export default function CustomerTable({
                 </div>
               </div>
 
+              {/* KYC & Compliance */}
+              <div className="space-y-1.5">
+                {kycStatus === "VERIFIED" ? (
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[11px] font-semibold">
+                    <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                    <span>Verified</span>
+                  </div>
+                ) : kycStatus === "PENDING" ? (
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[11px] font-semibold">
+                    <Shield className="w-3 h-3 text-amber-400" />
+                    <span>Pending Review</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary border border-border text-[#666] text-[11px] font-medium">
+                    <ShieldAlert className="w-3 h-3 text-[#555]" />
+                    <span>No Documents</span>
+                  </div>
+                )}
+                {customer.isPmlCompliant === false && (
+                  <p className="text-[10px] text-red-400 font-medium flex items-center gap-1">
+                    ⚠️ PML Check Required
+                  </p>
+                )}
+              </div>
+
               {/* Engagement */}
               <div className="space-y-1">
                 <p className="text-[13px] text-[#ccc]">
-                  Total: <span className="font-semibold text-foreground">{customer.totalPurchases} Purchase{customer.totalPurchases !== 1 ? "s" : ""}</span>
+                  Total:{" "}
+                  <span className="font-semibold text-foreground">
+                    {customer.totalPurchases} Purchase{customer.totalPurchases !== 1 ? "s" : ""}
+                  </span>
                 </p>
                 {customer.lastPurchaseDate ? (
                   <p className="text-[11px] text-[#555]">
@@ -257,28 +304,53 @@ export default function CustomerTable({
                       {/* Backdrop */}
                       <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
                       {/* Menu - opens upward for last 2 rows to prevent overflow */}
-                      <div className={`absolute right-0 w-36 bg-onyx-elevated border border-onyx-border rounded-xl shadow-2xl shadow-black/50 z-50 py-1 overflow-hidden ${idx >= customers.length - 2 ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                      <div
+                        className={`absolute right-0 w-44 bg-onyx-elevated border border-onyx-border rounded-xl shadow-2xl shadow-black/50 z-50 py-1 overflow-hidden ${
+                          idx >= customers.length - 2 ? "bottom-full mb-1" : "top-full mt-1"
+                        }`}
+                      >
                         <button
-                          onClick={() => { onView(customer); setOpenMenuId(null); }}
+                          onClick={() => {
+                            onView(customer);
+                            setOpenMenuId(null);
+                          }}
                           className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] text-[#ccc] hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          View
+                          View Profile
                         </button>
                         <button
-                          onClick={() => { onEdit(customer); setOpenMenuId(null); }}
+                          onClick={() => {
+                            onEdit(customer);
+                            setOpenMenuId(null);
+                          }}
                           className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] text-[#ccc] hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
                         >
                           <Pencil className="w-3.5 h-3.5" />
-                          Edit
+                          Edit Profile
                         </button>
                         <button
-                          onClick={() => { onDelete(customer); setOpenMenuId(null); }}
-                          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                          onClick={() => {
+                            onView(customer);
+                            setOpenMenuId(null);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] text-[#ccc] hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Delete
+                          <FileText className="w-3.5 h-3.5 text-[#D4A843]" />
+                          KYC Documents
                         </button>
+                        {isManagerOrAdmin && (
+                          <button
+                            onClick={() => {
+                              onDelete(customer);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border-t border-[#1f1f1f]"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Delete Customer
+                          </button>
+                        )}
                       </div>
                     </>
                   )}

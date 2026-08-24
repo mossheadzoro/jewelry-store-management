@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 // GET: Fetch single order by ID
 export async function GET(

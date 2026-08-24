@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
 

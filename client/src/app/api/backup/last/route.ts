@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!bytes) return "0 Bytes";

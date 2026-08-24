@@ -5,6 +5,7 @@ import { X, UserPlus, Loader2 } from "lucide-react";
 
 interface AddCustomerModalProps {
   open: boolean;
+  userRole?: string;
   onClose: () => void;
   onSuccess: (customer?: any) => void;
 }
@@ -24,7 +25,7 @@ const INDIAN_STATES = [
   "Uttarakhand", "West Bengal",
 ];
 
-export default function AddCustomerModal({ open, onClose, onSuccess }: AddCustomerModalProps) {
+export default function AddCustomerModal({ open, userRole = "SALESMAN", onClose, onSuccess }: AddCustomerModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [mobileError, setMobileError] = useState("");
@@ -32,6 +33,11 @@ export default function AddCustomerModal({ open, onClose, onSuccess }: AddCustom
   const [manualTags, setManualTags] = useState<any[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [config, setConfig] = useState<any>(null);
+
+  // KYC Attachment state
+  const [kycFile, setKycFile] = useState<File | null>(null);
+  const [kycDocType, setKycDocType] = useState("AADHAR");
+  const [kycNotes, setKycNotes] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -182,6 +188,22 @@ export default function AddCustomerModal({ open, onClose, onSuccess }: AddCustom
 
       const newCustomer = await res.json();
 
+      // Upload initial KYC document if provided
+      if (kycFile && newCustomer.id) {
+        try {
+          const kycData = new FormData();
+          kycData.append("file", kycFile);
+          kycData.append("documentType", kycDocType);
+          kycData.append("notes", kycNotes || "Uploaded during client profile creation");
+          await fetch(`/api/customer/${newCustomer.id}/kyc/upload`, {
+            method: "POST",
+            body: kycData,
+          });
+        } catch (uploadErr) {
+          console.error("Failed to upload initial KYC document:", uploadErr);
+        }
+      }
+
       // Assign initial manual tags if selected
       if (selectedTagIds.length > 0) {
         await fetch("/api/customer/tags/assign", {
@@ -209,6 +231,8 @@ export default function AddCustomerModal({ open, onClose, onSuccess }: AddCustom
         optInEmail: true,
         optInPromotions: true,
       });
+      setKycFile(null);
+      setKycNotes("");
       setSelectedTagIds([]);
       onSuccess(newCustomer);
       onClose();
@@ -355,6 +379,65 @@ export default function AddCustomerModal({ open, onClose, onSuccess }: AddCustom
               </div>
             </div>
           )}
+
+          {/* Initial KYC Document Upload (Optional) */}
+          <div className="p-4 rounded-xl border border-[#222] bg-[#0c0c0c]/60">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-[12px] font-semibold text-[#D4A843] uppercase tracking-wider">
+                  Initial KYC Proof (Optional)
+                </h3>
+                <p className="text-[11px] text-[#666]">
+                  Attach scanned identity document for immediate vault encryption
+                </p>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-secondary border border-border text-[#888]">
+                {userRole === "SALESMAN" ? "Salesman Upload" : "Manager Vault"}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-medium text-[#666] mb-1">Doc Type</label>
+                <select
+                  value={kycDocType}
+                  onChange={(e) => setKycDocType(e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg bg-[#141414] border border-[#222] text-[12px] text-foreground outline-none focus:border-[#D4A843]/40 cursor-pointer"
+                >
+                  <option value="AADHAR">Aadhaar Card</option>
+                  <option value="PAN">PAN Card</option>
+                  <option value="GST_CERTIFICATE">GST Certificate</option>
+                  <option value="PASSPORT">Passport</option>
+                  <option value="DRIVING_LICENSE">Driving License</option>
+                  <option value="VOTER_ID">Voter ID</option>
+                  <option value="OTHER">Other Proof</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-[#666] mb-1">Select File (PDF / Image)</label>
+                <input
+                  type="file"
+                  accept=".pdf,image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setKycFile(e.target.files[0]);
+                    }
+                  }}
+                  className="w-full h-9 px-2.5 py-1 rounded-lg bg-[#141414] border border-[#222] text-[11px] text-[#aaa] file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:bg-[#222] file:text-foreground hover:file:bg-[#333] cursor-pointer"
+                />
+              </div>
+              {kycFile && (
+                <div className="col-span-2">
+                  <input
+                    type="text"
+                    value={kycNotes}
+                    onChange={(e) => setKycNotes(e.target.value)}
+                    placeholder="Document note (e.g. Scanned original shown at counter)"
+                    className="w-full h-8 px-3 rounded-lg bg-[#141414] border border-[#222] text-[11px] text-foreground placeholder:text-[#444] outline-none focus:border-[#D4A843]/40"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Communication Preferences Section */}
           {config && (config.notifications || config.marketing) && (

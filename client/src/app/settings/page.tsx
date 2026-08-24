@@ -10,7 +10,6 @@ import { SettingsSidebar, settingsCategories } from "./SettingsSidebar";
 import BusinessSettingsPanel from "./panels/BusinessSettingsPanel";
 import FinancialSettingsPanel from "./panels/FinancialSettingsPanel";
 import GoldRateSettingsPanel from "./panels/GoldRateSettingsPanel";
-import UserAndRolesSettingsPanel from "./panels/UserAndRolesSettingsPanel";
 import ProductSettingsPanel from "./panels/ProductSettingsPanel";
 import SavingSchemeSettingsPanel from "./panels/SavingSchemeSettingsPanel";
 import CustomerSettingsPanel from "./panels/CustomerSettingsPanel";
@@ -25,9 +24,27 @@ import NotificationSettingsPanel from "./panels/NotificationSettingsPanel";
 import SecuritySettingsPanel from "./panels/SecuritySettingsPanel";
 import AuditLogsSettingsPanel from "./panels/AuditLogsSettingsPanel";
 
+import { useSession } from "next-auth/react";
+
 function SettingsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { data: session, status } = useSession();
+
+  const userRole = (session?.user?.role || "SALESMAN").toUpperCase();
+  const isManagerOrAdmin =
+    userRole === "ADMIN" ||
+    userRole === "MANAGER" ||
+    userRole === "SUPER_ADMIN" ||
+    userRole === "OWNER";
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login?callbackUrl=/settings");
+    } else if (status === "authenticated" && !isManagerOrAdmin) {
+      router.replace("/unauthorized?reason=settings");
+    }
+  }, [status, isManagerOrAdmin, router]);
 
   const tabParam = searchParams.get("tab");
   const initialCategory =
@@ -49,13 +66,19 @@ function SettingsContent() {
     router.replace(`/settings?tab=${id}`, { scroll: false });
   };
 
+  if (status === "loading" || !isManagerOrAdmin) {
+    return (
+      <div className="min-h-screen bg-onyx flex items-center justify-center text-platinum-muted">
+        Verifying security clearances...
+      </div>
+    );
+  }
+
   // Render the selected content
   const renderPanel = () => {
     switch (activeCategoryId) {
       case "business":
         return <BusinessSettingsPanel />;
-      case "users":
-        return <UserAndRolesSettingsPanel />;
       case "products":
         return <ProductSettingsPanel />;
       case "financial":

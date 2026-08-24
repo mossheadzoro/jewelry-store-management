@@ -1,9 +1,45 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Edit2, Plus, MessageSquare, Download, ShoppingBag, Eye, MapPin, Mail, Phone, Loader2, Search, Shield, Trash2, Copy, Check, AlertTriangle, FileText, Upload, PiggyBank, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Edit2,
+  Plus,
+  MessageSquare,
+  Download,
+  ShoppingBag,
+  Eye,
+  MapPin,
+  Mail,
+  Phone,
+  Loader2,
+  Search,
+  Shield,
+  Trash2,
+  Copy,
+  Check,
+  AlertTriangle,
+  FileText,
+  Upload,
+  PiggyBank,
+  X,
+  ShieldCheck,
+  ShieldAlert,
+  UserCheck,
+  History,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  ArrowRight,
+  Filter,
+  Send,
+  Lock,
+  Calendar,
+  Layers,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import EditCustomerModal from "./EditCustomerModal";
 import DirectCommunicationModal from "./DirectCommunicationModal";
 import OrderDetailsModal from "./OrderDetailsModal";
@@ -14,15 +50,29 @@ interface CustomerDetailsClientProps {
 
 export default function CustomerDetailsClient({ customerId }: CustomerDetailsClientProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+
+  const userRole = session?.user?.role || "SALESMAN";
+  const isManagerOrAdmin =
+    userRole === "ADMIN" ||
+    userRole === "MANAGER" ||
+    userRole === "SUPER_ADMIN" ||
+    userRole === "OWNER";
+
   const [customer, setCustomer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
+
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCommModal, setShowCommModal] = useState(false);
   const [showManageTagsModal, setShowManageTagsModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
-  
+
+  // Tabs: ledger, orders, journey, kyc, profileLedger
+  const [activeTab, setActiveTab] = useState<
+    "ledger" | "orders" | "journey" | "kyc" | "profileLedger"
+  >("ledger");
+
   // KYC State
   const [documents, setDocuments] = useState<any[]>([]);
   const [docsLoading, setDocsLoading] = useState(false);
@@ -30,20 +80,31 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
   const [generatedLink, setGeneratedLink] = useState("");
   const [uploadTokenLoading, setUploadTokenLoading] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  
+
+  // KYC Verification / Rejection Modal State
+  const [verifyModalDoc, setVerifyModalDoc] = useState<any>(null);
+  const [verifyAction, setVerifyAction] = useState<"VERIFY" | "REJECT">("VERIFY");
+  const [verifyNotes, setVerifyNotes] = useState("");
+  const [verifyLoading, setVerifyLoading] = useState(false);
+
   // Manual upload form state
   const [manualDocType, setManualDocType] = useState("AADHAR");
   const [manualFile, setManualFile] = useState<File | null>(null);
   const [manualNotes, setManualNotes] = useState("");
   const [manualUploading, setManualUploading] = useState(false);
   const [manualError, setManualError] = useState("");
-  
-  const [activeTab, setActiveTab] = useState<"ledger" | "orders" | "journey" | "kyc">("ledger");
-  
-  // Unified Ledger State
+
+  // Unified Transaction Ledger State
   const [ledgerEntries, setLedgerEntries] = useState<any[]>([]);
   const [ledgerLoading, setLedgerLoading] = useState(false);
-  
+
+  // Profile Change Ledger (Audit Trail) State
+  const [profileLogs, setProfileLogs] = useState<any[]>([]);
+  const [profileLogsLoading, setProfileLogsLoading] = useState(false);
+  const [profileLogActionFilter, setProfileLogActionFilter] = useState("");
+  const [profileLogRoleFilter, setProfileLogRoleFilter] = useState("");
+  const [profileLogSearch, setProfileLogSearch] = useState("");
+
   // Scheme Edit State
   const [editingScheme, setEditingScheme] = useState<any>(null);
   const [editingCardNumber, setEditingCardNumber] = useState("");
@@ -54,22 +115,26 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
     if (!editingScheme) return;
     setSchemeUpdating(true);
     try {
-      // If we are updating card number
       if (editingCardNumber !== editingScheme.physicalCardNumber) {
         await fetch(`/api/schemes/${editingScheme.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "UPDATE_CARD", physicalCardNumber: editingCardNumber })
+          body: JSON.stringify({
+            action: "UPDATE_CARD",
+            physicalCardNumber: editingCardNumber,
+          }),
         });
       }
-      
-      // If we are updating maxDurationMonths
+
       const newDuration = parseInt(editingDuration, 10);
       if (!isNaN(newDuration) && newDuration > editingScheme.maxDurationMonths) {
         await fetch(`/api/schemes/${editingScheme.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "EXTEND", maxDurationMonths: newDuration })
+          body: JSON.stringify({
+            action: "EXTEND",
+            maxDurationMonths: newDuration,
+          }),
         });
       }
 
@@ -110,6 +175,27 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
       setLedgerLoading(false);
     }
   }, [customerId]);
+
+  const fetchProfileLedger = useCallback(async () => {
+    setProfileLogsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (profileLogActionFilter) params.set("action", profileLogActionFilter);
+      if (profileLogRoleFilter) params.set("role", profileLogRoleFilter);
+      if (profileLogSearch.trim()) params.set("search", profileLogSearch.trim());
+
+      const res = await fetch(`/api/customer/${customerId}/profile-ledger?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setProfileLogs(data.logs || []);
+      }
+    } catch (err) {
+      console.error("Error fetching profile change ledger:", err);
+    } finally {
+      setProfileLogsLoading(false);
+    }
+  }, [customerId, profileLogActionFilter, profileLogRoleFilter, profileLogSearch]);
+
   const fetchDetails = useCallback(async () => {
     setLoading(true);
     try {
@@ -117,13 +203,13 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setCustomer(data.customer);
-      await Promise.all([fetchDocs(), fetchLedger()]);
+      await Promise.all([fetchDocs(), fetchLedger(), fetchProfileLedger()]);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [customerId, fetchDocs]);
+  }, [customerId, fetchDocs, fetchLedger, fetchProfileLedger]);
 
   const refreshDetails = useCallback(async () => {
     try {
@@ -131,17 +217,16 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
       if (res.ok) {
         const data = await res.json();
         setCustomer(data.customer);
-        await Promise.all([fetchDocs(), fetchLedger()]);
+        await Promise.all([fetchDocs(), fetchLedger(), fetchProfileLedger()]);
         return data.customer;
       }
     } catch (err) {
       console.error(err);
     }
     return null;
-  }, [customerId, fetchDocs]);
+  }, [customerId, fetchDocs, fetchLedger, fetchProfileLedger]);
 
   useEffect(() => {
-    // Evaluate system tags first, then fetch details
     fetch(`/api/customer/tags/evaluate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -152,6 +237,13 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
         fetchDetails();
       });
   }, [customerId, fetchDetails]);
+
+  // When activeTab changes to profileLedger, refetch profile change ledger
+  useEffect(() => {
+    if (activeTab === "profileLedger") {
+      fetchProfileLedger();
+    }
+  }, [activeTab, fetchProfileLedger]);
 
   const handleManualUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,6 +269,7 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
         setManualNotes("");
         setManualError("");
         await fetchDocs();
+        await fetchProfileLedger();
       }
     } catch (err) {
       console.error(err);
@@ -187,13 +280,23 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
   };
 
   const handleDocDelete = async (docId: string) => {
-    if (!confirm("Are you sure you want to delete this document? This action is permanent and cannot be undone.")) return;
+    if (!isManagerOrAdmin) {
+      alert("Permission Denied: Only Managers can delete documents from the vault.");
+      return;
+    }
+    if (
+      !confirm(
+        "Are you sure you want to delete this document? This will remove the file from secure storage and be logged permanently in the audit ledger."
+      )
+    )
+      return;
     try {
       const res = await fetch(`/api/customer/${customerId}/kyc/download/${docId}`, {
         method: "DELETE",
       });
       if (res.ok) {
         await fetchDocs();
+        await fetchProfileLedger();
       } else {
         const data = await res.json();
         alert(data.error || "Failed to delete document");
@@ -201,6 +304,49 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
     } catch (err) {
       console.error(err);
       alert("Error deleting document");
+    }
+  };
+
+  const handleOpenVerifyModal = (doc: any, action: "VERIFY" | "REJECT") => {
+    if (!isManagerOrAdmin) {
+      alert("Permission Denied: KYC document verification and approval requires Manager or Admin authority.");
+      return;
+    }
+    setVerifyModalDoc(doc);
+    setVerifyAction(action);
+    setVerifyNotes("");
+  };
+
+  const handleConfirmVerification = async () => {
+    if (!verifyModalDoc) return;
+    setVerifyLoading(true);
+    try {
+      const res = await fetch(
+        `/api/customer/${customerId}/kyc/verify/${verifyModalDoc.id}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: verifyAction,
+            notes: verifyAction === "VERIFY" ? verifyNotes : undefined,
+            reason: verifyAction === "REJECT" ? verifyNotes : undefined,
+          }),
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        alert(data.error || "Verification update failed.");
+      } else {
+        setVerifyModalDoc(null);
+        await fetchDocs();
+        await fetchProfileLedger();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error during verification.");
+    } finally {
+      setVerifyLoading(false);
     }
   };
 
@@ -216,6 +362,7 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
         const link = `${window.location.origin}/public/kyc-upload?token=${data.token}`;
         setGeneratedLink(link);
         setShowShareLinkModal(true);
+        await fetchProfileLedger();
       } else {
         alert(data.error || "Failed to generate upload link");
       }
@@ -239,55 +386,71 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
     return (
       <div className="flex-1 min-h-screen bg-onyx flex flex-col items-center justify-center">
         <p className="text-foreground text-lg">Customer not found</p>
-        <Link href="/customer" className="text-[#D4A843] hover:underline mt-4">Back to Customers</Link>
+        <Link href="/customer" className="text-[#D4A843] hover:underline mt-4">
+          Back to Customers
+        </Link>
       </div>
     );
   }
 
-  const initials = customer.name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
-  
-  // Calculate LTV and Due from invoices
+  const initials = customer.name
+    .split(" ")
+    .map((w: string) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
   let lifetimeValue = 0;
   let currentDue = 0;
-  
+
   const invoices = customer.invoices || [];
   invoices.forEach((inv: any) => {
-    lifetimeValue += inv.paidAmount || (inv.totalAmount - inv.balanceAmount) || 0;
+    lifetimeValue += inv.paidAmount || inv.totalAmount - inv.balanceAmount || 0;
     currentDue += inv.balanceAmount || 0;
   });
 
-  // Direct Wallet Balance calculation from DB
   const wallet = customer?.CustomerWallet;
   const computedCashBalance = wallet?.cashBalance || 0;
   const computed24KBalance = wallet?.metal24KBalance || 0;
   const computed22KBalance = wallet?.metal22KBalance || 0;
-
-  const hasWalletActivity = wallet || ledgerEntries.some(entry => entry.type === 'WALLET');
+  const hasWalletActivity = computedCashBalance > 0 || computed24KBalance > 0 || computed22KBalance > 0 || !!wallet;
 
   // Dynamic KYC Compliance logic
   const customerTags = customer.tags || [];
-  const isHighValue = customerTags.some((t: any) => t.tagDefinition?.name === "VIP" || t.tagDefinition?.name === "HIGH_VALUE") || 
-                      invoices.some((inv: any) => inv.totalAmount > 200000);
-  const isCorporate = customerTags.some((t: any) => t.tagDefinition?.name === "CORPORATE" || t.tagDefinition?.name === "WHOLESALE") || 
-                      !!customer.gstin;
+  const isHighValue =
+    customerTags.some(
+      (t: any) =>
+        t.tagDefinition?.name === "VIP" || t.tagDefinition?.name === "HIGH_VALUE"
+    ) || invoices.some((inv: any) => inv.totalAmount > 200000);
+  const isCorporate =
+    customerTags.some(
+      (t: any) =>
+        t.tagDefinition?.name === "CORPORATE" ||
+        t.tagDefinition?.name === "WHOLESALE"
+    ) || !!customer.gstin;
   const requiresKyc = isHighValue || isCorporate;
 
-  const hasPan = documents.some((d: any) => d.documentType === "PAN");
-  const hasAadhar = documents.some((d: any) => d.documentType === "AADHAR");
-  const hasGst = documents.some((d: any) => d.documentType === "GST_CERTIFICATE");
+  const hasPanDoc = documents.some((d: any) => d.documentType === "PAN" && d.verified);
+  const hasAadharDoc = documents.some((d: any) => d.documentType === "AADHAR" && d.verified);
+  const hasGstDoc = documents.some((d: any) => d.documentType === "GST_CERTIFICATE" && d.verified);
+  const hasAnyVerifiedDoc = documents.some((d: any) => d.verified);
 
   let isCompliant = true;
   let missingReason = "";
   if (isCorporate) {
-    isCompliant = hasGst || hasPan;
-    if (!isCompliant) missingReason = "B2B/Corporate customer requires a GST Certificate or PAN Document.";
+    isCompliant = hasGstDoc || hasPanDoc;
+    if (!isCompliant)
+      missingReason =
+        "Corporate / B2B client requires verified GST Certificate or PAN Document.";
   } else if (isHighValue) {
-    isCompliant = hasPan || hasAadhar;
-    if (!isCompliant) missingReason = "High-value individual requires a PAN or Aadhar Document (PML Act transaction limit compliance).";
+    isCompliant = hasPanDoc || hasAadharDoc || hasAnyVerifiedDoc;
+    if (!isCompliant)
+      missingReason =
+        "High-value retail client (> ₹2,00,000) requires verified PAN or Aadhaar document under PML Act regulations.";
   }
 
   const handleInvoiceClick = (invId: number) => {
-    router.push(`/billing/invoice/${invId}`); // Assuming this route exists
+    router.push(`/billing/invoice/${invId}`);
   };
 
   const handleOrderClick = (order: any) => {
@@ -295,16 +458,15 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
   };
 
   const orders = customer.Order || [];
-
-  // Filter orders by search query
   const filteredOrders = orders.filter((order: any) => {
     const q = orderSearchQuery.toLowerCase().trim();
     if (!q) return true;
     const matchesNo = order.orderNumber?.toLowerCase().includes(q);
     const matchesStatus = order.status?.toLowerCase().includes(q);
-    const matchesItem = order.items?.some((item: any) => 
-      item.category?.name?.toLowerCase().includes(q) ||
-      item.description?.toLowerCase().includes(q)
+    const matchesItem = order.items?.some(
+      (item: any) =>
+        item.category?.name?.toLowerCase().includes(q) ||
+        item.description?.toLowerCase().includes(q)
     );
     return matchesNo || matchesStatus || matchesItem;
   });
@@ -313,816 +475,491 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
     <main className="flex-1 min-h-screen bg-onyx overflow-auto">
       <div className="max-w-[1400px] mx-auto px-8 py-8">
         
-        {/* Navigation & Header */}
+        {/* Navigation & Role Context */}
         <div className="mb-8">
-          <Link href="/customer" className="inline-flex items-center gap-2 text-[13px] text-[#888] hover:text-foreground transition-colors mb-6">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Atelier Clients
-          </Link>
-          
+          <div className="flex items-center justify-between mb-4">
+            <Link
+              href="/customer"
+              className="inline-flex items-center gap-2 text-[13px] text-[#888] hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Atelier Clients
+            </Link>
+            <div className="flex items-center gap-2">
+              <span
+                className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border flex items-center gap-1.5 ${
+                  isManagerOrAdmin
+                    ? "bg-[#D4A843]/15 text-[#D4A843] border-[#D4A843]/30"
+                    : "bg-blue-500/15 text-blue-400 border-blue-500/30"
+                }`}
+              >
+                {isManagerOrAdmin ? <Shield className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+                {userRole} Responsibility Level
+              </span>
+            </div>
+          </div>
+
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-[36px] font-bold text-foreground tracking-tight leading-tight">{customer.name}</h1>
+              <h1 className="text-[36px] font-bold text-foreground tracking-tight leading-tight">
+                {customer.name}
+              </h1>
               <p className="text-[14px] text-[#777] mt-1.5 flex items-center gap-2">
-                Client ID: <span className="text-[#D4A843] font-medium">#{customer.customerCode || `AT-${customer.id.toString().padStart(4, '0')}-V`}</span>
+                Client ID:{" "}
+                <span className="text-[#D4A843] font-medium">
+                  #{customer.customerCode || `AT-${customer.id.toString().padStart(4, "0")}`}
+                </span>
                 <span>•</span>
-                <span>Member since {new Date(customer.createdAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</span>
+                <span>
+                  Member since{" "}
+                  {new Date(customer.createdAt).toLocaleDateString("en-GB", {
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 onClick={() => setShowEditModal(true)}
-                className="h-10 px-5 rounded-full border border-border text-[#ccc] text-[13px] font-medium flex items-center gap-2 hover:bg-onyx-elevated hover:text-foreground hover:border-[#444] transition-all"
+                className="h-10 px-5 rounded-full border border-border text-[#ccc] text-[13px] font-medium flex items-center gap-2 hover:bg-onyx-elevated hover:text-foreground hover:border-[#444] transition-all cursor-pointer"
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 Edit Profile
               </button>
-              <button 
+              <button
                 onClick={() => setShowCommModal(true)}
-                className="h-10 w-10 rounded-full border border-border text-[#ccc] flex items-center justify-center hover:bg-onyx-elevated hover:text-[#D4A843] hover:border-[#D4A843]/50 transition-all"
+                className="h-10 w-10 rounded-full border border-border text-[#ccc] flex items-center justify-center hover:bg-onyx-elevated hover:text-[#D4A843] hover:border-[#D4A843]/50 transition-all cursor-pointer"
                 title="Message Customer"
               >
                 <MessageSquare className="w-4 h-4" />
               </button>
-              <button 
+              <button
                 onClick={() => router.push(`/billing/create?customerId=${customer.id}`)}
-                className="h-10 px-5 rounded-full bg-[#D4A843] text-foreground text-[13px] font-semibold flex items-center gap-2 hover:bg-[#e6bc5a] transition-all"
+                className="h-10 px-5 rounded-full bg-[#D4A843] text-foreground text-[13px] font-semibold flex items-center gap-2 hover:bg-[#e6bc5a] transition-all cursor-pointer"
               >
-                <Plus className="w-4 h-4" />
+                <ShoppingBag className="w-3.5 h-3.5" />
                 New Invoice
               </button>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-[1fr_2.2fr] gap-6">
-          
-          {/* Left Column - Profile & Stats */}
+        {/* 2 Column Layout */}
+        <div className="grid grid-cols-[380px_1fr] gap-8">
+          {/* Left Column: Dossier Card */}
           <div className="space-y-6">
-            
-            {/* Profile Card */}
-            <div className="bg-onyx-surface border border-[#222] rounded-2xl p-6">
-              <div className="flex items-start gap-5 mb-6">
-                <div className="w-16 h-16 rounded-full bg-secondary border border-border flex items-center justify-center text-[22px] font-bold text-[#D4A843] flex-shrink-0">
+            <div className="bg-onyx-surface border border-[#222] rounded-2xl p-6 relative overflow-hidden">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-[#D4A843]/15 border border-[#D4A843]/30 flex items-center justify-center text-[22px] font-bold text-[#D4A843] flex-shrink-0 shadow-lg">
                   {initials}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 text-[13px] text-[#999]">
-                    <Phone className="w-3.5 h-3.5 flex-shrink-0" /> +91 {customer.mobile}
+                  <h2 className="text-[18px] font-bold text-foreground truncate">{customer.name}</h2>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <span className="text-[11px] font-bold text-[#D4A843] px-2 py-0.5 rounded-full bg-[#D4A843]/10 border border-[#D4A843]/20 uppercase tracking-wide">
+                      {customerTags.some((t: any) => t.tagDefinition?.name === "VIP")
+                        ? "VIP Patron"
+                        : "Atelier Client"}
+                    </span>
+                    {customer.gender && (
+                      <span className="text-[11px] text-[#777] font-medium uppercase tracking-wide">
+                        • {customer.gender}
+                      </span>
+                    )}
                   </div>
-                  {customer.email && (
-                    <div className="flex items-center gap-2 text-[13px] text-[#999] mt-1.5">
-                      <Mail className="w-3.5 h-3.5 flex-shrink-0" /> <span className="truncate">{customer.email}</span>
-                    </div>
-                  )}
-                  {customer.address && (
-                    <div className="flex items-start gap-2 text-[13px] text-[#999] mt-1.5 leading-normal">
-                      <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                      <span className="break-words">{customer.address}, {customer.city}, {customer.state} - {customer.pincode}</span>
-                    </div>
-                  )}
-                  {requiresKyc && (
-                    <div className="mt-3">
-                      {isCompliant ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          <Shield className="w-3 h-3 text-emerald-400" /> PML Compliant
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse" title={missingReason}>
-                          <AlertTriangle className="w-3 h-3 text-red-400" /> KYC Missing
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
 
-              {/* Additional Details (DOB, Anniversary, PAN, Aadhar, GSTIN) */}
-              <div className="p-4 bg-onyx rounded-xl border border-[#1a1a1a] mb-5 space-y-3">
-                <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest border-b border-[#161616] pb-1.5">Patron Info</p>
-                
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-[13px]">
-                  <div>
-                    <span className="text-[#555] block text-[10px] uppercase font-semibold">Date of Birth</span>
-                    <span className="text-[#ccc]">{customer.dob ? new Date(customer.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[#555] block text-[10px] uppercase font-semibold">Anniversary</span>
-                    <span className="text-[#ccc]">{customer.anniversary ? new Date(customer.anniversary).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[#555] block text-[10px] uppercase font-semibold">Gender</span>
-                    <span className="text-[#ccc] capitalize">{customer.gender ? customer.gender.toLowerCase() : '—'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[#555] block text-[10px] uppercase font-semibold">PAN</span>
-                    <span className="text-[#ccc] uppercase">{customer.pan || '—'}</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-[#555] block text-[10px] uppercase font-semibold">Aadhar</span>
-                    <span className="text-[#ccc] tracking-wider">{customer.aadhar || '—'}</span>
-                  </div>
-                  {customer.gstin && (
-                    <div className="col-span-2">
-                      <span className="text-[#555] block text-[10px] uppercase font-semibold">GSTIN</span>
-                      <span className="text-[#ccc] uppercase">{customer.gstin}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Customer Tags Section */}
-              <div className="p-4 bg-onyx rounded-xl border border-[#1a1a1a] mb-5">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest">Active Tags</p>
+              {/* Tags Section */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold text-[#555] uppercase tracking-wider">
+                    Assigned Tags
+                  </span>
                   <button
                     onClick={() => setShowManageTagsModal(true)}
-                    className="text-[11px] font-semibold text-[#D4A843] hover:text-[#e6bc5a] hover:underline cursor-pointer transition-colors"
+                    className="text-[11px] text-[#D4A843] hover:underline flex items-center gap-1 cursor-pointer font-medium"
                   >
-                    Manage Tags
+                    <Plus className="w-3 h-3" /> Manage
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {customer.tags && customer.tags.length > 0 ? (
-                    customer.tags.map((assignment: any) => {
-                      const tag = assignment.tagDefinition;
+                {customer.tags && customer.tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {customer.tags.map((t: any) => {
                       const colorMap: Record<string, string> = {
-                        gold: "bg-[#D4A843]/15 text-[#D4A843] border-[#D4A843]/30",
-                        red: "bg-red-500/10 text-red-400 border-red-500/25",
-                        blue: "bg-blue-500/10 text-blue-400 border-blue-500/25",
-                        gray: "bg-gray-500/10 text-muted-foreground border-gray-500/25",
-                        green: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
-                        orange: "bg-orange-500/10 text-orange-400 border-orange-500/25",
-                        purple: "bg-[#8b5cf6]/10 text-[#8b5cf6] border-[#8b5cf6]/25",
+                        gold: "border-[#D4A843]/30 text-[#D4A843] bg-[#D4A843]/10",
+                        red: "border-red-500/30 text-red-400 bg-red-500/10",
+                        blue: "border-blue-500/30 text-blue-400 bg-blue-500/10",
+                        gray: "border-gray-500/30 text-muted-foreground bg-gray-500/10",
+                        green: "border-emerald-500/30 text-emerald-400 bg-emerald-500/10",
+                        orange: "border-orange-500/30 text-orange-400 bg-orange-500/10",
+                        purple: "border-purple-500/30 text-purple-400 bg-purple-500/10",
                       };
-                      const colorClass = colorMap[tag.color.toLowerCase()] || "bg-gray-500/10 text-muted-foreground border-gray-500/25";
+                      const activeColor =
+                        colorMap[t.tagDefinition.color?.toLowerCase()] ||
+                        "border-gray-500/30 text-muted-foreground bg-gray-500/10";
                       return (
                         <span
-                          key={assignment.id}
-                          className={`px-2 py-1 rounded text-[11px] font-medium border ${colorClass}`}
-                          title={`${tag.type === "SYSTEM" ? "System-generated" : "Manually-assigned"}: ${tag.description || ''}`}
+                          key={t.id}
+                          className={`text-[11px] font-semibold px-2.5 py-0.8 rounded-lg border ${activeColor}`}
                         >
-                          {tag.label}
+                          {t.tagDefinition.label}
                         </span>
                       );
-                    })
-                  ) : (
-                    <span className="text-[12px] text-[#444] italic">No active tags</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Visit Stats */}
-              <div className="flex border-t border-[#222] pt-5">
-                <div className="flex-1">
-                  <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest mb-1">Last Visited</p>
-                  <p className="text-[14px] text-foreground font-medium">
-                    {invoices.length > 0 ? new Date(invoices[0].createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
-                  </p>
-                </div>
-                <div className="w-px bg-secondary mx-4"></div>
-                <div className="flex-1">
-                  <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest mb-1">Loyalty Points</p>
-                  <p className="text-[16px] text-[#D4A843] font-bold">{Math.floor(lifetimeValue / 100)}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Financial Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-onyx-surface border border-[#222] rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <ShoppingBag className="w-4 h-4 text-[#777]" />
-                  <p className="text-[10px] font-bold text-[#777] uppercase tracking-widest">Current Due</p>
-                </div>
-                <p className="text-[24px] font-bold text-foreground">₹{currentDue.toLocaleString("en-IN")}</p>
-              </div>
-              <div className="bg-onyx-surface border border-[#222] rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[#D4A843] text-sm">💎</span>
-                  <p className="text-[10px] font-bold text-[#777] uppercase tracking-widest">Lifetime Value</p>
-                </div>
-                <p className="text-[24px] font-bold text-[#D4A843]">₹{lifetimeValue.toLocaleString("en-IN")}</p>
-              </div>
-            </div>
-
-            {/* Wallet Balances */}
-            {hasWalletActivity && (
-              <div className="bg-onyx-surface border border-[#222] rounded-2xl p-5">
-                <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest mb-4">Customer Wallet</p>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="flex flex-col">
-                    <span className="text-[11px] text-[#888] mb-1">Cash Balance</span>
-                    <span className="text-[20px] font-bold text-foreground">₹{computedCashBalance.toLocaleString("en-IN")}</span>
+                    })}
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-[11px] text-[#888] mb-1">24K Metal Balance</span>
-                    <span className="text-[20px] font-bold text-[#D4A843]">{computed24KBalance.toFixed(3)} g</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[11px] text-[#888] mb-1">22K Metal Balance</span>
-                    <span className="text-[20px] font-bold text-[#C9943A]">{computed22KBalance.toFixed(3)} g</span>
-                  </div>
-                </div>
+                ) : (
+                  <p className="text-[12px] text-[#555] italic">No active tags</p>
+                )}
               </div>
-            )}
 
-            {/* Saving Schemes */}
-            {customer.savingSchemes && customer.savingSchemes.length > 0 && (
-              <div className="bg-onyx-surface border border-[#222] rounded-2xl p-5 mt-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <PiggyBank className="w-4 h-4 text-[#D4A843]" />
-                  <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest">Saving Schemes</p>
+              {/* Contact Info */}
+              <div className="space-y-3.5 border-t border-[#222] pt-5">
+                <div className="flex items-center gap-3 text-[13px]">
+                  <Phone className="w-4 h-4 text-[#D4A843] flex-shrink-0" />
+                  <span className="text-[#ccc]">+91 {customer.mobile}</span>
                 </div>
-                <div className="space-y-3">
-                  {customer.savingSchemes.map((scheme: any) => {
-                    const isActive = scheme.status === "ACTIVE";
-                    const isMatured = scheme.status === "MATURED";
-                    
-                    return (
-                      <div key={scheme.id} className="p-3 border border-[#222] bg-onyx rounded-xl flex items-center justify-between">
-                        <div>
-                           <div className="flex items-center gap-2">
-                             <span className="text-sm font-bold text-[#D4A843]">{scheme.schemeNumber}</span>
-                             {isActive && <span className="px-2 py-0.5 rounded text-[9px] bg-emerald-500/10 text-emerald-500 font-bold uppercase">Active</span>}
-                             {isMatured && <span className="px-2 py-0.5 rounded text-[9px] bg-[#C9943A]/10 text-[#C9943A] font-bold uppercase">Matured</span>}
-                           </div>
-                           <p className="text-xs text-[#888] mt-1 flex items-center gap-2">
-                             <span>{scheme.type.replace('_', ' ')}</span>
-                             {scheme.physicalCardNumber && (
-                               <span className="flex items-center gap-1 text-[10px] text-[#555]">
-                                 Card: {scheme.physicalCardNumber}
-                               </span>
-                             )}
-                           </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => {
-                            setEditingCardNumber(scheme.physicalCardNumber || "");
-                            setEditingDuration(scheme.maxDurationMonths?.toString() || "");
-                            setEditingScheme(scheme);
-                          }} className="p-2 rounded-lg bg-onyx-surface border border-[#222] text-[#888] hover:text-[#D4A843] hover:border-[#D4A843]/30 transition-all cursor-pointer">
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                {customer.email && (
+                  <div className="flex items-center gap-3 text-[13px]">
+                    <Mail className="w-4 h-4 text-[#D4A843] flex-shrink-0" />
+                    <span className="text-[#ccc] truncate">{customer.email}</span>
+                  </div>
+                )}
+                <div className="flex items-start gap-3 text-[13px]">
+                  <MapPin className="w-4 h-4 text-[#D4A843] flex-shrink-0 mt-0.5" />
+                  <span className="text-[#999] leading-relaxed">
+                    {customer.address ? `${customer.address}, ` : ""}
+                    {customer.city}, {customer.state} - {customer.pincode}
+                  </span>
                 </div>
               </div>
-            )}
 
-            {/* Concierge Notes */}
-            <div className="bg-onyx-surface border border-[#222] rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest">Concierge Notes</p>
-                <Edit2 className="w-3.5 h-3.5 text-[#D4A843]" />
+              {/* Tax & Financial Identifiers */}
+              <div className="border-t border-[#222] pt-4 mt-4 space-y-2 text-[12px]">
+                <div className="flex items-center justify-between text-[#888]">
+                  <span>PAN:</span>
+                  <span className="text-foreground font-mono font-medium">
+                    {customer.pan || "Not Provided"}
+                  </span>
+                </div>
+                {customer.gstin && (
+                  <div className="flex items-center justify-between text-[#888]">
+                    <span>GSTIN:</span>
+                    <span className="text-foreground font-mono font-medium">{customer.gstin}</span>
+                  </div>
+                )}
+                {customer.aadhar && (
+                  <div className="flex items-center justify-between text-[#888]">
+                    <span>Aadhaar:</span>
+                    <span className="text-foreground font-mono font-medium">
+                      XXXX-XXXX-{customer.aadhar.slice(-4)}
+                    </span>
+                  </div>
+                )}
               </div>
-              <div className="p-4 rounded-xl border border-[#D4A843]/20 border-l-2 border-l-[#D4A843] bg-[#D4A843]/5">
-                <p className="text-[13px] text-[#ccc] italic leading-relaxed">
-                  "Prefers private viewings after 5 PM. Celebrating anniversary next year, looking for a statement piece. Averse to heavy settings."
-                </p>
-              </div>
+
+              {/* Wallet Summary */}
+              {hasWalletActivity && (
+                <div className="border-t border-[#222] pt-4 mt-4">
+                  <span className="text-[11px] font-bold text-[#555] uppercase tracking-wider block mb-2">
+                    Client Wallet
+                  </span>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-onyx p-2.5 rounded-xl border border-[#222] text-center">
+                      <p className="text-[10px] text-[#777]">Cash</p>
+                      <p className="text-[13px] font-bold text-foreground">₹{computedCashBalance.toLocaleString("en-IN")}</p>
+                    </div>
+                    <div className="bg-onyx p-2.5 rounded-xl border border-[#222] text-center">
+                      <p className="text-[10px] text-[#D4A843]">24K Gold</p>
+                      <p className="text-[13px] font-bold text-[#D4A843]">{computed24KBalance}g</p>
+                    </div>
+                    <div className="bg-onyx p-2.5 rounded-xl border border-[#222] text-center">
+                      <p className="text-[10px] text-amber-500">22K Gold</p>
+                      <p className="text-[13px] font-bold text-amber-500">{computed22KBalance}g</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-
           </div>
 
-          {/* Right Column - Ledger & Tabs */}
+          {/* Right Column: Tabs & Main Content */}
           <div>
-            
-            {/* Tabs Header */}
-            <div className="flex items-center gap-8 border-b border-[#222] mb-6">
+            {/* Tab Header Navigation */}
+            <div className="flex items-center gap-6 border-b border-[#222] mb-6 overflow-x-auto">
               {[
                 { id: "ledger", label: "Transaction Ledger", icon: "🧾" },
                 { id: "orders", label: "Commissioned Orders", icon: "💎" },
                 { id: "journey", label: "Purchase Journey", icon: "📈" },
-                { id: "kyc", label: "KYC & Documents", icon: "🔒" },
+                { id: "kyc", label: "KYC & Compliance", icon: "🔒" },
+                { id: "profileLedger", label: "Profile Change Ledger", icon: "🛡️" },
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 pb-3 text-[13px] font-semibold transition-all border-b-2 ${
-                    activeTab === tab.id 
-                    ? "text-[#D4A843] border-[#D4A843]" 
-                    : "text-[#666] border-transparent hover:text-[#999]"
+                  className={`flex items-center gap-2 pb-3.5 text-[13px] font-semibold transition-all border-b-2 whitespace-nowrap cursor-pointer ${
+                    activeTab === tab.id
+                      ? "text-[#D4A843] border-[#D4A843]"
+                      : "text-[#666] border-transparent hover:text-[#999]"
                   }`}
                 >
                   <span className="text-[14px]">{tab.icon}</span>
                   {tab.label}
+                  {tab.id === "kyc" && documents.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#222] text-[#aaa]">
+                      {documents.length}
+                    </span>
+                  )}
+                  {tab.id === "profileLedger" && profileLogs.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#D4A843]/15 text-[#D4A843]">
+                      {profileLogs.length}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
 
-            {/* Tab Content */}
+            {/* TAB 1: Transaction Ledger */}
             {activeTab === "ledger" && (
               <div className="space-y-4">
-                
-                {/* Ledger Summary */}
-                <div className="bg-onyx-surface border border-[#222] rounded-2xl p-5 flex items-center justify-between mb-2">
+                <div className="bg-onyx-surface border border-[#222] rounded-2xl p-5 flex items-center justify-between">
                   <div className="flex gap-12">
                     <div>
-                      <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest mb-1">Total Transactions</p>
+                      <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest mb-1">
+                        Total Transactions
+                      </p>
                       <p className="text-[20px] font-bold text-foreground">{ledgerEntries.length}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest mb-1">Total Invoices</p>
+                      <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest mb-1">
+                        Total Invoices
+                      </p>
                       <p className="text-[20px] font-bold text-foreground">{invoices.length}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest mb-1">Avg. Order Value</p>
+                      <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest mb-1">
+                        Lifetime Value
+                      </p>
                       <p className="text-[20px] font-bold text-foreground">
-                        ₹{invoices.length > 0 ? Math.round(lifetimeValue / invoices.length).toLocaleString("en-IN") : 0}
+                        ₹{lifetimeValue.toLocaleString("en-IN")}
                       </p>
                     </div>
                   </div>
-                  <button className="flex items-center gap-2 text-[12px] text-[#aaa] hover:text-foreground transition-colors">
-                    <Download className="w-4 h-4" />
-                    Export Statement
+                  <button className="flex items-center gap-2 text-[12px] text-[#aaa] hover:text-foreground transition-colors cursor-pointer">
+                    <Download className="w-4 h-4" /> Export Ledger
                   </button>
                 </div>
 
-                {/* Ledger Entries List */}
                 {ledgerLoading ? (
                   <div className="bg-onyx-surface border border-[#222] rounded-2xl py-12 flex flex-col items-center justify-center">
                     <Loader2 className="w-8 h-8 text-[#D4A843] animate-spin mb-3" />
                     <p className="text-[#888] text-[14px]">Loading transactions...</p>
                   </div>
                 ) : ledgerEntries.length === 0 ? (
-                  <div className="bg-onyx-surface border border-[#222] rounded-2xl py-12 flex flex-col items-center justify-center">
-                    <ShoppingBag className="w-8 h-8 text-[#333] mb-3" />
-                    <p className="text-[#888] text-[14px]">No transactions found for this customer.</p>
+                  <div className="bg-onyx-surface border border-[#222] rounded-2xl py-16 flex flex-col items-center justify-center text-center">
+                    <FileText className="w-8 h-8 text-[#444] mb-3" />
+                    <p className="text-[#888] text-[14px]">No financial transactions recorded yet.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {(() => {
-                      let runningCash = 0;
-                      let running24K = 0;
-                      let running22K = 0;
-
-                      const ledgerWithRunningBalances = [...ledgerEntries].reverse().map(entry => {
-                        let newEntry = { ...entry };
-                        if (entry.type === 'WALLET') {
-                          if (entry.assetType === 'CASH') {
-                            runningCash += entry.transactionType === 'CREDIT' ? entry.amount : -entry.amount;
-                            newEntry.runningBalance = runningCash;
-                          } else if (entry.assetType === 'METAL_24K') {
-                            running24K += entry.transactionType === 'CREDIT' ? entry.metalWeight : -entry.metalWeight;
-                            newEntry.runningBalance = running24K;
-                          } else if (entry.assetType === 'METAL_22K') {
-                            running22K += entry.transactionType === 'CREDIT' ? entry.metalWeight : -entry.metalWeight;
-                            newEntry.runningBalance = running22K;
-                          }
-                        }
-                        return newEntry;
-                      }).reverse();
-
-                      return ledgerWithRunningBalances.map((entry: any) => {
-                        let icon = "📄";
-                      let colorClass = "text-[#888]";
-                      let bgClass = "bg-secondary";
-                      let borderClass = "border-border";
-                      
-                      switch(entry.type) {
-                        case 'INVOICE': 
-                          icon = "🧾"; 
-                          colorClass = "text-[#D4A843]"; 
-                          bgClass = "bg-[#D4A843]/10";
-                          borderClass = "border-[#D4A843]/20";
-                          break;
-                        case 'ORDER': 
-                          icon = "💍"; 
-                          colorClass = "text-[#3b82f6]"; 
-                          bgClass = "bg-[#3b82f6]/10";
-                          borderClass = "border-[#3b82f6]/20";
-                          break;
-                        case 'METAL_EXCHANGE': 
-                          icon = "⚖️"; 
-                          colorClass = "text-[#f59e0b]"; 
-                          bgClass = "bg-[#f59e0b]/10";
-                          borderClass = "border-[#f59e0b]/20";
-                          break;
-                        case 'PRODUCT_BOOKING': 
-                          icon = "💎"; 
-                          colorClass = "text-[#ec4899]"; 
-                          bgClass = "bg-[#ec4899]/10";
-                          borderClass = "border-[#ec4899]/20";
-                          break;
-                        case 'WALLET': 
-                          icon = "👛"; 
-                          colorClass = "text-[#10b981]"; 
-                          bgClass = "bg-[#10b981]/10";
-                          borderClass = "border-[#10b981]/20";
-                          break;
-                        case 'SCHEME_DEPOSIT':
-                        case 'SCHEME_REDEMPTION':
-                          icon = "🏦"; 
-                          colorClass = "text-[#8b5cf6]"; 
-                          bgClass = "bg-[#8b5cf6]/10";
-                          borderClass = "border-[#8b5cf6]/20";
-                          break;
-                      }
-
-                      const handleEntryClick = () => {
-                        if (entry.type === 'INVOICE') router.push(`/billing/edit/${entry.id}`);
-                        else if (entry.type === 'ORDER') {
-                          const order = orders.find((o: any) => o.id === entry.id);
-                          if (order) handleOrderClick(order);
-                        }
-                      };
-                      
-                      return (
-                        <div 
-                          key={`${entry.type}-${entry.id}`} 
-                          onClick={handleEntryClick}
-                          className={`bg-onyx-surface border border-[#222] rounded-2xl p-5 flex items-center justify-between hover:border-[#444] hover:bg-onyx-elevated transition-all ${entry.type === 'INVOICE' || entry.type === 'ORDER' ? 'cursor-pointer group' : ''}`}
-                        >
-                          <div className="flex items-center gap-5">
-                            {/* Icon */}
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${bgClass} ${borderClass} border ${entry.type === 'INVOICE' || entry.type === 'ORDER' ? 'group-hover:scale-105 transition-transform' : ''}`}>
-                               {icon}
-                            </div>
-                            
-                            <div>
-                              <div className="flex items-center gap-3">
-                                <h4 className={`text-[15px] font-bold ${colorClass} ${entry.type === 'INVOICE' || entry.type === 'ORDER' ? 'hover:underline' : ''}`}>
-                                  {entry.title}
-                                </h4>
-                                <span className="text-[12px] text-[#666]">• {new Date(entry.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                              </div>
-                              <p className="text-[13px] text-[#999] mt-1">{entry.description}</p>
-                            </div>
+                  <div className="space-y-3">
+                    {ledgerEntries.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="bg-onyx-surface border border-[#222] rounded-xl p-4 flex items-center justify-between hover:border-[#D4A843]/20 transition-all"
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-10 h-10 rounded-xl bg-onyx flex items-center justify-center text-[#D4A843] border border-[#222]">
+                            <FileText className="w-4.5 h-4.5" />
                           </div>
-
-                          <div className="flex items-center gap-10">
-                            <div className="text-right flex flex-col items-end">
-                              {entry.amount !== null && (
-                                <p className={`text-[16px] font-bold ${entry.type === 'WALLET' ? (entry.transactionType === 'CREDIT' ? 'text-emerald-400' : 'text-red-400') : 'text-foreground'}`}>
-                                  {entry.type === 'WALLET' ? (entry.transactionType === 'CREDIT' ? '+' : '-') : ''}₹{entry.amount.toLocaleString("en-IN")}
-                                </p>
-                              )}
-                              {entry.metalWeight !== null && (
-                                <p className={`text-[14px] font-bold ${entry.type === 'WALLET' ? (entry.transactionType === 'CREDIT' ? 'text-emerald-400' : 'text-red-400') : 'text-[#D4A843]'} ${entry.amount !== null ? 'mt-0.5' : ''}`}>
-                                  {entry.type === 'WALLET' ? (entry.transactionType === 'CREDIT' ? '+' : '-') : ''}{entry.metalWeight}g {entry.fineWeight ? `(Fine: ${entry.fineWeight}g)` : ''}
-                                </p>
-                              )}
-                              {entry.type === 'WALLET' && entry.runningBalance !== undefined && (
-                                <p className="text-[11px] text-[#888] mt-1 bg-secondary px-2 py-0.5 rounded text-right whitespace-nowrap">
-                                  Bal: {entry.assetType === 'CASH' ? `₹${entry.runningBalance.toLocaleString("en-IN")}` : `${entry.runningBalance.toFixed(3)}g`}
-                                </p>
-                              )}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[14px] font-semibold text-foreground">
+                                {entry.title}
+                              </span>
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-secondary text-[#888] uppercase">
+                                {entry.type}
+                              </span>
                             </div>
-                            
-                            <div className={`px-3 py-1 rounded-full border text-[11px] font-bold tracking-wider ${
-                              entry.status === 'PAID' || entry.status === 'COMPLETED' || entry.status === 'CLOSED'
-                              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
-                              : entry.status === 'PARTIAL' || entry.status === 'OPEN'
-                              ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
-                              : "bg-secondary border-border text-[#888]"
-                            }`}>
-                              • {entry.status}
-                            </div>
-                            
-                            {(entry.type === 'INVOICE' || entry.type === 'ORDER') && (
-                              <ArrowLeft className="w-4 h-4 text-[#444] group-hover:text-foreground transition-colors rotate-180" />
-                            )}
+                            <p className="text-[12px] text-[#666] mt-0.5">{entry.description}</p>
                           </div>
                         </div>
-                      )
-                    })})()}
+                        <div className="text-right">
+                          {entry.amount !== null && (
+                            <p className="text-[14px] font-bold text-foreground">
+                              ₹{entry.amount.toLocaleString("en-IN")}
+                            </p>
+                          )}
+                          {entry.metalWeight !== null && (
+                            <p className="text-[13px] font-bold text-[#D4A843]">
+                              {entry.metalWeight}g Fine Gold
+                            </p>
+                          )}
+                          <p className="text-[11px] text-[#555] mt-0.5">
+                            {new Date(entry.date).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                )}
-                
-                {ledgerEntries.length > 0 && (
-                  <button className="w-full py-4 rounded-full border border-[#222] text-[#888] text-[12px] font-bold uppercase tracking-widest hover:text-foreground hover:border-border transition-colors mt-4">
-                    Load Previous Transactions
-                  </button>
                 )}
               </div>
             )}
 
-            {/* Orders Tab Content */}
+            {/* TAB 2: Commissioned Orders */}
             {activeTab === "orders" && (
               <div className="space-y-4">
-                
-                {/* Search Bar for Orders */}
-                {orders.length > 0 && (
-                  <div className="relative mb-4">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#444]" />
-                    <input
-                      type="text"
-                      value={orderSearchQuery}
-                      onChange={(e) => setOrderSearchQuery(e.target.value)}
-                      placeholder="Search orders by number, category, or status..."
-                      className="w-full h-10 pl-10 pr-4 rounded-xl bg-[#111] border border-[#1f1f1f] text-[13px] text-foreground placeholder:text-[#444] outline-none focus:border-[#D4A843]/40 transition-colors"
-                    />
-                  </div>
-                )}
+                <div className="flex items-center justify-between mb-2">
+                  <input
+                    type="text"
+                    value={orderSearchQuery}
+                    onChange={(e) => setOrderSearchQuery(e.target.value)}
+                    placeholder="Search orders..."
+                    className="w-[280px] h-9 px-3.5 rounded-xl bg-onyx-surface border border-[#222] text-[13px] text-foreground outline-none focus:border-[#D4A843]/40"
+                  />
+                  <button
+                    onClick={() => router.push(`/orderBook?customerMobile=${customer.mobile}`)}
+                    className="h-9 px-4 rounded-xl bg-[#D4A843] text-foreground text-[12px] font-bold hover:bg-[#e6bc5a] transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    New Bespoke Order
+                  </button>
+                </div>
 
-                {orders.length === 0 ? (
-                  <div className="bg-onyx-surface border border-[#222] rounded-2xl py-12 flex flex-col items-center justify-center">
-                    <span className="text-3xl mb-3">📋</span>
-                    <p className="text-[#888] text-[14px]">No active or past orders found for this customer.</p>
-                  </div>
-                ) : filteredOrders.length === 0 ? (
-                  <div className="bg-onyx-surface border border-[#222] rounded-2xl py-12 flex flex-col items-center justify-center">
-                    <Search className="w-8 h-8 text-[#333] mb-3" />
-                    <p className="text-[#888] text-[14px]">No orders matching your search query.</p>
+                {filteredOrders.length === 0 ? (
+                  <div className="bg-onyx-surface border border-[#222] rounded-2xl py-16 flex flex-col items-center justify-center text-center">
+                    <ShoppingBag className="w-8 h-8 text-[#444] mb-3" />
+                    <p className="text-[#888] text-[14px]">No active bespoke orders found.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {filteredOrders.map((order: any) => {
-                      const mainItem = order.items?.[0]?.category?.name || "Bespoke Creation";
-                      
-                      return (
-                        <div 
-                          key={order.id} 
-                          onClick={() => handleOrderClick(order)}
-                          className="bg-onyx-surface border border-[#222] rounded-2xl p-5 flex items-center justify-between hover:border-border hover:bg-onyx-elevated transition-all cursor-pointer group"
-                        >
-                          <div className="flex items-center gap-5">
-                            <div className="w-12 h-12 rounded-xl bg-onyx border border-onyx-border flex items-center justify-center text-[#D4A843] group-hover:scale-105 transition-transform">
-                               ✨
-                            </div>
-                            
-                            <div>
-                              <div className="flex items-center gap-3">
-                                <h4 className="text-[15px] font-bold text-foreground">#{order.orderNumber}</h4>
-                                <span className="text-[12px] text-[#666]">• {new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                              </div>
-                              <p className="text-[13px] text-[#999] mt-1">{mainItem} {order.advance?.advanceReceiptNumber ? `(Slip: ${order.advance.advanceReceiptNumber})` : ""}</p>
-                            </div>
+                  <div className="space-y-3">
+                    {filteredOrders.map((ord: any) => (
+                      <div
+                        key={ord.id}
+                        onClick={() => handleOrderClick(ord)}
+                        className="bg-onyx-surface border border-[#222] rounded-xl p-4 flex items-center justify-between hover:border-[#D4A843]/30 cursor-pointer transition-all"
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[14px] font-semibold text-foreground">
+                              Order #{ord.orderNumber}
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-[#D4A843]/15 text-[#D4A843] font-bold uppercase">
+                              {ord.status}
+                            </span>
                           </div>
-
-                          <div className="flex items-center gap-10">
-                            <div className="text-right">
-                              <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest mb-1">Status</p>
-                              <p className="text-[14px] font-bold text-foreground">{order.status.replace("_", " ")}</p>
-                            </div>
-                            
-                            <ArrowLeft className="w-4 h-4 text-[#444] group-hover:text-foreground transition-colors rotate-180" />
-                          </div>
+                          <p className="text-[12px] text-[#666] mt-0.5">
+                            {ord.items?.length || 1} item(s) • Target Delivery:{" "}
+                            {ord.deliveryDate
+                              ? new Date(ord.deliveryDate).toLocaleDateString("en-IN")
+                              : "Standard"}
+                          </p>
                         </div>
-                      )
-                    })}
+                        <div className="text-right">
+                          <span className="text-[12px] text-[#D4A843] flex items-center gap-1">
+                            <Eye className="w-3.5 h-3.5" /> View Slip
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Journey Tab */}
-            {activeTab === "journey" && (() => {
-              // 1. Calculate Preferences from Invoice Items
-              const invoicesList = customer.invoices || [];
-              
-              const categoryCounts: Record<string, number> = {};
-              const subCategoryCounts: Record<string, number> = {};
-              const karatageCounts: Record<string, number> = {};
-              let totalSpentAmount = 0;
-              let itemTotalCount = 0;
-              let visitCount = invoicesList.length;
-
-              invoicesList.forEach((inv: any) => {
-                totalSpentAmount += inv.totalAmount;
-                
-                const items = inv.items || [];
-                items.forEach((item: any) => {
-                  const prod = item.product || {};
-                  const qty = item.quantity || 1;
-                  itemTotalCount += qty;
-                  
-                  // Category
-                  const catName = prod.subCategory?.category?.name;
-                  if (catName) {
-                    categoryCounts[catName] = (categoryCounts[catName] || 0) + qty;
-                  }
-                  
-                  // Sub-category
-                  const subCatName = prod.subCategory?.name;
-                  if (subCatName) {
-                    subCategoryCounts[subCatName] = (subCategoryCounts[subCatName] || 0) + qty;
-                  }
-                  
-                  // Karatage
-                  let karat = "Other";
-                  const purityVal = prod.purity;
-                  if (purityVal) {
-                    if (purityVal >= 90 || purityVal === 22) karat = "22K";
-                    else if (purityVal >= 70 || purityVal === 18) karat = "18K";
-                    else if (purityVal >= 50 || purityVal === 14) karat = "14K";
-                    else if (purityVal >= 35 || purityVal === 9) karat = "9K";
-                  }
-                  karatageCounts[karat] = (karatageCounts[karat] || 0) + qty;
-                });
-              });
-
-              // Sort helper
-              const getTopPreference = (counts: Record<string, number>) => {
-                const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-                return sorted.length > 0 ? sorted[0][0] : null;
-              };
-
-              const preferredCategory = getTopPreference(categoryCounts);
-              const preferredSubCategory = getTopPreference(subCategoryCounts);
-              const preferredKaratage = getTopPreference(karatageCounts);
-              const avgSpendPerVisit = visitCount > 0 ? Math.round(totalSpentAmount / visitCount) : 0;
-
-              // Recommendations Generator
-              const getRecommendations = () => {
-                const recs = [];
-                if (preferredCategory) {
-                  if (preferredCategory.toUpperCase().includes("GOLD")) {
-                    recs.push({
-                      title: "22K Bridal Heritage Collection",
-                      desc: "Curate a private viewing of our upcoming heavy antique necklace and bangle sets, featuring traditional kundan settings.",
-                      affinity: "High Gold Affinity",
-                    });
-                  } else if (preferredCategory.toUpperCase().includes("DIAMOND")) {
-                    recs.push({
-                      title: "Solitaire Gala Preview",
-                      desc: "Provide exclusive salon access to preview our certified VVS solitaire rings and drop earrings before launch.",
-                      affinity: "Solitaire Affinity",
-                    });
-                  } else if (preferredCategory.toUpperCase().includes("PLATINUM")) {
-                    recs.push({
-                      title: "Modern Minimalist Platinum Bands",
-                      desc: "Highlight our custom-engraved unisex platinum bands, catering to contemporary aesthetics.",
-                      affinity: "Platinum Affinity",
-                    });
-                  }
-                }
-
-                if (preferredSubCategory) {
-                  recs.push({
-                    title: `Elite Custom ${preferredSubCategory} Designing`,
-                    desc: `Our master designer is available to sketch personalized variations of ${preferredSubCategory.toLowerCase()} matching their taste.`,
-                    affinity: `${preferredSubCategory} Preference`,
-                  });
-                }
-
-                // Default recommendation if no purchases
-                if (recs.length === 0) {
-                  recs.push({
-                    title: "Welcome Consult & Starter Curation",
-                    desc: "Arrange a concierge walkthrough of the showroom category wings to establish initial style preferences.",
-                    affinity: "General Discovery",
-                  });
-                }
-
-                return recs;
-              };
-
-              const recommendations = getRecommendations();
-
-              return (
-                <div className="space-y-6">
-                  {/* Preferences Profile Header */}
-                  <div className="bg-onyx-surface border border-[#222] rounded-2xl p-6">
-                    <h3 className="text-[16px] font-bold text-foreground mb-1.5 flex items-center gap-2">
-                      <span>✨</span> Client Taste Profile
-                    </h3>
-                    <p className="text-[13px] text-[#666] mb-6">
-                      Automatically calculated from historical invoice logs to drive personalization and elite concierge actions.
+            {/* TAB 3: Purchase Journey */}
+            {activeTab === "journey" && (
+              <div className="bg-onyx-surface border border-[#222] rounded-2xl p-6 space-y-6">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-onyx p-4 rounded-xl border border-[#222]">
+                    <p className="text-[11px] text-[#777] uppercase tracking-wider mb-1">
+                      Total Invoices
                     </p>
-
-                    {visitCount === 0 ? (
-                      <div className="text-center py-10">
-                        <p className="text-[#555] text-[14px] italic">No transaction history found to compute preferences yet.</p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-4 gap-4">
-                        {/* Preferred Category Card */}
-                        <div className="bg-onyx border border-[#1f1f1f] rounded-xl p-4.5">
-                          <span className="text-[10px] font-bold text-[#555] uppercase tracking-widest block mb-2">Preferred Category</span>
-                          <span className="text-[20px] font-bold text-foreground block capitalize">{preferredCategory || "None"}</span>
-                          <span className="text-[11px] text-[#D4A843] block mt-1.5 font-medium">
-                            {categoryCounts[preferredCategory || ''] || 0} items purchased
-                          </span>
-                        </div>
-
-                        {/* Preferred Karatage Card */}
-                        <div className="bg-onyx border border-[#1f1f1f] rounded-xl p-4.5">
-                          <span className="text-[10px] font-bold text-[#555] uppercase tracking-widest block mb-2">Preferred Karatage</span>
-                          <span className="text-[20px] font-bold text-foreground block">{preferredKaratage || "None"}</span>
-                          <span className="text-[11px] text-[#555] block mt-1.5">
-                            {karatageCounts[preferredKaratage || ''] || 0} items with this purity
-                          </span>
-                        </div>
-
-                        {/* Preferred Articles Card */}
-                        <div className="bg-onyx border border-[#1f1f1f] rounded-xl p-4.5">
-                          <span className="text-[10px] font-bold text-[#555] uppercase tracking-widest block mb-2">Preferred Articles</span>
-                          <span className="text-[20px] font-bold text-foreground block capitalize">{preferredSubCategory || "None"}</span>
-                          <span className="text-[11px] text-[#D4A843] block mt-1.5 font-medium">
-                            {subCategoryCounts[preferredSubCategory || ''] || 0} items purchased
-                          </span>
-                        </div>
-
-                        {/* Typical Spend Card */}
-                        <div className="bg-onyx border border-[#1f1f1f] rounded-xl p-4.5">
-                          <span className="text-[10px] font-bold text-[#555] uppercase tracking-widest block mb-2">Typical Spend / Visit</span>
-                          <span className="text-[20px] font-bold text-foreground block">₹ {avgSpendPerVisit.toLocaleString("en-IN")}</span>
-                          <span className="text-[11px] text-[#555] block mt-1.5">
-                            Across {visitCount} invoice{visitCount > 1 ? "s" : ""}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    <p className="text-[22px] font-bold text-foreground">{invoices.length}</p>
                   </div>
+                  <div className="bg-onyx p-4 rounded-xl border border-[#222]">
+                    <p className="text-[11px] text-[#777] uppercase tracking-wider mb-1">
+                      Lifetime Spend
+                    </p>
+                    <p className="text-[22px] font-bold text-[#D4A843]">
+                      ₹{lifetimeValue.toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                  <div className="bg-onyx p-4 rounded-xl border border-[#222]">
+                    <p className="text-[11px] text-[#777] uppercase tracking-wider mb-1">
+                      Current Outstanding
+                    </p>
+                    <p className="text-[22px] font-bold text-red-400">
+                      ₹{currentDue.toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                </div>
 
-                  {visitCount > 0 && (
-                    <div className="grid grid-cols-[1.2fr_1fr] gap-6">
-                      {/* Left: Preferences breakdown list */}
-                      <div className="bg-onyx-surface border border-[#222] rounded-2xl p-6 space-y-6">
-                        <div>
-                          <h4 className="text-[14px] font-bold text-foreground mb-4 uppercase tracking-wider text-[#D4A843]">Metal & Category Share</h4>
-                          <div className="space-y-3.5">
-                            {Object.entries(categoryCounts).map(([cat, count]) => {
-                              const percent = Math.round((count / itemTotalCount) * 100);
-                              return (
-                                <div key={cat} className="space-y-1.5">
-                                  <div className="flex justify-between text-[13px]">
-                                    <span className="text-foreground capitalize">{cat}</span>
-                                    <span className="text-[#888] font-medium">{percent}% ({count} pcs)</span>
-                                  </div>
-                                  <div className="h-1.5 w-full bg-onyx rounded-full overflow-hidden border border-[#222]">
-                                    <div className="h-full bg-[#D4A843] rounded-full" style={{ width: `${percent}%` }} />
-                                  </div>
-                                </div>
-                              );
-                            })}
+                <div className="border-t border-[#222] pt-6">
+                  <h3 className="text-[14px] font-bold text-foreground mb-4">Invoice Milestones</h3>
+                  {invoices.length === 0 ? (
+                    <p className="text-[13px] text-[#666] italic">No purchases recorded yet.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {invoices.map((inv: any) => (
+                        <div
+                          key={inv.id}
+                          className="bg-onyx border border-[#222] rounded-xl p-4 flex items-center justify-between"
+                        >
+                          <div>
+                            <p className="text-[14px] font-semibold text-foreground">
+                              Invoice #{inv.invoiceNumber}
+                            </p>
+                            <p className="text-[12px] text-[#666]">
+                              {new Date(inv.createdAt).toLocaleDateString("en-IN")} • Paid: ₹
+                              {inv.paidAmount?.toLocaleString("en-IN") || 0}
+                            </p>
                           </div>
+                          <p className="text-[14px] font-bold text-foreground">
+                            ₹{inv.totalAmount.toLocaleString("en-IN")}
+                          </p>
                         </div>
-
-                        <div className="border-t border-[#222] pt-6">
-                          <h4 className="text-[14px] font-bold text-foreground mb-4 uppercase tracking-wider text-[#D4A843]">Sub-category Share</h4>
-                          <div className="space-y-3.5">
-                            {Object.entries(subCategoryCounts).map(([sub, count]) => {
-                              const percent = Math.round((count / itemTotalCount) * 100);
-                              return (
-                                <div key={sub} className="space-y-1.5">
-                                  <div className="flex justify-between text-[13px]">
-                                    <span className="text-foreground capitalize">{sub}</span>
-                                    <span className="text-[#888] font-medium">{percent}% ({count} pcs)</span>
-                                  </div>
-                                  <div className="h-1.5 w-full bg-onyx rounded-full overflow-hidden border border-[#222]">
-                                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${percent}%` }} />
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right: Curated Recommendations */}
-                      <div className="bg-onyx-surface border border-[#222] rounded-2xl p-6">
-                        <h4 className="text-[14px] font-bold text-foreground mb-1.5 uppercase tracking-wider text-[#D4A843]">Concierge Recommendations</h4>
-                        <p className="text-[12px] text-[#555] mb-5">Generated recommendations to personalize client relationship touchpoints.</p>
-                        
-                        <div className="space-y-4">
-                          {recommendations.map((rec, index) => (
-                            <div key={index} className="bg-onyx border border-[#1f1f1f] rounded-xl p-4.5 relative overflow-hidden group hover:border-[#D4A843]/30 transition-all duration-200">
-                              <span className="absolute top-0 right-0 px-2 py-0.5 rounded-bl bg-[#D4A843]/10 text-[#D4A843] text-[9px] font-bold uppercase tracking-wider">
-                                {rec.affinity}
-                              </span>
-                              <h5 className="text-[14px] font-bold text-foreground mb-1.5">{rec.title}</h5>
-                              <p className="text-[12px] text-[#888] leading-relaxed">{rec.desc}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   )}
                 </div>
-              );
-            })()}
+              </div>
+            )}
 
-            {/* KYC Tab */}
+            {/* TAB 4: KYC & Vault Documents */}
             {activeTab === "kyc" && (
               <div className="space-y-6">
-                {/* Compliance Banner */}
+                {/* Compliance Assessment Banner */}
                 {requiresKyc ? (
                   isCompliant ? (
-                    <div className="bg-emerald-950/15 border border-emerald-500/20 rounded-2xl p-5 flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 flex-shrink-0">
-                        <Shield className="w-5 h-5 text-emerald-400" />
+                    <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-5 flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 flex-shrink-0">
+                        <ShieldCheck className="w-5 h-5 text-emerald-400" />
                       </div>
                       <div>
-                        <h4 className="text-[14px] font-bold text-foreground mb-0.5">PML Compliance Met</h4>
+                        <h4 className="text-[14px] font-bold text-foreground mb-0.5">
+                          Regulatory PML Compliance Met
+                        </h4>
                         <p className="text-[12.5px] text-emerald-400/80 leading-normal">
-                          This customer is marked as compliant. The required verification documents are present in their encrypted profile store.
+                          Client dossier satisfies regulatory AML/PML verification guidelines. Verified identity proofs are secured in the encrypted vault.
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-red-950/15 border border-red-500/20 rounded-2xl p-5 flex items-start gap-4 animate-pulse">
-                      <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 flex-shrink-0">
-                        <AlertTriangle className="w-5 h-5 text-red-400" />
+                    <div className="bg-red-950/20 border border-red-500/30 rounded-2xl p-5 flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/25 flex items-center justify-center text-red-400 flex-shrink-0">
+                        <ShieldAlert className="w-5 h-5 text-red-400" />
                       </div>
                       <div>
-                        <h4 className="text-[14px] font-bold text-foreground mb-0.5">KYC Compliance Missing</h4>
+                        <h4 className="text-[14px] font-bold text-foreground mb-0.5">
+                          KYC Verification Required
+                        </h4>
                         <p className="text-[12.5px] text-red-400/85 leading-normal">
-                          {missingReason} Transactions above ₹2,00,000 require valid KYC documents under the Prevention of Money Laundering (PML) Act.
+                          {missingReason} High-value transactions require verified identity documents before high-tier transactions can be finalized.
                         </p>
                       </div>
                     </div>
@@ -1133,9 +970,11 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
                       <Shield className="w-5 h-5 text-[#999]" />
                     </div>
                     <div>
-                      <h4 className="text-[14px] font-bold text-foreground mb-0.5">KYC Check (Optional)</h4>
+                      <h4 className="text-[14px] font-bold text-foreground mb-0.5">
+                        Standard Client KYC Status
+                      </h4>
                       <p className="text-[12.5px] text-[#888] leading-normal">
-                        This client's current spending threshold is below the ₹2,00,000 regulatory compliance limit. Uploading KYC documents is currently optional.
+                        This client's current spending is below the ₹2,00,000 regulatory compliance limit. Identity document upload is optional.
                       </p>
                     </div>
                   </div>
@@ -1143,19 +982,27 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
 
                 {/* Primary KYC Grid */}
                 <div className="grid grid-cols-[1.3fr_1fr] gap-6">
-                  {/* Left: Document List */}
+                  {/* Left: Document Vault List */}
                   <div className="bg-onyx-surface border border-[#222] rounded-2xl p-6">
                     <div className="flex items-center justify-between mb-5">
                       <div>
-                        <h3 className="text-[15px] font-bold text-foreground mb-0.5">Secure Vault Documents</h3>
-                        <p className="text-[12px] text-[#666]">End-to-end encrypted storage nodes</p>
+                        <h3 className="text-[15px] font-bold text-foreground mb-0.5">
+                          Secure Vault Documents
+                        </h3>
+                        <p className="text-[12px] text-[#666]">
+                          AES-256 encrypted client identity proofs
+                        </p>
                       </div>
                       <button
                         onClick={handleGenerateLink}
                         disabled={uploadTokenLoading}
-                        className="h-9 px-4 rounded-xl border border-[#D4A843]/30 text-[#D4A843] text-[12px] font-bold hover:bg-[#D4A843]/10 hover:border-[#D4A843] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 animate-fade-in"
+                        className="h-9 px-4 rounded-xl border border-[#D4A843]/30 text-[#D4A843] text-[12px] font-bold hover:bg-[#D4A843]/10 hover:border-[#D4A843] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
-                        {uploadTokenLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                        {uploadTokenLoading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Send className="w-3.5 h-3.5" />
+                        )}
                         Share Upload Link
                       </button>
                     </div>
@@ -1168,53 +1015,124 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
                     ) : documents.length === 0 ? (
                       <div className="text-center py-16 border border-dashed border-[#222] rounded-xl bg-onyx">
                         <FileText className="w-8 h-8 text-[#444] mx-auto mb-3" />
-                        <p className="text-[13px] text-[#555] italic">No KYC documents stored in secure vault</p>
+                        <p className="text-[13px] text-[#555] italic">
+                          No KYC documents stored in secure vault
+                        </p>
                       </div>
                     ) : (
                       <div className="space-y-3">
                         {documents.map((doc: any) => {
                           const docLabels: Record<string, string> = {
-                            AADHAR: "Aadhar Card",
+                            AADHAR: "Aadhaar Card",
                             PAN: "PAN Card",
                             GST_CERTIFICATE: "GST Certificate",
+                            PASSPORT: "Passport",
+                            DRIVING_LICENSE: "Driving License",
+                            VOTER_ID: "Voter ID",
                             OTHER: "Other Proof",
                           };
+                          const isVerified = !!doc.verified;
+                          const isRejected = doc.notes?.startsWith("[REJECTED]");
+
                           return (
-                            <div key={doc.id} className="bg-onyx border border-[#1a1a1a] rounded-xl p-4 flex items-center justify-between hover:border-[#D4A843]/20 transition-all duration-200">
+                            <div
+                              key={doc.id}
+                              className="bg-onyx border border-[#1a1a1a] rounded-xl p-4 flex items-center justify-between hover:border-[#D4A843]/20 transition-all duration-200"
+                            >
                               <div className="flex items-center gap-3.5 min-w-0">
-                                <div className="w-10 h-10 rounded-lg bg-[#D4A843]/5 border border-[#D4A843]/15 flex items-center justify-center text-[#D4A843]">
-                                  <FileText className="w-5 h-5 text-[#D4A843]" />
+                                <div
+                                  className={`w-10 h-10 rounded-lg flex items-center justify-center border ${
+                                    isVerified
+                                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                      : isRejected
+                                      ? "bg-red-500/10 border-red-500/20 text-red-400"
+                                      : "bg-[#D4A843]/10 border-[#D4A843]/20 text-[#D4A843]"
+                                  }`}
+                                >
+                                  <FileText className="w-5 h-5" />
                                 </div>
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-[13px] font-bold text-foreground">{docLabels[doc.documentType] || doc.documentType}</span>
-                                    {doc.verified && (
-                                      <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 text-[9px] font-bold px-1.5 py-0.2 rounded uppercase tracking-wider">
-                                        Verified
+                                    <span className="text-[13px] font-bold text-foreground">
+                                      {docLabels[doc.documentType] || doc.documentType}
+                                    </span>
+                                    {isVerified ? (
+                                      <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                        <CheckCircle2 className="w-2.5 h-2.5" /> Verified
+                                      </span>
+                                    ) : isRejected ? (
+                                      <span className="bg-red-500/15 text-red-400 border border-red-500/30 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                        <XCircle className="w-2.5 h-2.5" /> Rejected
+                                      </span>
+                                    ) : (
+                                      <span className="bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                        <Clock className="w-2.5 h-2.5" /> Pending Review
                                       </span>
                                     )}
                                   </div>
-                                  <p className="text-[12px] text-[#666] truncate max-w-[280px] mt-0.5">{doc.fileName}</p>
-                                  {doc.notes && <p className="text-[11px] text-[#444] mt-1 italic">"{doc.notes}"</p>}
+                                  <p className="text-[12px] text-[#666] truncate max-w-[260px] mt-0.5">
+                                    {doc.fileName}
+                                  </p>
+                                  {doc.notes && (
+                                    <p className="text-[11px] text-[#444] mt-0.5 italic">
+                                      "{doc.notes}"
+                                    </p>
+                                  )}
+                                  {doc.verifiedAt && (
+                                    <p className="text-[10px] text-[#555] mt-0.5">
+                                      Verified on {new Date(doc.verifiedAt).toLocaleDateString("en-IN")}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2">
+
+                              <div className="flex items-center gap-1.5">
+                                {isManagerOrAdmin ? (
+                                  <>
+                                    {!isVerified && (
+                                      <button
+                                        onClick={() => handleOpenVerifyModal(doc, "VERIFY")}
+                                        className="h-8 px-2.5 rounded-lg border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer"
+                                        title="Approve & Verify KYC Document"
+                                      >
+                                        <Check className="w-3 h-3" /> Approve
+                                      </button>
+                                    )}
+                                    {isVerified && (
+                                      <button
+                                        onClick={() => handleOpenVerifyModal(doc, "REJECT")}
+                                        className="h-8 px-2 rounded-lg border border-red-500/25 text-red-400 hover:bg-red-500/10 text-[11px] font-medium flex items-center gap-1 transition-all cursor-pointer"
+                                        title="Revoke Verification"
+                                      >
+                                        <X className="w-3 h-3" /> Revoke
+                                      </button>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-[10px] text-[#555] px-2 py-1 bg-secondary rounded border border-border">
+                                    Manager Review Required
+                                  </span>
+                                )}
+
                                 <a
                                   href={`/api/customer/${customerId}/kyc/download/${doc.id}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="h-8 w-8 rounded-lg border border-[#222] text-[#888] hover:text-[#D4A843] hover:border-[#D4A843]/30 flex items-center justify-center transition-all"
-                                  title="Download / View Decrypted File"
+                                  title="Download / View Decrypted Document"
                                 >
                                   <Download className="w-3.5 h-3.5" />
                                 </a>
-                                <button
-                                  onClick={() => handleDocDelete(doc.id)}
-                                  className="h-8 w-8 rounded-lg border border-[#222] text-[#888] hover:text-red-400 hover:border-red-500/30 flex items-center justify-center transition-all cursor-pointer"
-                                  title="Delete Document"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+
+                                {isManagerOrAdmin && (
+                                  <button
+                                    onClick={() => handleDocDelete(doc.id)}
+                                    className="h-8 w-8 rounded-lg border border-[#222] text-[#888] hover:text-red-400 hover:border-red-500/30 flex items-center justify-center transition-all cursor-pointer"
+                                    title="Delete Document"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                               </div>
                             </div>
                           );
@@ -1223,35 +1141,46 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
                     )}
                   </div>
 
-                  {/* Right: Manual Uploader */}
+                  {/* Right: Manual KYC Uploader */}
                   <div className="bg-onyx-surface border border-[#222] rounded-2xl p-6">
-                    <h3 className="text-[15px] font-bold text-foreground mb-1.5">Manual Vault Upload</h3>
-                    <p className="text-[12px] text-[#666] mb-5">Manually encrypt and append documents</p>
+                    <h3 className="text-[15px] font-bold text-foreground mb-1.5">
+                      Vault Document Upload
+                    </h3>
+                    <p className="text-[12px] text-[#666] mb-5">
+                      Directly encrypt and store client credentials
+                    </p>
 
                     <form onSubmit={handleManualUpload} className="space-y-4">
                       {manualError && (
-                        <div className="bg-red-500/5 border border-red-500/25 rounded-xl p-3 text-[12px] text-red-400 flex items-start gap-2">
+                        <div className="bg-red-500/10 border border-red-500/25 rounded-xl p-3 text-[12px] text-red-400 flex items-start gap-2">
                           <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
                           <span>{manualError}</span>
                         </div>
                       )}
 
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold text-[#666] uppercase tracking-wider block">Document Type</label>
+                        <label className="text-[11px] font-bold text-[#666] uppercase tracking-wider block">
+                          Document Type
+                        </label>
                         <select
                           value={manualDocType}
                           onChange={(e) => setManualDocType(e.target.value)}
                           className="w-full h-10 px-3 rounded-xl border border-[#222] bg-onyx text-foreground text-[12.5px] font-medium outline-none focus:border-[#D4A843] transition-all cursor-pointer"
                         >
-                          <option value="AADHAR">Aadhar Card</option>
+                          <option value="AADHAR">Aadhaar Card</option>
                           <option value="PAN">PAN Card</option>
                           <option value="GST_CERTIFICATE">GST Certificate</option>
+                          <option value="PASSPORT">Passport</option>
+                          <option value="DRIVING_LICENSE">Driving License</option>
+                          <option value="VOTER_ID">Voter ID</option>
                           <option value="OTHER">Other Identification Proof</option>
                         </select>
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold text-[#666] uppercase tracking-wider block">Select File</label>
+                        <label className="text-[11px] font-bold text-[#666] uppercase tracking-wider block">
+                          Select File
+                        </label>
                         <div className="border border-dashed border-[#222] rounded-xl p-5 bg-onyx text-center relative hover:border-[#D4A843]/20 transition-all cursor-pointer flex flex-col items-center justify-center">
                           <input
                             type="file"
@@ -1266,12 +1195,18 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
                           <Upload className="w-5 h-5 text-[#444] mb-2" />
                           {manualFile ? (
                             <div>
-                              <p className="text-[12px] font-semibold text-[#D4A843] truncate max-w-[200px]">{manualFile.name}</p>
-                              <p className="text-[10px] text-[#555]">{(manualFile.size / 1024).toFixed(1)} KB</p>
+                              <p className="text-[12px] font-semibold text-[#D4A843] truncate max-w-[200px]">
+                                {manualFile.name}
+                              </p>
+                              <p className="text-[10px] text-[#555]">
+                                {(manualFile.size / 1024).toFixed(1)} KB
+                              </p>
                             </div>
                           ) : (
                             <div>
-                              <p className="text-[12px] text-[#888] font-medium">Select PDF or Image</p>
+                              <p className="text-[12px] text-[#888] font-medium">
+                                Select PDF or Image
+                              </p>
                               <p className="text-[10px] text-[#555] mt-0.5">Maximum size 10MB</p>
                             </div>
                           )}
@@ -1279,11 +1214,13 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold text-[#666] uppercase tracking-wider block">Notes</label>
+                        <label className="text-[11px] font-bold text-[#666] uppercase tracking-wider block">
+                          Notes / Identification Notes
+                        </label>
                         <textarea
                           value={manualNotes}
                           onChange={(e) => setManualNotes(e.target.value)}
-                          placeholder="e.g. Scanned copy of original PAN card"
+                          placeholder="e.g. Original physical PAN verified at counter by Salesman"
                           rows={2}
                           className="w-full p-2.5 rounded-xl border border-[#222] bg-onyx text-foreground text-[12px] outline-none focus:border-[#D4A843] transition-all resize-none placeholder-[#333]"
                         />
@@ -1316,34 +1253,258 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
               </div>
             )}
 
-            {/* Placeholders for other tabs */}
-            {activeTab !== "ledger" && activeTab !== "orders" && activeTab !== "journey" && activeTab !== "kyc" && (
-              <div className="bg-onyx-surface border border-[#222] rounded-2xl py-20 flex flex-col items-center justify-center text-center px-4">
-                <span className="text-4xl mb-4">❤️</span>
-                <h3 className="text-foreground font-semibold text-lg mb-2">Module in Development</h3>
-                <p className="text-[#777] text-sm max-w-sm">This section is currently being designed for the next iteration of the Atelier ERP.</p>
+            {/* TAB 5: Profile Change Ledger (Audit Trail) */}
+            {activeTab === "profileLedger" && (
+              <div className="space-y-5">
+                {/* Ledger Header & Search/Filter Bar */}
+                <div className="bg-onyx-surface border border-[#222] rounded-2xl p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-[#D4A843]" />
+                        <h3 className="text-[15px] font-bold text-foreground">
+                          Customer Profile Change Ledger
+                        </h3>
+                      </div>
+                      <p className="text-[12px] text-[#666] mt-0.5">
+                        Immutable audit trail of profile registrations, attribute updates, KYC approvals & tag modifications
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => window.print()}
+                      className="h-8 px-3 rounded-lg border border-[#222] text-[#aaa] hover:text-foreground text-[11px] font-medium flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Export / Print Ledger
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2 flex-wrap">
+                    {/* Search in audit */}
+                    <div className="relative flex-1 min-w-[200px]">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#555]" />
+                      <input
+                        type="text"
+                        value={profileLogSearch}
+                        onChange={(e) => setProfileLogSearch(e.target.value)}
+                        placeholder="Search changes by keyword, field, or staff name..."
+                        className="w-full h-9 pl-9 pr-3 rounded-xl bg-onyx border border-[#222] text-[12px] text-foreground placeholder:text-[#444] outline-none focus:border-[#D4A843]/40"
+                      />
+                    </div>
+
+                    {/* Action Filter */}
+                    <select
+                      value={profileLogActionFilter}
+                      onChange={(e) => setProfileLogActionFilter(e.target.value)}
+                      className="h-9 px-3 rounded-xl bg-onyx border border-[#222] text-[12px] text-foreground outline-none focus:border-[#D4A843]/40 cursor-pointer"
+                    >
+                      <option value="">All Actions</option>
+                      <option value="CUSTOMER.CREATED">Profile Created</option>
+                      <option value="CUSTOMER.UPDATED">Profile Updated</option>
+                      <option value="KYC.DOCUMENT_UPLOADED">KYC Uploaded</option>
+                      <option value="KYC.DOCUMENT_VERIFIED">KYC Verified</option>
+                      <option value="KYC.DOCUMENT_REJECTED">KYC Rejected</option>
+                      <option value="KYC.DOCUMENT_DELETED">KYC Deleted</option>
+                      <option value="KYC.LINK_GENERATED">KYC Link Generated</option>
+                    </select>
+
+                    {/* Role Filter */}
+                    <select
+                      value={profileLogRoleFilter}
+                      onChange={(e) => setProfileLogRoleFilter(e.target.value)}
+                      className="h-9 px-3 rounded-xl bg-onyx border border-[#222] text-[12px] text-foreground outline-none focus:border-[#D4A843]/40 cursor-pointer"
+                    >
+                      <option value="">All Roles</option>
+                      <option value="MANAGER">Manager</option>
+                      <option value="SALESMAN">Salesman</option>
+                      <option value="ADMIN">Admin</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Timeline Cards */}
+                {profileLogsLoading ? (
+                  <div className="bg-onyx-surface border border-[#222] rounded-2xl py-16 flex flex-col items-center justify-center">
+                    <Loader2 className="w-8 h-8 text-[#D4A843] animate-spin mb-3" />
+                    <p className="text-[#888] text-[14px]">Querying profile audit ledger...</p>
+                  </div>
+                ) : profileLogs.length === 0 ? (
+                  <div className="bg-onyx-surface border border-[#222] rounded-2xl py-16 flex flex-col items-center justify-center text-center">
+                    <History className="w-8 h-8 text-[#444] mb-3" />
+                    <p className="text-[#888] text-[14px]">No profile modification logs found matching filters.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {profileLogs.map((log: any) => {
+                      const isCreated = log.action?.includes("CREATED");
+                      const isUpdated = log.action?.includes("UPDATED");
+                      const isKycVerified = log.action?.includes("KYC.DOCUMENT_VERIFIED");
+                      const isKycRejected = log.action?.includes("KYC.DOCUMENT_REJECTED");
+                      const isKycUploaded = log.action?.includes("KYC.DOCUMENT_UPLOADED");
+
+                      return (
+                        <div
+                          key={log.id}
+                          className="bg-onyx-surface border border-[#222] rounded-2xl p-5 hover:border-[#333] transition-all space-y-3.5"
+                        >
+                          {/* Log Header */}
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
+                                  isCreated || isKycVerified
+                                    ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
+                                    : isKycRejected
+                                    ? "bg-red-500/10 border-red-500/25 text-red-400"
+                                    : isUpdated
+                                    ? "bg-blue-500/10 border-blue-500/25 text-blue-400"
+                                    : "bg-[#D4A843]/10 border-[#D4A843]/25 text-[#D4A843]"
+                                }`}
+                              >
+                                {isKycVerified || isCreated ? (
+                                  <CheckCircle2 className="w-4.5 h-4.5" />
+                                ) : isKycRejected ? (
+                                  <XCircle className="w-4.5 h-4.5" />
+                                ) : (
+                                  <Edit2 className="w-4.5 h-4.5" />
+                                )}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[14px] font-bold text-foreground">
+                                    {log.humanAction}
+                                  </span>
+                                  <span className="text-[10px] font-mono text-[#555]">
+                                    ({log.action})
+                                  </span>
+                                </div>
+                                <p className="text-[12px] text-[#888] mt-0.5">{log.description}</p>
+                              </div>
+                            </div>
+
+                            {/* Actor Details */}
+                            <div className="text-right">
+                              <div className="flex items-center gap-2 justify-end">
+                                <span className="text-[12px] font-semibold text-foreground">
+                                  {log.performer?.name}
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
+                                    log.performer?.role === "MANAGER" || log.performer?.role === "ADMIN"
+                                      ? "bg-[#D4A843]/15 text-[#D4A843] border-[#D4A843]/30"
+                                      : "bg-blue-500/15 text-blue-400 border-blue-500/30"
+                                  }`}
+                                >
+                                  {log.performer?.role || "SALESMAN"}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-[#555] mt-0.5">
+                                {new Date(log.createdAt).toLocaleString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Reason Pill */}
+                          {log.reason && (
+                            <div className="p-2.5 rounded-xl bg-onyx border border-[#1f1f1f] text-[12px] text-[#aaa] flex items-start gap-2">
+                              <span className="text-[#D4A843] font-semibold text-[11px] uppercase">
+                                Note / Reason:
+                              </span>
+                              <span>{log.reason}</span>
+                            </div>
+                          )}
+
+                          {/* Visual Diff Viewer for Updates */}
+                          {isUpdated && log.before && log.after && (
+                            <div className="bg-onyx rounded-xl p-3.5 border border-[#1a1a1a] space-y-2">
+                              <span className="text-[10px] font-bold text-[#555] uppercase tracking-widest block">
+                                Field Modifications Diff
+                              </span>
+                              <div className="space-y-1.5">
+                                {Object.keys(log.after)
+                                  .filter(
+                                    (key) =>
+                                      log.before[key] !== log.after[key] &&
+                                      log.after[key] !== undefined
+                                  )
+                                  .map((key) => (
+                                    <div
+                                      key={key}
+                                      className="grid grid-cols-[140px_1fr_auto_1fr] items-center gap-3 text-[12px] py-1 border-b border-[#161616] last:border-none"
+                                    >
+                                      <span className="font-semibold text-[#888] capitalize">
+                                        {key.replace(/([A-Z])/g, " $1")}:
+                                      </span>
+                                      <span className="text-red-400/80 line-through truncate font-mono bg-red-950/20 px-2 py-0.5 rounded border border-red-500/20">
+                                        {log.before[key] === null || log.before[key] === undefined
+                                          ? "(none)"
+                                          : String(log.before[key])}
+                                      </span>
+                                      <ArrowRight className="w-3.5 h-3.5 text-[#555]" />
+                                      <span className="text-emerald-400 font-mono font-medium truncate bg-emerald-950/20 px-2 py-0.5 rounded border border-emerald-500/20">
+                                        {String(log.after[key])}
+                                      </span>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* KYC Verification transition details */}
+                          {(isKycVerified || isKycRejected) && log.metadata && (
+                            <div className="bg-onyx rounded-xl p-3 border border-[#1a1a1a] flex items-center justify-between text-[11px] text-[#888]">
+                              <span>
+                                Document: <strong className="text-foreground">{log.metadata.documentType}</strong> ({log.metadata.fileName})
+                              </span>
+                              <span>
+                                Resolution:{" "}
+                                <strong
+                                  className={isKycVerified ? "text-emerald-400" : "text-red-400"}
+                                >
+                                  {log.metadata.action}
+                                </strong>
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Technical Context Bar */}
+                          <div className="flex items-center justify-between text-[10px] text-[#444] pt-1">
+                            <span>Audit ID: #{log.id.slice(-8)}</span>
+                            <span>IP Address: {log.ipAddress || "127.0.0.1"} • Device: {log.deviceInfo || "Web Console"}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
-
         </div>
       </div>
-
 
       {/* Share Upload Link Modal */}
       {showShareLinkModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setShowShareLinkModal(false)} />
-          <div className="relative bg-[#111] border border-[#222] rounded-2xl p-6 max-w-md w-full shadow-2xl z-50 animate-scale-up">
+          <div
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            onClick={() => setShowShareLinkModal(false)}
+          />
+          <div className="relative bg-[#111] border border-[#222] rounded-2xl p-6 max-w-md w-full shadow-2xl z-50">
             <h3 className="text-[17px] font-bold text-foreground mb-1.5 flex items-center gap-2">
               <Shield className="w-4.5 h-4.5 text-[#D4A843]" />
-              Secure Self-Upload Link
+              Client Self-Service KYC Portal Link
             </h3>
             <p className="text-[12.5px] text-[#666] mb-5 leading-normal">
-              Copy and send this unique single-use link to the customer. It enables uploading KYC documents securely to Atelier vaults and expires in 24 hours.
+              Send this 24-hour secure link to <strong className="text-foreground">{customer.name}</strong> via WhatsApp or SMS. It allows the customer to upload their Aadhaar/PAN/GST documents directly from their smartphone.
             </p>
 
-            <div className="flex items-center gap-2 mb-6">
+            <div className="flex items-center gap-2 mb-5">
               <input
                 type="text"
                 readOnly
@@ -1363,32 +1524,127 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
               </button>
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-[#222]">
+            <div className="flex items-center justify-between pt-3 border-t border-[#222]">
+              <a
+                href={`https://wa.me/91${customer.mobile}?text=${encodeURIComponent(
+                  `Dear ${customer.name}, please complete your KYC document verification for Atelier Jewellers using this secure portal link: ${generatedLink}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-9 px-4 rounded-lg bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/30 text-[12px] font-semibold flex items-center gap-1.5"
+              >
+                <Send className="w-3 h-3" /> WhatsApp to Client
+              </a>
+
               <button
                 onClick={() => setShowShareLinkModal(false)}
                 className="h-9 px-4 rounded-lg text-[13px] text-foreground bg-onyx-elevated border border-[#252525] hover:bg-secondary transition-all cursor-pointer"
               >
-                Close Portal Link
+                Close
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modals */}
+      {/* KYC Verification / Rejection Confirmation Modal (Manager Only) */}
+      {verifyModalDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            onClick={() => setVerifyModalDoc(null)}
+          />
+          <div className="relative bg-[#111] border border-[#222] rounded-2xl p-6 max-w-md w-full shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
+                  verifyAction === "VERIFY"
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                    : "bg-red-500/10 border-red-500/30 text-red-400"
+                }`}
+              >
+                {verifyAction === "VERIFY" ? (
+                  <CheckCircle2 className="w-5 h-5" />
+                ) : (
+                  <XCircle className="w-5 h-5" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-[16px] font-bold text-foreground">
+                  {verifyAction === "VERIFY" ? "Verify & Approve Document" : "Reject KYC Document"}
+                </h3>
+                <p className="text-[12px] text-[#666]">
+                  {verifyModalDoc.fileName} ({verifyModalDoc.documentType})
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-5">
+              <label className="block text-[11px] font-bold text-[#888] uppercase tracking-wider">
+                {verifyAction === "VERIFY"
+                  ? "Manager Verification Notes (Optional)"
+                  : "Reason for Rejection *"}
+              </label>
+              <textarea
+                value={verifyNotes}
+                onChange={(e) => setVerifyNotes(e.target.value)}
+                placeholder={
+                  verifyAction === "VERIFY"
+                    ? "e.g. Scanned copy verified against original government database."
+                    : "e.g. Blurry photo / Expired document / Name spelling mismatch."
+                }
+                rows={3}
+                className="w-full p-3 rounded-xl bg-onyx border border-[#222] text-[12px] text-foreground placeholder:text-[#444] outline-none focus:border-[#D4A843] resize-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#222]">
+              <button
+                onClick={() => setVerifyModalDoc(null)}
+                className="h-9 px-4 rounded-lg text-[13px] text-[#999] bg-onyx-elevated border border-[#252525] hover:text-foreground transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmVerification}
+                disabled={verifyLoading || (verifyAction === "REJECT" && !verifyNotes.trim())}
+                className={`h-9 px-5 rounded-lg text-[13px] font-semibold transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer ${
+                  verifyAction === "VERIFY"
+                    ? "bg-emerald-500 text-foreground hover:bg-emerald-600"
+                    : "bg-red-500 text-foreground hover:bg-red-600"
+                }`}
+              >
+                {verifyLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : verifyAction === "VERIFY" ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <X className="w-3.5 h-3.5" />
+                )}
+                {verifyAction === "VERIFY" ? "Confirm Approval" : "Confirm Rejection"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Customer Profile Modal */}
       <EditCustomerModal
         open={showEditModal}
         customerId={customer.id}
+        userRole={userRole}
         onClose={() => setShowEditModal(false)}
         onSuccess={() => fetchDetails()}
       />
 
+      {/* Direct Communication Modal */}
       <DirectCommunicationModal
         open={showCommModal}
         customer={customer}
         onClose={() => setShowCommModal(false)}
       />
 
+      {/* Order Details Modal */}
       <OrderDetailsModal
         open={!!selectedOrder}
         order={selectedOrder}
@@ -1408,6 +1664,7 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
         }}
       />
 
+      {/* Manage Tags Modal */}
       <ManageTagsModal
         open={showManageTagsModal}
         onClose={() => setShowManageTagsModal(false)}
@@ -1419,21 +1676,29 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
       {/* Edit Scheme Modal */}
       {editingScheme && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setEditingScheme(null)} />
+          <div
+            className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+            onClick={() => setEditingScheme(null)}
+          />
           <div className="relative w-full max-w-sm bg-[#0D0D0F] border border-[#1F1F24] rounded-2xl shadow-2xl p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-sm font-semibold text-[#F0EBE0]">Edit Scheme</h3>
                 <p className="text-xs text-[#C9943A] mt-0.5">{editingScheme.schemeNumber}</p>
               </div>
-              <button onClick={() => setEditingScheme(null)} className="p-1.5 rounded-lg hover:bg-[#1A1A1D] text-[#6B6560] cursor-pointer">
+              <button
+                onClick={() => setEditingScheme(null)}
+                className="p-1.5 rounded-lg hover:bg-[#1A1A1D] text-[#6B6560] cursor-pointer"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="text-xs font-medium text-[#F0EBE0] mb-2 block">Physical Card Number</label>
+                <label className="text-xs font-medium text-[#F0EBE0] mb-2 block">
+                  Physical Card Number
+                </label>
                 <input
                   type="text"
                   value={editingCardNumber}
@@ -1445,7 +1710,9 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
 
               {editingScheme.type !== "ANONYMOUS_DEPOSIT" && (
                 <div>
-                  <label className="text-xs font-medium text-[#F0EBE0] mb-2 block">Duration (Months)</label>
+                  <label className="text-xs font-medium text-[#F0EBE0] mb-2 block">
+                    Duration (Months)
+                  </label>
                   <input
                     type="number"
                     value={editingDuration}
@@ -1454,7 +1721,9 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
                     min={editingScheme.maxDurationMonths}
                     className="w-full px-3 py-2 rounded-lg bg-[#111113] border border-[#1F1F24] text-sm text-[#F0EBE0] focus:border-[#C9943A]/50 outline-none"
                   />
-                  <p className="text-[10px] text-[#6B6560] mt-1">Note: You can only extend the duration.</p>
+                  <p className="text-[10px] text-[#6B6560] mt-1">
+                    Note: You can only extend the duration.
+                  </p>
                 </div>
               )}
             </div>
@@ -1464,13 +1733,16 @@ export default function CustomerDetailsClient({ customerId }: CustomerDetailsCli
               disabled={schemeUpdating}
               className="w-full py-2.5 rounded-xl bg-[#C9943A] text-foreground text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-2"
             >
-              {schemeUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {schemeUpdating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
               Save Changes
             </button>
           </div>
         </div>
       )}
-
     </main>
   );
 }
@@ -1483,13 +1755,18 @@ interface ManageTagsModalProps {
   onSuccess: () => void;
 }
 
-function ManageTagsModal({ open, onClose, customerId, currentTags, onSuccess }: ManageTagsModalProps) {
+function ManageTagsModal({
+  open,
+  onClose,
+  customerId,
+  currentTags,
+  onSuccess,
+}: ManageTagsModalProps) {
   const [manualTags, setManualTags] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  
-  // Custom tag creation form
+
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [newLabel, setNewLabel] = useState("");
@@ -1503,7 +1780,6 @@ function ManageTagsModal({ open, onClose, customerId, currentTags, onSuccess }: 
       const res = await fetch("/api/customer/tags/definitions");
       if (res.ok) {
         const data = await res.json();
-        // filter to manual tags
         const manuals = data.definitions.filter((d: any) => d.type === "MANUAL");
         setManualTags(manuals);
       }
@@ -1517,7 +1793,6 @@ function ManageTagsModal({ open, onClose, customerId, currentTags, onSuccess }: 
   useEffect(() => {
     if (open) {
       fetchDefinitions();
-      // Initialize selectedTagIds with customer's current manual tags
       const currentManualIds = currentTags
         .filter((t: any) => t.tagDefinition.type === "MANUAL")
         .map((t: any) => t.tagDefinitionId);
@@ -1577,8 +1852,7 @@ function ManageTagsModal({ open, onClose, customerId, currentTags, onSuccess }: 
         const createdDef = data.definition;
         setManualTags((prev) => [...prev, createdDef]);
         setSelectedTagIds((prev) => [...prev, createdDef.id]);
-        
-        // Reset form
+
         setNewLabel("");
         setNewName("");
         setNewDesc("");
@@ -1601,7 +1875,9 @@ function ManageTagsModal({ open, onClose, customerId, currentTags, onSuccess }: 
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-[#111] border border-[#222] rounded-2xl p-6 max-w-md w-full shadow-2xl z-50 max-h-[85vh] overflow-y-auto flex flex-col">
         <h3 className="text-[18px] font-bold text-foreground mb-1">Manage Customer Tags</h3>
-        <p className="text-[13px] text-[#666] mb-5">Assign or remove manual tags. System tags are evaluated automatically.</p>
+        <p className="text-[13px] text-[#666] mb-5">
+          Assign or remove manual tags. System tags are evaluated automatically.
+        </p>
 
         {loading ? (
           <div className="flex justify-center py-8">
@@ -1610,7 +1886,9 @@ function ManageTagsModal({ open, onClose, customerId, currentTags, onSuccess }: 
         ) : (
           <div className="space-y-4 flex-1">
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-[#555] uppercase tracking-widest block">Manual Tags</label>
+              <label className="text-[11px] font-bold text-[#555] uppercase tracking-widest block">
+                Manual Tags
+              </label>
               {manualTags.length === 0 ? (
                 <p className="text-[13px] text-[#555] italic">No manual tags defined yet.</p>
               ) : (
@@ -1626,7 +1904,9 @@ function ManageTagsModal({ open, onClose, customerId, currentTags, onSuccess }: 
                       orange: "border-orange-500/30 text-orange-400 bg-orange-500/10",
                       purple: "border-purple-500/30 text-purple-400 bg-purple-500/10",
                     };
-                    const activeColorClass = colorMap[tag.color.toLowerCase()] || "border-gray-500/30 text-muted-foreground bg-gray-500/10";
+                    const activeColorClass =
+                      colorMap[tag.color.toLowerCase()] ||
+                      "border-gray-500/30 text-muted-foreground bg-gray-500/10";
                     return (
                       <button
                         key={tag.id}
@@ -1639,9 +1919,11 @@ function ManageTagsModal({ open, onClose, customerId, currentTags, onSuccess }: 
                         }`}
                       >
                         <span>{tag.label}</span>
-                        <span className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] ${
-                          isChecked ? "border-current text-current" : "border-[#444]"
-                        }`}>
+                        <span
+                          className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] ${
+                            isChecked ? "border-current text-current" : "border-[#444]"
+                          }`}
+                        >
                           {isChecked && "✓"}
                         </span>
                       </button>
@@ -1663,9 +1945,14 @@ function ManageTagsModal({ open, onClose, customerId, currentTags, onSuccess }: 
                   Create Custom Tag Definition
                 </button>
               ) : (
-                <form onSubmit={handleCreateTag} className="space-y-3 p-3.5 bg-[#161616] border border-[#222] rounded-xl">
+                <form
+                  onSubmit={handleCreateTag}
+                  className="space-y-3 p-3.5 bg-[#161616] border border-[#222] rounded-xl"
+                >
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-[#D4A843] uppercase tracking-wider">New Tag Definition</span>
+                    <span className="text-[11px] font-bold text-[#D4A843] uppercase tracking-wider">
+                      New Tag Definition
+                    </span>
                     <button
                       type="button"
                       onClick={() => setShowCreateForm(false)}
@@ -1675,7 +1962,9 @@ function ManageTagsModal({ open, onClose, customerId, currentTags, onSuccess }: 
                     </button>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-[#555] uppercase tracking-wider block mb-1">Label</label>
+                    <label className="text-[10px] font-bold text-[#555] uppercase tracking-wider block mb-1">
+                      Label
+                    </label>
                     <input
                       type="text"
                       required
@@ -1687,17 +1976,23 @@ function ManageTagsModal({ open, onClose, customerId, currentTags, onSuccess }: 
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10px] font-bold text-[#555] uppercase tracking-wider block mb-1">System Code (Opt)</label>
+                      <label className="text-[10px] font-bold text-[#555] uppercase tracking-wider block mb-1">
+                        System Code (Opt)
+                      </label>
                       <input
                         type="text"
                         value={newName}
-                        onChange={(e) => setNewName(e.target.value.toUpperCase().replace(/\s+/g, "_"))}
+                        onChange={(e) =>
+                          setNewName(e.target.value.toUpperCase().replace(/\s+/g, "_"))
+                        }
                         placeholder="FRIENDS_FAMILY"
                         className="w-full h-8 px-2.5 rounded-lg bg-onyx border border-onyx-border text-[11px] text-foreground outline-none focus:border-[#D4A843]/40"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-[#555] uppercase tracking-wider block mb-1">Color</label>
+                      <label className="text-[10px] font-bold text-[#555] uppercase tracking-wider block mb-1">
+                        Color
+                      </label>
                       <select
                         value={newColor}
                         onChange={(e) => setNewColor(e.target.value)}
@@ -1714,7 +2009,9 @@ function ManageTagsModal({ open, onClose, customerId, currentTags, onSuccess }: 
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-[#555] uppercase tracking-wider block mb-1">Description</label>
+                    <label className="text-[10px] font-bold text-[#555] uppercase tracking-wider block mb-1">
+                      Description
+                    </label>
                     <input
                       type="text"
                       value={newDesc}

@@ -292,8 +292,8 @@ export default function FormatCustomizerDialog({
       
       // Ensure all deeply nested label keys are initialized properly
       const defaultLabels = defaults.labels || {};
-      const initialLabels = initial.labels || {};
-      const mergedLabels = { ...defaultLabels };
+      const initialLabels = (initial.labels || {}) as Record<string, any>;
+      const mergedLabels: Record<string, any> = { ...defaultLabels };
       
       for (const key in initialLabels) {
          if (initialLabels[key] !== undefined) {

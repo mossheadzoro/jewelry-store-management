@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { extendBookingSchema } from "@/schemas/booking";
 
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

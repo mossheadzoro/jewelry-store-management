@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient, Gender, Prisma } from '@prisma/client';
-
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
+import { AuditLogService } from "@/lib/audit/AuditLogService";
+import { AuditActions, AuditModules } from "@/lib/audit/AuditRegistry";
 
 function parseDate(value?: string): Date | null {
   if (!value || value.trim() === "") return null;
@@ -11,6 +14,7 @@ function parseDate(value?: string): Date | null {
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
     const body = await req.json();
 
     const {
@@ -61,6 +65,43 @@ export async function POST(req: Request) {
         optInPromotions: optInPromotions !== undefined ? optInPromotions : true,
       },
     });
+
+    // Record Business Audit Event
+    try {
+      await AuditLogService.recordBusinessEvent({
+        req,
+        module: AuditModules.CUSTOMERS,
+        action: AuditActions.CUSTOMER_CREATED,
+        entityType: "CUSTOMER",
+        entityId: String(newCustomer.id),
+        entityDisplayName: newCustomer.name,
+        description: `Created customer profile for ${newCustomer.name} (${newCustomer.mobile})`,
+        after: {
+          id: newCustomer.id,
+          name: newCustomer.name,
+          mobile: newCustomer.mobile,
+          email: newCustomer.email,
+          city: newCustomer.city,
+          state: newCustomer.state,
+          gender: newCustomer.gender,
+          customerGroup: newCustomer.customerGroup,
+          pan: newCustomer.pan,
+          gstin: newCustomer.gstin,
+          aadhar: newCustomer.aadhar,
+        },
+        context: {
+          userId: session?.user?.id ? parseInt(session.user.id, 10) : undefined,
+          userNameSnapshot: session?.user?.name || "System Staff",
+          roleSnapshot: session?.user?.role || "SALESMAN",
+          branchId: session?.user?.branchId ? parseInt(session.user.branchId, 10) : undefined,
+        },
+        metadata: {
+          creationSource: "Customer Management Panel",
+        },
+      });
+    } catch (auditErr) {
+      console.error("[CustomerCreate] Failed to record audit log:", auditErr);
+    }
 
     return NextResponse.json(newCustomer, { status: 201 });
 

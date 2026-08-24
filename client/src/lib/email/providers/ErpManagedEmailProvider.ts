@@ -1,7 +1,7 @@
 // client/src/lib/email/providers/ErpManagedEmailProvider.ts
 
 import { EmailProvider, SendEmailOptions, SendEmailResult, VerifyConnectionResult, EmailUsageResult } from "./EmailProvider";
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 export class ErpManagedEmailProvider implements EmailProvider {
   public readonly name = "Brevo (Managed Platform Gateway)";

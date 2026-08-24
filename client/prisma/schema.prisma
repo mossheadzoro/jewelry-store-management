@@ -51,6 +51,7 @@ model Branch {
   rfidScanSessions                                     RFIDScanSession[]
   rfidReadEvents                                       RFIDReadEvent[]
   rfidSettings                                         RFIDSettings?
+  goldRateHistory                                      GoldRateHistoryLedger[]
 }
 
 model BranchSettings {
@@ -240,6 +241,9 @@ model ProductItem {
 
   @@index([branchId])
   @@index([subCategoryId])
+  @@index([branchId, quantity])
+  @@index([name])
+  @@index([createdAt])
 }
 
 model StoneDetail {
@@ -446,6 +450,10 @@ model Order {
   @@index([userId])
   @@index([branchId])
   @@index([wholesalerId])
+  @@index([status])
+  @@index([deliveryDate])
+  @@index([createdAt])
+  @@index([branchId, createdAt])
 }
 
 model OrderItem {
@@ -2797,6 +2805,25 @@ model AuditRetentionPolicy {
   @@index([tenantId])
 }
 
+model GoldRateHistoryLedger {
+  id             String    @id @default(cuid())
+  branchId       Int?
+  source         String    @default("LIVE_API") // "LIVE_API" | "MANUAL_OVERRIDE"
+  rate24k        Float
+  rate22k        Float
+  rate18k        Float
+  rate14k        Float
+  silverRate     Float?
+  xauUsd         Float?
+  usdInr         Float?
+  changeFromPrev Float?
+  notes          String?
+  rawMetadata    Json?
+  recordedAt     DateTime  @default(now())
 
+  branch         Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
-
+  @@index([branchId, recordedAt])
+  @@index([source, recordedAt])
+  @@index([recordedAt])
+}

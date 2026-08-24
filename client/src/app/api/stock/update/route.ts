@@ -1,7 +1,7 @@
 // /app/api/stock/update/route.ts
 import { NextResponse } from "next/server";
 
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {

@@ -121,7 +121,7 @@ function makeAdvances(bookingId: string): BookingAdvance[] {
 
 const statuses: BookingStatus[] = ["ACTIVE", "RATE_LOCKED", "PARTIAL_LOCK", "DELIVERY_PENDING", "EXPIRED", "CANCELLED", "DELIVERED", "ACTIVE", "RATE_LOCKED", "EXPIRED", "ACTIVE", "DELIVERY_PENDING"];
 
-export const mockBookings: Booking[] = statuses.map((status, i) => {
+export const mockBookings: any[] = statuses.map((status, i) => {
   const cust = mockCustomers[i % mockCustomers.length];
   const prod = mockProducts[i % mockProducts.length];
   const advances = makeAdvances(`BK-${String(1001 + i)}`);

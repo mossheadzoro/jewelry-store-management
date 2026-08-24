@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 // GET /api/schemes?branchId=1&status=ACTIVE&type=FIXED_MONTHLY&search=...&page=1&limit=20
 export async function GET(req: Request) {

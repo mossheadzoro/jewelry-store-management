@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
+import { AuditLogService } from "@/lib/audit/AuditLogService";
+import { AuditActions, AuditModules } from "@/lib/audit/AuditRegistry";
 import crypto from "crypto";
 
 export async function POST(
@@ -14,6 +18,7 @@ export async function POST(
   }
 
   try {
+    const session = await getServerSession(authOptions);
     const customer = await prisma.customer.findUnique({
       where: { id: customerId },
     });
@@ -35,6 +40,31 @@ export async function POST(
       },
     });
 
+    // Record Business Audit Event
+    try {
+      await AuditLogService.recordBusinessEvent({
+        req,
+        module: AuditModules.CUSTOMERS,
+        action: AuditActions.KYC_LINK_GENERATED,
+        entityType: "CUSTOMER",
+        entityId: String(customerId),
+        entityDisplayName: customer.name,
+        description: `Generated secure 24-hour self-service KYC upload link for ${customer.name}`,
+        context: {
+          userId: session?.user?.id ? parseInt(session.user.id, 10) : undefined,
+          userNameSnapshot: session?.user?.name || "Staff Member",
+          roleSnapshot: session?.user?.role || "SALESMAN",
+          branchId: session?.user?.branchId ? parseInt(session.user.branchId, 10) : undefined,
+        },
+        metadata: {
+          tokenId: uploadToken.id,
+          expiresAt: uploadToken.expiresAt,
+        },
+      });
+    } catch (auditErr) {
+      console.error("[KycGenerateLink] Failed to record audit log:", auditErr);
+    }
+
     return NextResponse.json({
       success: true,
       token: uploadToken.token,
@@ -45,3 +75,4 @@ export async function POST(
     return NextResponse.json({ error: "Server error generating upload link" }, { status: 500 });
   }
 }
+

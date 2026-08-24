@@ -1,7 +1,7 @@
 // client/src/app/api/rfid/read-events/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@libs/prisma';
+import { prisma } from "@/lib/prisma";
 import { requireAuth } from '@/lib/authGuard';
 import { rfidDeduplicationService } from '@/lib/rfid/services/deduplicationService';
 import { RawRFIDReadPacket } from '@/lib/rfid/types';

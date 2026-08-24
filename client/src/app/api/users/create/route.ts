@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import bcrypt from "bcryptjs";
 
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);

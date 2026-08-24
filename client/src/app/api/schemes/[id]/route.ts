@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../../libs/prisma";
+import { prisma } from "@/lib/prisma";
 
 // GET /api/schemes/[id] — Full scheme detail with deposits and redemptions
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {

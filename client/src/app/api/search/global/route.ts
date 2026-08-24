@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
-import { prisma } from '@libs/prisma';
+import { prisma } from "@/lib/prisma";
 import { search } from '@/lib/services/search/searchService';
 import { SearchEntityType, SearchStage } from '@/lib/types/search';
 

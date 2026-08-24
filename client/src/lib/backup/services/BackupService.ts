@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 import { PostgresDumpEngine } from "../database/PostgresDumpEngine";
 import { BackupCrypto } from "../crypto/BackupCrypto";
 import { StorageFactory } from "../storage/StorageFactory";

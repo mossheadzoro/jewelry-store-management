@@ -1,7 +1,7 @@
 // client/src/app/api/security/challenge/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@libs/prisma";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { SecurityService } from "@/lib/security/SecurityService";
 import { SecurityCrypto } from "@/lib/security/SecurityCrypto";

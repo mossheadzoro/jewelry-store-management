@@ -16,11 +16,21 @@ export type PaymentMode =
   | "BANK_TRANSFER"
   | "WALLET"
   | "GOLD_22K"
-  | "GOLD_24K";
+  | "GOLD_24K"
+  | "METAL_22K"
+  | "METAL_24K";
 
 export type CustomerTier = "ELITE" | "VIP" | "GOLD" | "SILVER" | "REGULAR";
 
-export type DeliveryRatePlan = "LOCK_NOW" | "SPLIT" | "MARKET_RATE" | "FIXED_RATE";
+export type DeliveryRatePlan =
+  | "LOCK_NOW"
+  | "SPLIT"
+  | "MARKET_RATE"
+  | "FIXED_RATE"
+  | "OPTION_A_MARKET_RATE"
+  | "OPTION_B_15_DAY_LOCK"
+  | "OPTION_C_METAL_WALLET"
+  | "OPTION_D_FIXED_RATE";
 
 export type CancellationReason =
   | "CUSTOMER_REQUEST"
