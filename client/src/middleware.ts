@@ -9,6 +9,9 @@ const PUBLIC_PATHS = [
   "/public",
   "/api/auth",
   "/api/public",
+  "/api/security/challenge",
+  "/api/security/2fa/verify",
+  "/api/cron",
   "/favicon.ico",
 ];
 

@@ -1,4 +1,4 @@
-import CustomerDetailsClient from "../../../../../components/Customer/CustomerDetailsClient";
+import CustomerDetailsClient from "@/components/Customer/CustomerDetailsClient";
 
 export default async function CustomerDetailsPage({
   params,

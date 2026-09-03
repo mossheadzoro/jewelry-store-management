@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import GlobalSearchPage from "../../../../components/Search/GlobalSearchPage";
+import GlobalSearchPage from "@/components/Search/GlobalSearchPage";
 
 export default function SearchPage() {
   return (

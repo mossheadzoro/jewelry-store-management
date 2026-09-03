@@ -2,6 +2,7 @@
 
 import React from "react";
 import { formatCustomerName, normalizeInvoice } from "@/lib/utils";
+import { Sparkles, HandCoins, ArrowDownLeft, Coins, Repeat, Wallet, MapPin, Phone, Mail, Globe, User } from "lucide-react";
 
 export default function StandardInvoiceTemplate({ invoice: rawInvoice, regularPayments, cashOutPayment, cashToCustomerPayment, returnGoldPayment }: any) {
   const invoice = normalizeInvoice(rawInvoice);
@@ -11,7 +12,7 @@ export default function StandardInvoiceTemplate({ invoice: rawInvoice, regularPa
   }
   const customizations = rawCustomizations?.standard || {};
   
-  const logoUrl = rawCustomizations?.companyLogoUrl || logoUrl;
+  const logoUrl = rawCustomizations?.companyLogoUrl || invoice.branch.settings?.logoUrl;
   const companySealUrl = rawCustomizations?.companySealUrl;
   const digitalSignatureUrl = rawCustomizations?.digitalSignatureUrl;
 
@@ -77,16 +78,33 @@ export default function StandardInvoiceTemplate({ invoice: rawInvoice, regularPa
           </h1>
           <p className="font-bold text-gray-900 text-xl">{invoice.branch.settings?.shopName || invoice.branch.name}</p>
           <p className="text-sm font-semibold text-gray-700 mb-1">{invoice.branch.name}</p>
-          <p className="text-xs text-gray-600">{invoice.branch.settings?.address || invoice.branch.address}, {invoice.branch.city}, {invoice.branch.state} {invoice.branch.pincode}</p>
-          <p className="text-xs text-gray-600">Phone: {invoice.branch.settings?.phoneNumbers || invoice.branch.phone} | Email: {invoice.branch.settings?.email || invoice.branch.email}</p>
+          <p className="text-xs text-gray-600 flex items-center gap-1.5 mt-0.5">
+            <MapPin className="w-3.5 h-3.5 text-black shrink-0" />
+            <span>{invoice.branch.settings?.address || invoice.branch.address}, {invoice.branch.city}, {invoice.branch.state} {invoice.branch.pincode}</span>
+          </p>
+          <div className="text-xs text-gray-600 flex flex-wrap items-center gap-3 mt-1">
+            <span className="flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-black shrink-0" />
+              <span>+91 {invoice.branch.settings?.phoneNumbers || invoice.branch.phone}</span>
+            </span>
+            {(invoice.branch.settings?.email || invoice.branch.email) && (
+              <span className="flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-black shrink-0" />
+                <span>{invoice.branch.settings?.email || invoice.branch.email}</span>
+              </span>
+            )}
+            {invoice.branch.settings?.website && (
+              <span className="flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-black shrink-0" />
+                <span>{invoice.branch.settings.website}</span>
+              </span>
+            )}
+          </div>
           {(invoice.branch.settings?.gstNumber || invoice.branch.settings?.pan) && (
             <p className="text-xs text-gray-600 mt-1 font-medium">
               {invoice.branch.settings?.gstNumber && <span className="mr-4">GSTIN: {invoice.branch.settings.gstNumber.toUpperCase()}</span>}
               {invoice.branch.settings?.pan && <span>PAN: {invoice.branch.settings.pan.toUpperCase()}</span>}
             </p>
-          )}
-          {invoice.branch.settings?.website && (
-            <p className="text-xs text-gray-600">{invoice.branch.settings.website}</p>
           )}
         </div>
         <div className="text-right flex-shrink-0 flex flex-col items-end">
@@ -101,11 +119,28 @@ export default function StandardInvoiceTemplate({ invoice: rawInvoice, regularPa
       {/* CUSTOMER DETAILS */}
       <div className="mb-6">
         <h3 className="font-bold text-xs bg-gray-100 px-3 py-1.5 uppercase tracking-wide border-l-4 border-black mb-3">BILLED TO</h3>
-        <div className="px-3">
+        <div className="px-3 space-y-1">
           <p className="text-lg font-bold text-gray-900">{formatCustomerName(invoice.customer)}</p>
-          <p className="text-xs text-gray-600">+91 {invoice.customer.mobile}</p>
-          {invoice.customer.email && <p className="text-xs text-gray-600">{invoice.customer.email}</p>}
-          <p className="text-xs text-gray-600 max-w-[350px] leading-relaxed mt-0.5">{invoice.customer.address}, {invoice.customer.city}, {invoice.customer.state} {invoice.customer.pincode}</p>
+          {invoice.customer.id && (
+            <p className="text-xs text-gray-600 flex items-center gap-1.5 font-mono">
+              <User className="w-3.5 h-3.5 text-black shrink-0" />
+              <span>Customer ID: CUST-{invoice.customer.id.toString().padStart(5, '0')}</span>
+            </p>
+          )}
+          <p className="text-xs text-gray-600 flex items-center gap-1.5">
+            <Phone className="w-3.5 h-3.5 text-black shrink-0" />
+            <span>+91 {invoice.customer.mobile}</span>
+          </p>
+          {invoice.customer.email && (
+            <p className="text-xs text-gray-600 flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 text-black shrink-0" />
+              <span>{invoice.customer.email}</span>
+            </p>
+          )}
+          <p className="text-xs text-gray-600 flex items-start gap-1.5 max-w-[350px] leading-relaxed">
+            <MapPin className="w-3.5 h-3.5 text-black shrink-0 mt-0.5" />
+            <span>{invoice.customer.address}, {invoice.customer.city}, {invoice.customer.state} {invoice.customer.pincode}</span>
+          </p>
         </div>
       </div>
 
@@ -185,8 +220,11 @@ export default function StandardInvoiceTemplate({ invoice: rawInvoice, regularPa
             ))}
 
             {showExchangeInPayments && (
-              <li className="py-2 flex justify-between border-t border-gray-200 mt-2">
-                <span className="font-medium text-blue-700">Old Gold Exchange (Non-Tax Deductible)</span>
+              <li className="py-2 flex justify-between border-t border-gray-200 mt-2 items-center">
+                <span className="font-medium text-blue-700 flex items-center gap-1.5">
+                  <Repeat className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  Old Gold Exchange (Non-Tax Deductible)
+                </span>
                 <span className="tabular-nums font-semibold text-blue-700">₹{exchangeGoldValue.toFixed(2)}</span>
               </li>
             )}
@@ -194,7 +232,10 @@ export default function StandardInvoiceTemplate({ invoice: rawInvoice, regularPa
             {cashOutPayment && (
               <li className="py-3 border-t border-amber-200 mt-2">
                 <div className="flex justify-between items-center mb-1">
-                  <span className="font-bold text-amber-700 text-xs uppercase tracking-wide">OLD Gold Cashed Out</span>
+                  <span className="font-bold text-amber-700 text-xs uppercase tracking-wide flex items-center gap-1.5">
+                    <Coins className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    OLD Gold Cashed Out
+                  </span>
                   <span className="tabular-nums font-bold text-amber-700">₹{cashOutPayment.amount.toFixed(2)}</span>
                 </div>
                 <p className="text-[10px] text-gray-600 italic leading-tight">
@@ -204,8 +245,11 @@ export default function StandardInvoiceTemplate({ invoice: rawInvoice, regularPa
             )}
 
             {cashToCustomerPayment && (
-              <li className="py-2 flex justify-between bg-amber-50 px-2 rounded">
-                <span className="font-bold text-amber-800 text-xs">💰 Cash Given to Customer</span>
+              <li className="py-2 flex justify-between bg-amber-50 px-2 rounded items-center">
+                <span className="font-bold text-amber-800 text-xs flex items-center gap-1.5">
+                  <HandCoins className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                  Cash Given to Customer
+                </span>
                 <span className="tabular-nums font-bold text-amber-800">₹{Math.abs(cashToCustomerPayment.amount).toFixed(2)}</span>
               </li>
             )}
@@ -213,14 +257,20 @@ export default function StandardInvoiceTemplate({ invoice: rawInvoice, regularPa
             {returnGoldPayment && (
               <li className="py-3 border-t border-blue-200 mt-2">
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-blue-700 text-xs uppercase tracking-wide">Excess Gold Returned</span>
+                  <span className="font-bold text-blue-700 text-xs uppercase tracking-wide flex items-center gap-1.5">
+                    <ArrowDownLeft className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    Excess Gold Returned
+                  </span>
                 </div>
                 <p className="text-xs text-gray-600 mt-1">{returnGoldPayment.paymentRef}</p>
               </li>
             )}
 
-            <li className="py-2 flex justify-between font-bold border-t border-gray-200 mt-2 text-gray-900">
-              <span>Balance Due</span>
+            <li className="py-2 flex justify-between font-bold border-t border-gray-200 mt-2 text-gray-900 items-center">
+              <span className="flex items-center gap-1.5">
+                <Wallet className="w-3.5 h-3.5 text-gray-700 shrink-0" />
+                Balance Due
+              </span>
               <span className={`${invoice.balanceAmount > 0 ? "text-red-600" : "text-green-600"}`}>
                 ₹{invoice.balanceAmount.toFixed(2)}
               </span>
@@ -402,8 +452,10 @@ export default function StandardInvoiceTemplate({ invoice: rawInvoice, regularPa
       </div>
 
       {/* 4. THANK YOU MESSAGE AT THE VERY BOTTOM */}
-      <div className="text-center border-t border-gray-200 pt-4 text-xs font-semibold text-gray-600 tracking-wider uppercase">
-        ✨ Thank you for shopping with us! Please visit again. ✨
+      <div className="text-center border-t border-gray-200 pt-4 text-xs font-semibold text-gray-600 tracking-wider uppercase flex items-center justify-center gap-2">
+        <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+        <span>Thank you for shopping with us! Please visit again.</span>
+        <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
       </div>
 
     </div>

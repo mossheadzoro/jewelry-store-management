@@ -226,9 +226,9 @@ export async function POST(req: Request) {
             stoneCharge: additionalCharge,
             discountOnMaking: p.discountOnMaking || 0,
             totalBeforeTax: lineTaxableTotal,
-            cgst: 0, // currently kept simple at invoice level
-            sgst: 0,
-            totalAfterTax: lineTaxableTotal,
+            cgst: Math.round(((lineTaxableTotal * 0.015) + Number.EPSILON) * 100) / 100,
+            sgst: Math.round(((lineTaxableTotal * 0.015) + Number.EPSILON) * 100) / 100,
+            totalAfterTax: Math.round(((lineTaxableTotal * 1.03) + Number.EPSILON) * 100) / 100,
           }
         });
 

@@ -40,13 +40,22 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // Retrieve any client-stored trusted device token as fallback
+      const savedDeviceToken = typeof window !== "undefined" ? localStorage.getItem("moual_trusted_device") : null;
+
       // Call security challenge endpoint
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (savedDeviceToken) {
+        headers["x-trusted-device-token"] = savedDeviceToken;
+      }
+
       const challengeRes = await fetch("/api/security/challenge", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           email,
           password,
+          trustedDeviceToken: savedDeviceToken || undefined,
         }),
       });
 
@@ -66,7 +75,7 @@ export default function LoginPage() {
         return;
       }
 
-      // 2FA not required -> finalize sign in
+      // 2FA not required (single-factor or bypassed via trusted device) -> finalize sign in
       await finalizeNextAuthSignIn();
     } catch (err: any) {
       setErrorMessage(err.message || "An unexpected error occurred during login.");
@@ -106,6 +115,19 @@ export default function LoginPage() {
         setErrorMessage(verifyData.error || "Invalid verification code. Please check and try again.");
         setLoading(false);
         return;
+      }
+
+      // Save trusted device token in localStorage if rememberDevice is checked
+      if (rememberDevice && verifyData?.data?.trustedDeviceToken) {
+        try {
+          localStorage.setItem("moual_trusted_device", verifyData.data.trustedDeviceToken);
+        } catch {
+          // Ignore localStorage failure in incognito/restricted mode
+        }
+      } else if (!rememberDevice) {
+        try {
+          localStorage.removeItem("moual_trusted_device");
+        } catch {}
       }
 
       // 2FA passed! Finalize NextAuth session

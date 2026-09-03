@@ -1,4 +1,4 @@
-import InventoryOverviewClient from "../../../../components/Inventory/InventoryOverviewClient";
+import InventoryOverviewClient from "@/components/Inventory/InventoryOverviewClient";
 
 export default function InventoryPage() {
   return <InventoryOverviewClient />;

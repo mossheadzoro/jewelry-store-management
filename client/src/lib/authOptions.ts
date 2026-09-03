@@ -106,19 +106,23 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       try {
         if (!token || !token.id) {
-          return null as any;
+          return {} as any;
         }
-        if (session && session.user) {
+        if (session) {
+          if (!session.user) {
+            session.user = {} as any;
+          }
           session.user.id = (token.id as string) || "";
           session.user.role = (token.role as any) || "SALESMAN";
           session.user.branchId = (token.branchId as string) || "";
           session.user.image = (token.image as string | null) || null;
           (session.user as any).sessionId = token.sessionId as string;
         }
+        return session;
       } catch (err) {
         console.error("NextAuth Session callback error:", err);
+        return {} as any;
       }
-      return session;
     },
   },
 

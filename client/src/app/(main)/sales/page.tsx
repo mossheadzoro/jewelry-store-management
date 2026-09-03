@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import SalesPageClient from "../../../../components/Sales/SalesPageClient";
+import SalesPageClient from "@/components/Sales/SalesPageClient";
 
 export default function SalesPage() {
   return (

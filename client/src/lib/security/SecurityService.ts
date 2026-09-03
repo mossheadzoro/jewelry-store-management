@@ -680,13 +680,14 @@ export class SecurityService {
   }
 
   /**
-   * Determines if 2FA is required for a user given their role and tenant policy.
+   * Determines if 2FA is required for a user given their role, tenant policy, and trusted device status.
    */
   public static async isTwoFactorRequired(
     tenantId: string,
     userId: number,
-    userRole: string
-  ): Promise<{ required: boolean; reason: string; userEnrolled: boolean }> {
+    userRole: string,
+    rawDeviceToken?: string | null
+  ): Promise<{ required: boolean; reason: string; userEnrolled: boolean; trustedDeviceBypassed?: boolean }> {
     const policy = await this.getTenantPolicy(tenantId);
     const userSec = await prisma.userSecurity.findUnique({
       where: { userId },
@@ -694,21 +695,63 @@ export class SecurityService {
 
     const userEnrolled = Boolean(userSec?.twoFactorEnabled && userSec?.totpSecretEncrypted);
 
-    if (!policy.twoFactorEnabled) {
-      return { required: userEnrolled, reason: userEnrolled ? "USER_PREFERENCE" : "DISABLED", userEnrolled };
+    // If 2FA is globally disabled and user is not enrolled, not required
+    if (!policy.twoFactorEnabled && !userEnrolled) {
+      return { required: false, reason: "DISABLED", userEnrolled, trustedDeviceBypassed: false };
     }
 
     const roleMap = (policy.twoFactorRoles as any) || {};
     const roleSetting = roleMap[userRole] || "OPTIONAL";
 
-    if (roleSetting === "REQUIRED") {
-      return { required: true, reason: "MANDATORY_ROLE_POLICY", userEnrolled };
+    // If role explicitly disables 2FA and user is not enrolled
+    if (roleSetting === "DISABLED" && !userEnrolled) {
+      return { required: false, reason: "ROLE_DISABLED", userEnrolled, trustedDeviceBypassed: false };
     }
 
-    if (roleSetting === "DISABLED") {
-      return { required: false, reason: "ROLE_DISABLED", userEnrolled };
+    // Determine if 2FA would normally be required
+    const normallyRequired = roleSetting === "REQUIRED" || userEnrolled;
+
+    if (!normallyRequired) {
+      return { required: false, reason: "OPTIONAL", userEnrolled, trustedDeviceBypassed: false };
     }
 
-    return { required: userEnrolled, reason: userEnrolled ? "USER_PREFERENCE" : "OPTIONAL", userEnrolled };
+    // Check if Trusted Device Bypass is enabled and matches
+    if (policy.rememberTrustedDevice && rawDeviceToken) {
+      try {
+        const deviceTokenHash = SecurityCrypto.hashToken(rawDeviceToken.trim());
+        const validDevice = await prisma.trustedDevice.findFirst({
+          where: {
+            tenantId,
+            userId,
+            deviceTokenHash,
+            expiresAt: { gt: new Date() },
+          },
+        });
+
+        if (validDevice) {
+          // Update last used timestamp
+          await prisma.trustedDevice.update({
+            where: { id: validDevice.id },
+            data: { lastUsedAt: new Date() },
+          }).catch(() => {});
+
+          return {
+            required: false,
+            reason: "TRUSTED_DEVICE_BYPASS",
+            userEnrolled,
+            trustedDeviceBypassed: true,
+          };
+        }
+      } catch (err: any) {
+        console.error("[SecurityService.isTwoFactorRequired] Trusted device check error:", err.message);
+      }
+    }
+
+    return {
+      required: true,
+      reason: roleSetting === "REQUIRED" ? "MANDATORY_ROLE_POLICY" : "USER_PREFERENCE",
+      userEnrolled,
+      trustedDeviceBypassed: false,
+    };
   }
 }

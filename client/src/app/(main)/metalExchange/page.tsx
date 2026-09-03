@@ -1,4 +1,4 @@
-import MetalExchangePage from "../../../../components/MetalExchange/MetalExchangePage";
+import MetalExchangePage from "@/components/MetalExchange/MetalExchangePage";
 
 export default function MetalExchangeRoute() {
   return <MetalExchangePage />;

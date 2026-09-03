@@ -1,4 +1,4 @@
-import BillingPage from "../../../../../../components/Billing/BillingPage";
+import BillingPage from "@/components/Billing/BillingPage";
 
 export default async function EditInvoicePage({
   params,

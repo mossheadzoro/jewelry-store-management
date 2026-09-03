@@ -120,14 +120,21 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
-    // 5. Evaluate 2FA requirement
+    // 5. Evaluate 2FA requirement (with Trusted Device bypass support)
+    const rawDeviceToken =
+      req.cookies.get("moual_trusted_device")?.value ||
+      req.headers.get("x-trusted-device-token") ||
+      body.trustedDeviceToken ||
+      null;
+
     const twoFactorReq = await SecurityService.isTwoFactorRequired(
       tenantId,
       user.id,
-      user.systemRole
+      user.systemRole,
+      rawDeviceToken
     );
 
-    // If 2FA is enabled or required for role
+    // If 2FA is enabled or required for role (and not bypassed by trusted device)
     if (twoFactorReq.required) {
       // Create 5-minute single-use challenge token
       const challengeToken = SecurityCrypto.generateSecureToken(32);
@@ -162,15 +169,21 @@ export async function POST(req: NextRequest) {
       userEmail: user.email,
       branchId: user.branchId || undefined,
       eventType: "LOGIN_SUCCESS",
-      action: "User logged in successfully (Single-factor)",
+      action: twoFactorReq.trustedDeviceBypassed
+        ? "User logged in successfully (2FA bypassed via trusted device)"
+        : "User logged in successfully (Single-factor)",
       success: true,
       ipAddress: clientIp,
       userAgent,
+      metadata: {
+        trustedDeviceBypassed: Boolean(twoFactorReq.trustedDeviceBypassed),
+      },
     });
 
     return NextResponse.json({
       success: true,
       requires2FA: false,
+      trustedDeviceBypassed: Boolean(twoFactorReq.trustedDeviceBypassed),
       user: {
         id: user.id,
         email: user.email,

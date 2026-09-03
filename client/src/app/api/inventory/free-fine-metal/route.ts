@@ -15,7 +15,19 @@ export async function GET(req: Request) {
           { txnType: "OLD_GOLD_IN" },
           { txnType: "KARIGAR_ISSUE_OUT" },
           { txnType: "TRANSFER_OUT" },
-          { txnType: "OPENING" }
+          { txnType: "OPENING" },
+          {
+            txnType: { in: ["PURCHASE_IN", "PURCHASE_RETURN_OUT", "TRANSFER_IN", "KARIGAR_RECEIVE_IN"] },
+            product: {
+              OR: [
+                { productCode: { contains: "BULLION", mode: "insensitive" } },
+                { productCode: { contains: "FINEGOLD", mode: "insensitive" } },
+                { name: { contains: "Bullion", mode: "insensitive" } },
+                { name: { contains: "Fine Gold", mode: "insensitive" } },
+                { name: { contains: "Old Gold", mode: "insensitive" } },
+              ]
+            }
+          }
         ]
       },
       _sum: {

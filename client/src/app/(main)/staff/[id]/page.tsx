@@ -1,4 +1,4 @@
-import StaffDetailsClient from "../../../../../components/Staff/StaffDetailsClient";
+import StaffDetailsClient from "@/components/Staff/StaffDetailsClient";
 
 export default async function StaffDetailsPage({
   params,

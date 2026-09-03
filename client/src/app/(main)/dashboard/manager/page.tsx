@@ -61,7 +61,11 @@ export default function ManagerDashboard() {
           
           <AlertsAndInsights alerts={[]} insights={data?.insights} />
           
-          <SalesCharts chartData={data?.chartData} productIntelligence={data?.productIntelligence} />
+          <SalesCharts
+            chartData={data?.chartData}
+            productIntelligence={data?.productIntelligence}
+            branchId={branchId}
+          />
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">

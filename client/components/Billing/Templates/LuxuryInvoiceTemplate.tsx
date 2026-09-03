@@ -2,6 +2,7 @@
 
 import React from "react";
 import { formatCustomerName, normalizeInvoice } from "@/lib/utils";
+import { Sparkles, HandCoins, Coins, Repeat, Wallet, MapPin, Phone, Mail, Globe, User, CheckCircle2 } from "lucide-react";
 
 export default function LuxuryInvoiceTemplate({ invoice: rawInvoice, regularPayments, cashOutPayment, cashToCustomerPayment, returnGoldPayment }: any) {
   const invoice = normalizeInvoice(rawInvoice);
@@ -118,12 +119,12 @@ export default function LuxuryInvoiceTemplate({ invoice: rawInvoice, regularPaym
 
         {/* Address Bar */}
         <div className="text-sm flex flex-wrap justify-center items-center gap-4 py-2 border-y border-gray-200 mb-8 text-gray-600">
-          <span>📍 {settings?.address || invoice.branch.address}, {invoice.branch.city}</span>
+          <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-black shrink-0" /> {settings?.address || invoice.branch.address}, {invoice.branch.city}</span>
           {settings?.gstNumber && <span><strong className="text-gray-800">GSTIN:</strong> {settings.gstNumber.toUpperCase()}</span>}
           {settings?.pan && <span><strong className="text-gray-800">PAN:</strong> {settings.pan.toUpperCase()}</span>}
-          <span>📞 {settings?.phoneNumbers || invoice.branch.phone}</span>
-          {settings?.email && <span>✉ {settings.email}</span>}
-          {settings?.website && <span>🌐 {settings.website}</span>}
+          <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-black shrink-0" /> {settings?.phoneNumbers || invoice.branch.phone}</span>
+          {settings?.email && <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-black shrink-0" /> {settings.email}</span>}
+          {settings?.website && <span className="flex items-center gap-1.5"><Globe className="w-3.5 h-3.5 text-black shrink-0" /> {settings.website}</span>}
         </div>
 
         {/* BILLED TO & INVOICE DETAILS CARDS */}
@@ -133,17 +134,26 @@ export default function LuxuryInvoiceTemplate({ invoice: rawInvoice, regularPaym
             <h3 className="font-bold text-xs uppercase tracking-wider text-gray-600 mb-3">{labels.billedTo || "Billed To"}</h3>
             <div className="space-y-1.5">
               <p className="font-bold text-lg text-gray-900">{formatCustomerName(invoice.customer)}</p>
-              <p className="text-gray-600 font-mono text-xs mb-2">Customer ID: CUST-{invoice.customer.id.toString().padStart(5, '0')}</p>
+              <p className="text-gray-600 font-mono text-xs mb-2 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-black shrink-0" />
+                <span>Customer ID: CUST-{invoice.customer.id.toString().padStart(5, '0')}</span>
+              </p>
               
               {invoice.customer.mobile && (
                 <div className="flex items-center gap-2 text-gray-700">
-                  <span className="text-gray-600">P:</span>
-                  <span>{invoice.customer.mobile}</span>
+                  <Phone className="w-3.5 h-3.5 text-black shrink-0" />
+                  <span>+91 {invoice.customer.mobile}</span>
+                </div>
+              )}
+              {invoice.customer.email && (
+                <div className="flex items-center gap-2 text-gray-700">
+                  <Mail className="w-3.5 h-3.5 text-black shrink-0" />
+                  <span>{invoice.customer.email}</span>
                 </div>
               )}
               {invoice.customer.address && (
                 <div className="flex items-start gap-2 text-gray-700">
-                  <span className="text-gray-600">A:</span>
+                  <MapPin className="w-3.5 h-3.5 text-black shrink-0 mt-0.5" />
                   <span className="leading-snug">{invoice.customer.address}, {invoice.customer.city}</span>
                 </div>
               )}
@@ -163,7 +173,10 @@ export default function LuxuryInvoiceTemplate({ invoice: rawInvoice, regularPaym
               <span className="font-medium text-gray-800">{invoice.salesperson || "Admin"}</span>
               
               <span className="text-gray-600">{labels.paymentStatus || "Payment Status"}</span>
-              <span className="font-bold text-emerald-600">✓ {invoice.balanceAmount <= 0 ? "PAID" : "PARTIAL"}</span>
+              <span className="font-bold text-emerald-600 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                {invoice.balanceAmount <= 0 ? "PAID" : "PARTIAL"}
+              </span>
             </div>
           </div>
         </div>
@@ -250,8 +263,11 @@ export default function LuxuryInvoiceTemplate({ invoice: rawInvoice, regularPaym
 
               {showExchangeInPayments && (
                 <li className="pt-2 border-t border-gray-200">
-                  <div className="flex justify-between font-bold text-blue-800">
-                    <span>Old Gold Exchange (Non-Tax Deductible)</span>
+                  <div className="flex justify-between font-bold text-blue-800 items-center">
+                    <span className="flex items-center gap-1.5">
+                      <Repeat className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      Old Gold Exchange (Non-Tax Deductible)
+                    </span>
                     <span>₹{exchangeGoldValue.toFixed(2)}</span>
                   </div>
                 </li>
@@ -259,22 +275,31 @@ export default function LuxuryInvoiceTemplate({ invoice: rawInvoice, regularPaym
 
               {cashOutPayment && (
                 <li className="pt-2 border-t border-amber-200">
-                  <div className="flex justify-between font-bold text-amber-800">
-                    <span>Old Gold Cashed Out</span>
+                  <div className="flex justify-between font-bold text-amber-800 items-center">
+                    <span className="flex items-center gap-1.5">
+                      <Coins className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      Old Gold Cashed Out
+                    </span>
                     <span>₹{cashOutPayment.amount.toFixed(2)}</span>
                   </div>
                 </li>
               )}
 
               {cashToCustomerPayment && (
-                <li className="flex justify-between bg-amber-50 p-1.5 rounded font-bold text-amber-900">
-                  <span>Cash Refund to Customer</span>
+                <li className="flex justify-between bg-amber-50 p-1.5 rounded font-bold text-amber-900 items-center">
+                  <span className="flex items-center gap-1.5">
+                    <HandCoins className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                    Cash Refund to Customer
+                  </span>
                   <span>₹{Math.abs(cashToCustomerPayment.amount).toFixed(2)}</span>
                 </li>
               )}
 
-              <li className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-2 text-sm">
-                <span>Balance Due</span>
+              <li className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-2 text-sm items-center">
+                <span className="flex items-center gap-1.5">
+                  <Wallet className="w-3.5 h-3.5 text-gray-700 shrink-0" />
+                  Balance Due
+                </span>
                 <span className={invoice.balanceAmount > 0 ? "text-red-600" : "text-emerald-600"}>
                   ₹{invoice.balanceAmount.toFixed(2)}
                 </span>
@@ -454,8 +479,10 @@ export default function LuxuryInvoiceTemplate({ invoice: rawInvoice, regularPaym
         </div>
 
         {/* 4. THANK YOU MESSAGE AT THE VERY BOTTOM */}
-        <div className="text-center border-t border-gray-200 pt-4 text-xs font-semibold text-gray-600 tracking-wider uppercase">
-          ✨ Thank you for shopping with us! Please visit again. ✨
+        <div className="text-center border-t border-gray-200 pt-4 text-xs font-semibold text-gray-600 tracking-wider uppercase flex items-center justify-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+          <span>Thank you for shopping with us! Please visit again.</span>
+          <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
         </div>
 
       </div>

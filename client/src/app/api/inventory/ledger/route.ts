@@ -31,16 +31,56 @@ export async function GET(req: Request) {
       where.qtyOut = { gt: 0 };
     } else if (metricFilter === "jewelleryIn") {
       where.netWeightIn = { gt: 0 };
-      if (!where.txnType) where.txnType = { notIn: ["OLD_GOLD_IN", "KARIGAR_ISSUE_OUT"] };
+      if (!where.txnType) {
+        where.txnType = { notIn: ["OLD_GOLD_IN", "KARIGAR_ISSUE_OUT"] };
+        where.product = {
+          NOT: [
+            { productCode: { contains: "BULLION", mode: "insensitive" } },
+            { productCode: { contains: "FINEGOLD", mode: "insensitive" } },
+            { name: { contains: "Bullion", mode: "insensitive" } },
+            { name: { contains: "Fine Gold", mode: "insensitive" } },
+            { name: { contains: "Old Gold", mode: "insensitive" } },
+          ]
+        };
+      }
     } else if (metricFilter === "jewelleryOut") {
       where.netWeightOut = { gt: 0 };
-      if (!where.txnType) where.txnType = { notIn: ["OLD_GOLD_IN", "KARIGAR_ISSUE_OUT"] };
+      if (!where.txnType) {
+        where.txnType = { notIn: ["OLD_GOLD_IN", "KARIGAR_ISSUE_OUT"] };
+        where.product = {
+          NOT: [
+            { productCode: { contains: "BULLION", mode: "insensitive" } },
+            { productCode: { contains: "FINEGOLD", mode: "insensitive" } },
+            { name: { contains: "Bullion", mode: "insensitive" } },
+            { name: { contains: "Fine Gold", mode: "insensitive" } },
+            { name: { contains: "Old Gold", mode: "insensitive" } },
+          ]
+        };
+      }
     } else if (metricFilter === "fineIn") {
       where.fineWeightIn = { gt: 0 };
-      if (!where.txnType) where.txnType = { notIn: ["PURCHASE_IN", "SALE_OUT", "KARIGAR_RECEIVE_IN"] };
     } else if (metricFilter === "fineOut") {
       where.fineWeightOut = { gt: 0 };
-      if (!where.txnType) where.txnType = { notIn: ["PURCHASE_IN", "SALE_OUT", "KARIGAR_RECEIVE_IN"] };
+    } else if (metricFilter === "freeFine") {
+      where.OR = [
+        { refType: "METAL_EXCHANGE" },
+        { txnType: "OLD_GOLD_IN" },
+        { txnType: "KARIGAR_ISSUE_OUT" },
+        { txnType: "TRANSFER_OUT" },
+        { txnType: "OPENING" },
+        {
+          txnType: { in: ["PURCHASE_IN", "PURCHASE_RETURN_OUT", "TRANSFER_IN", "KARIGAR_RECEIVE_IN"] },
+          product: {
+            OR: [
+              { productCode: { contains: "BULLION", mode: "insensitive" } },
+              { productCode: { contains: "FINEGOLD", mode: "insensitive" } },
+              { name: { contains: "Bullion", mode: "insensitive" } },
+              { name: { contains: "Fine Gold", mode: "insensitive" } },
+              { name: { contains: "Old Gold", mode: "insensitive" } },
+            ]
+          }
+        }
+      ];
     }
 
     const [entries, total] = await Promise.all([
@@ -84,6 +124,25 @@ export async function GET(req: Request) {
       });
     }
 
+    // Enhance entries with metal receipt / supplier details if refType is PURCHASE
+    const receiptIds = entries
+      .filter((e: any) => e.refType === "PURCHASE" && e.refId)
+      .map((e: any) => e.refId);
+    if (receiptIds.length > 0) {
+      const receipts = await prisma.purchaseMetalReceipt.findMany({
+        where: { id: { in: receiptIds } },
+        select: { id: true, receiptNumber: true, metalCategory: true, supplier: { select: { businessName: true } } }
+      });
+      const receiptMap = new Map(receipts.map((r: any) => [r.id, r]));
+
+      entries.forEach((e: any) => {
+        if (e.refId && receiptMap.has(e.refId)) {
+          const r: any = receiptMap.get(e.refId);
+          e.refDetails = `Bullion Receipt ${r.receiptNumber} (${r.supplier?.businessName || "Bullion Dealer"})`;
+        }
+      });
+    }
+
     if (metricFilter) {
       return NextResponse.json({
         entries,
@@ -112,11 +171,26 @@ export async function GET(req: Request) {
       },
     });
 
-    // Jewellery specific net weight (Exclude Raw Metal Transactions)
+    // Jewellery specific net weight (Exclude Raw Metal & Bullion Transactions)
     const jewellerySummary = await prisma.inventoryLedger.aggregate({
       where: {
         ...where,
-        txnType: { notIn: ["OLD_GOLD_IN", "KARIGAR_ISSUE_OUT"] }
+        NOT: [
+          { txnType: "OLD_GOLD_IN" },
+          { txnType: "KARIGAR_ISSUE_OUT" },
+          { refType: "METAL_EXCHANGE" },
+          {
+            product: {
+              OR: [
+                { productCode: { contains: "BULLION", mode: "insensitive" } },
+                { productCode: { contains: "FINEGOLD", mode: "insensitive" } },
+                { name: { contains: "Bullion", mode: "insensitive" } },
+                { name: { contains: "Fine Gold", mode: "insensitive" } },
+                { name: { contains: "Old Gold", mode: "insensitive" } },
+              ]
+            }
+          }
+        ]
       },
       _sum: {
         netWeightIn: true,
@@ -124,11 +198,29 @@ export async function GET(req: Request) {
       }
     });
 
-    // Raw metal specific fine weight (Exclude Jewellery Transactions)
+    // Raw metal specific fine weight (Include Bullion, Old Gold, Metal Exchange, Transfers, Karigar Issues)
     const rawFineSummary = await prisma.inventoryLedger.aggregate({
       where: {
         ...where,
-        txnType: { notIn: ["PURCHASE_IN", "SALE_OUT", "KARIGAR_RECEIVE_IN"] }
+        OR: [
+          { refType: "METAL_EXCHANGE" },
+          { txnType: "OLD_GOLD_IN" },
+          { txnType: "KARIGAR_ISSUE_OUT" },
+          { txnType: "TRANSFER_OUT" },
+          { txnType: "OPENING" },
+          {
+            txnType: { in: ["PURCHASE_IN", "PURCHASE_RETURN_OUT", "TRANSFER_IN", "KARIGAR_RECEIVE_IN"] },
+            product: {
+              OR: [
+                { productCode: { contains: "BULLION", mode: "insensitive" } },
+                { productCode: { contains: "FINEGOLD", mode: "insensitive" } },
+                { name: { contains: "Bullion", mode: "insensitive" } },
+                { name: { contains: "Fine Gold", mode: "insensitive" } },
+                { name: { contains: "Old Gold", mode: "insensitive" } },
+              ]
+            }
+          }
+        ]
       },
       _sum: {
         fineWeightIn: true,
@@ -141,7 +233,7 @@ export async function GET(req: Request) {
     // Active Inventory Jewellery Weights by Category for that Branch
     const branchIdNum = branchId ? parseInt(branchId, 10) : undefined;
 
-    // Free Fine Weight (Idle 24K metal available in branch ready for Karigar / Wholesaler)
+    // Free Fine Weight (Idle 24K metal available in branch ready for Karigar / Wholesaler, including 24K bullion bought)
     const freeFineAgg = await prisma.inventoryLedger.aggregate({
       where: {
         ...(branchIdNum ? { branchId: branchIdNum } : {}),
@@ -150,7 +242,19 @@ export async function GET(req: Request) {
           { txnType: "OLD_GOLD_IN" },
           { txnType: "KARIGAR_ISSUE_OUT" },
           { txnType: "TRANSFER_OUT" },
-          { txnType: "OPENING" }
+          { txnType: "OPENING" },
+          {
+            txnType: { in: ["PURCHASE_IN", "PURCHASE_RETURN_OUT", "TRANSFER_IN", "KARIGAR_RECEIVE_IN"] },
+            product: {
+              OR: [
+                { productCode: { contains: "BULLION", mode: "insensitive" } },
+                { productCode: { contains: "FINEGOLD", mode: "insensitive" } },
+                { name: { contains: "Bullion", mode: "insensitive" } },
+                { name: { contains: "Fine Gold", mode: "insensitive" } },
+                { name: { contains: "Old Gold", mode: "insensitive" } },
+              ]
+            }
+          }
         ]
       },
       _sum: {

@@ -130,13 +130,15 @@ export async function POST(req: NextRequest) {
     // Reset rate limit
     SecurityService.resetRateLimit(`2fa_verify:${clientIp}`);
 
-    // If rememberDevice is true, generate trusted device token
-    let trustedDeviceToken = undefined;
+    // If rememberDevice is true, generate trusted device token and set cookie
+    let trustedDeviceToken: string | undefined = undefined;
+    let durationDays = 30;
+
     if (rememberDevice) {
       const rawDeviceToken = SecurityCrypto.generateSecureToken(32);
       const deviceTokenHash = SecurityCrypto.hashToken(rawDeviceToken);
       const policy = await SecurityService.getTenantPolicy(tenantId);
-      const durationDays = policy.trustedDeviceDurationDays || 30;
+      durationDays = policy.trustedDeviceDurationDays || 30;
 
       await prisma.trustedDevice.create({
         data: {
@@ -153,7 +155,7 @@ export async function POST(req: NextRequest) {
       trustedDeviceToken = rawDeviceToken;
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: "Two-Factor Authentication verified successfully.",
       data: {
@@ -164,6 +166,21 @@ export async function POST(req: NextRequest) {
         trustedDeviceToken,
       },
     });
+
+    // Set HTTP-only cookie for trusted device bypass
+    if (rememberDevice && trustedDeviceToken) {
+      response.cookies.set({
+        name: "moual_trusted_device",
+        value: trustedDeviceToken,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: durationDays * 24 * 60 * 60, // e.g. 30 days in seconds
+      });
+    }
+
+    return response;
   } catch (error: any) {
     console.error("[POST /api/security/2fa/verify] Error:", error);
     return NextResponse.json(

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { formatCustomerName, normalizeInvoice } from "@/lib/utils";
+import { Sparkles, HandCoins, Coins, Wallet, MapPin, Phone, Mail, User } from "lucide-react";
 
 export default function PremiumInvoiceTemplate({ invoice: rawInvoice, regularPayments, cashOutPayment, cashToCustomerPayment, returnGoldPayment }: any) {
   const invoice = normalizeInvoice(rawInvoice);
@@ -133,21 +134,41 @@ export default function PremiumInvoiceTemplate({ invoice: rawInvoice, regularPay
           <div className="flex-1 border border-gray-300 p-4">
             <h3 className="text-[12px] text-gray-600 uppercase tracking-widest mb-3">BILLED TO</h3>
             <p className="font-bold text-sm mb-1 uppercase">{formatCustomerName(invoice.customer)}</p>
-            <p className="text-[12px] text-gray-600 mb-4 w-2/3 leading-relaxed">
-              {invoice.customer.address}, {invoice.customer.city}<br/>
-              {invoice.customer.state || "Telangana"}, India
+            {invoice.customer.id && (
+              <p className="text-[11px] text-gray-600 flex items-center gap-1.5 font-mono mb-2">
+                <User className="w-3.5 h-3.5 text-black shrink-0" />
+                <span>Customer ID: CUST-{invoice.customer.id.toString().padStart(5, '0')}</span>
+              </p>
+            )}
+            <p className="text-[12px] text-gray-600 mb-3 leading-relaxed flex items-start gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-black shrink-0 mt-0.5" />
+              <span>
+                {invoice.customer.address}, {invoice.customer.city}<br/>
+                {invoice.customer.state || "Telangana"}, India
+              </span>
             </p>
             
-            <div className="grid grid-cols-[80px_1fr] gap-y-1 text-[12px]">
+            <div className="grid grid-cols-[80px_1fr] gap-y-1.5 text-[12px] pt-2 border-t border-gray-200">
+              <span className="font-bold flex items-center gap-1">
+                <Phone className="w-3 h-3 text-black" /> Mobile:
+              </span>
+              <span>+91 {invoice.customer.mobile.replace(/(\d{5})(\d{5})/, "$1 $2")}</span>
+              
+              {invoice.customer.email && (
+                <>
+                  <span className="font-bold flex items-center gap-1">
+                    <Mail className="w-3 h-3 text-black" /> Email:
+                  </span>
+                  <span>{invoice.customer.email}</span>
+                </>
+              )}
+
               {!hideCustomerGST && (
                 <>
                   <span className="font-bold">GSTIN:</span>
                   <span>{invoice.customer.gstin || "Unregistered"}</span>
                 </>
               )}
-              
-              <span className="font-bold">Mobile:</span>
-              <span>+91 {invoice.customer.mobile.replace(/(\d{5})(\d{5})/, "$1 $2")}</span>
               
               {!hideCustomerPAN && (
                 <>
@@ -271,22 +292,31 @@ export default function PremiumInvoiceTemplate({ invoice: rawInvoice, regularPay
 
               {cashOutPayment && (
                 <li className="pt-2 border-t border-amber-200">
-                  <div className="flex justify-between font-bold text-amber-800">
-                    <span>Old Gold Cashed Out</span>
+                  <div className="flex justify-between font-bold text-amber-800 items-center">
+                    <span className="flex items-center gap-1.5">
+                      <Coins className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      Old Gold Cashed Out
+                    </span>
                     <span>₹{cashOutPayment.amount.toFixed(2)}</span>
                   </div>
                 </li>
               )}
 
               {cashToCustomerPayment && (
-                <li className="flex justify-between bg-amber-50 p-1 rounded font-bold text-amber-900">
-                  <span>Cash Refund to Customer</span>
+                <li className="flex justify-between bg-amber-50 p-1 rounded font-bold text-amber-900 items-center">
+                  <span className="flex items-center gap-1.5">
+                    <HandCoins className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                    Cash Refund to Customer
+                  </span>
                   <span>₹{Math.abs(cashToCustomerPayment.amount).toFixed(2)}</span>
                 </li>
               )}
 
-              <li className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-2 text-sm">
-                <span>Balance Due</span>
+              <li className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-2 text-sm items-center">
+                <span className="flex items-center gap-1.5">
+                  <Wallet className="w-3.5 h-3.5 text-gray-700 shrink-0" />
+                  Balance Due
+                </span>
                 <span className={invoice.balanceAmount > 0 ? "text-red-600" : "text-emerald-600"}>
                   ₹{invoice.balanceAmount.toFixed(2)}
                 </span>
@@ -449,8 +479,10 @@ export default function PremiumInvoiceTemplate({ invoice: rawInvoice, regularPay
         </div>
 
         {/* 4. THANK YOU MESSAGE AT THE VERY BOTTOM */}
-        <div className="text-center border-t border-gray-200 pt-4 text-xs font-semibold text-gray-600 tracking-wider uppercase">
-          ✨ Thank you for shopping with us! Please visit again. ✨
+        <div className="text-center border-t border-gray-200 pt-4 text-xs font-semibold text-gray-600 tracking-wider uppercase flex items-center justify-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+          <span>Thank you for shopping with us! Please visit again.</span>
+          <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
         </div>
 
       </div>

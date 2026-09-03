@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import SchemesPageClient from "../../../../components/SavingSchemes/SchemesPageClient";
+import SchemesPageClient from "@/components/SavingSchemes/SchemesPageClient";
 
 export default function SavingSchemesPage() {
   return (

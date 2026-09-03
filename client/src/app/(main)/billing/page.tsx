@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import AddCustomer from "../../../../components/Billing/AddCustomer";
+import AddCustomer from "@/components/Billing/AddCustomer";
 import { getDraftInfo } from "@/hooks/useBillingLogic";
 
 export default function BillingPage() {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Printer, Save, Eye, Settings, FileText, Palette, Layout, List, ShieldCheck, CheckSquare, Upload, Plus, ChevronDown } from "lucide-react";
+import { Printer, Save, Eye, Settings, FileText, Palette, Layout, List, ShieldCheck, CheckSquare, Upload, Plus, ChevronDown, Crop, Trash2, Edit3, Sparkles } from "lucide-react";
 import { useBranchStore } from "@/lib/store/useBranchStore";
 import { useUserStore } from "@/lib/store/useUserStore";
 import axios from "axios";
@@ -16,6 +16,8 @@ import StandardInvoiceTemplate from "@/components/Billing/Templates/StandardInvo
 import ModernInvoiceTemplate from "@/components/Billing/Templates/ModernInvoiceTemplate";
 import PremiumInvoiceTemplate from "@/components/Billing/Templates/PremiumInvoiceTemplate";
 import FormatCustomizerDialog from "./FormatCustomizerDialog";
+import LogoCropperModal from "@/components/ui/LogoCropperModal";
+import { toast } from "sonner";
 
 const dummyInvoice = {
   invoiceNumber: "INV-001234",
@@ -320,6 +322,46 @@ export default function DocumentsAndPrintingPanel() {
     }
   };
 
+  const [logoCropperOpen, setLogoCropperOpen] = useState(false);
+  const [selectedLogoForCrop, setSelectedLogoForCrop] = useState<File | string | null>(null);
+  const [isLogoUploading, setIsLogoUploading] = useState(false);
+
+  const handleLogoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedLogoForCrop(file);
+    setLogoCropperOpen(true);
+    e.target.value = "";
+  };
+
+  const handleLogoCropComplete = async (file: File) => {
+    setIsLogoUploading(true);
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+    uploadData.append("folder", "branch_settings");
+
+    try {
+      const res = await axios.post("/api/upload/branch", uploadData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      if (res.data.url) {
+        setFormData((prev: any) => ({
+          ...prev,
+          customizations: {
+            ...prev.customizations,
+            companyLogoUrl: res.data.url
+          }
+        }));
+        toast.success("Company logo cropped & updated successfully");
+      }
+    } catch (error) {
+      console.error("Logo upload failed", error);
+      toast.error("Failed to upload cropped logo");
+    } finally {
+      setIsLogoUploading(false);
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: "companyLogoUrl" | "digitalSignatureUrl" | "companySealUrl") => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -340,10 +382,11 @@ export default function DocumentsAndPrintingPanel() {
             [field]: res.data.url
           }
         }));
+        toast.success("Asset uploaded successfully");
       }
     } catch (error) {
       console.error("Upload failed", error);
-      alert("Failed to upload image");
+      toast.error("Failed to upload asset");
     }
   };
 
@@ -551,34 +594,55 @@ export default function DocumentsAndPrintingPanel() {
             <div className="space-y-8 animate-in fade-in duration-300">
               <h3 className="text-sm font-semibold text-platinum border-l-2 border-gold pl-2">Brand Assets</h3>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                 {/* Company Logo */}
-                 <label className={`bg-onyx-elevated border border-onyx-border p-4 rounded-lg flex flex-col items-center justify-center gap-3 text-center h-48 border-dashed transition-colors ${isAdmin ? "cursor-pointer hover:border-gold/50 hover:bg-onyx-surface" : "cursor-not-allowed opacity-80"} relative overflow-hidden group`}>
+                 {/* Company Logo with Crop & Shape Customizer */}
+                 <div className={`bg-onyx-elevated border border-onyx-border p-4 rounded-xl flex flex-col items-center justify-center gap-3 text-center h-52 border-dashed transition-all ${isAdmin ? "hover:border-gold/50 hover:bg-onyx-surface" : "opacity-80"} relative overflow-hidden group`}>
                     <input 
                       type="file" 
+                      id="company-logo-input"
                       accept="image/*" 
                       className="hidden" 
-                      onChange={(e) => handleFileUpload(e, "companyLogoUrl")}
+                      onChange={handleLogoFileSelect}
                       disabled={!isAdmin}
                     />
                     {formData.customizations?.companyLogoUrl ? (
-                      <div className="absolute inset-0 p-4 flex items-center justify-center bg-white">
-                        <img src={formData.customizations.companyLogoUrl} alt="Company Logo" className="max-w-full max-h-full object-contain" />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                           <span className="text-white text-xs font-semibold px-3 py-1 bg-black/60 rounded">Change Logo</span>
+                      <div className="absolute inset-0 p-4 flex flex-col items-center justify-center bg-onyx-surface">
+                        <div className="w-24 h-24 rounded-xl bg-white p-2 border border-onyx-border flex items-center justify-center overflow-hidden mb-2 shadow-inner">
+                          <img src={formData.customizations.companyLogoUrl} alt="Company Logo" className="max-w-full max-h-full object-contain" />
+                        </div>
+                        <span className="text-xs font-semibold text-platinum">Company Logo</span>
+                        <div className="absolute inset-0 bg-black/75 backdrop-blur-xs opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-2 transition-opacity p-4">
+                           <button
+                             type="button"
+                             onClick={() => {
+                               setSelectedLogoForCrop(formData.customizations.companyLogoUrl);
+                               setLogoCropperOpen(true);
+                             }}
+                             className="text-onyx text-xs font-bold px-3 py-1.5 bg-gold hover:bg-gold-light rounded-lg flex items-center gap-1.5 shadow-md transition-colors"
+                           >
+                              <Crop className="w-3.5 h-3.5" /> Crop / Shape
+                           </button>
+                           <label
+                             htmlFor="company-logo-input"
+                             className="text-platinum text-xs font-medium px-3 py-1 bg-onyx border border-onyx-border hover:border-gold/50 rounded-lg cursor-pointer flex items-center gap-1 transition-colors"
+                           >
+                              <Upload className="w-3 h-3" /> Change File
+                           </label>
                         </div>
                       </div>
                     ) : (
-                      <>
-                        <div className="w-16 h-16 bg-onyx rounded-full flex items-center justify-center mb-2">
+                      <label htmlFor="company-logo-input" className="cursor-pointer flex flex-col items-center justify-center w-full h-full">
+                        <div className="w-14 h-14 bg-onyx rounded-full flex items-center justify-center mb-2 border border-onyx-border group-hover:border-gold/40 group-hover:scale-105 transition-all">
                           <Upload className="w-6 h-6 text-platinum-muted group-hover:text-gold transition-colors" />
                         </div>
                         <div>
-                          <p className="text-sm text-platinum font-medium">Company Logo</p>
-                          <p className="text-[11px] text-platinum-muted">PNG, JPG up to 2MB</p>
+                          <p className="text-xs text-platinum font-semibold flex items-center justify-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5 text-gold" /> Company Logo
+                          </p>
+                          <p className="text-[10px] text-platinum-muted mt-0.5">Crop in Circle / Square with zoom</p>
                         </div>
-                      </>
+                      </label>
                     )}
-                 </label>
+                 </div>
 
                  {/* Digital Signature */}
                  <label className={`bg-onyx-elevated border border-onyx-border p-4 rounded-lg flex flex-col items-center justify-center gap-3 text-center h-48 border-dashed transition-colors ${isAdmin ? "cursor-pointer hover:border-gold/50 hover:bg-onyx-surface" : "cursor-not-allowed opacity-80"} relative overflow-hidden group`}>
@@ -902,6 +966,16 @@ export default function DocumentsAndPrintingPanel() {
         dummyInvoice={dummyInvoice}
         branchSettings={branchSettings}
         formData={docSettings}
+      />
+
+      <LogoCropperModal
+        isOpen={logoCropperOpen}
+        onClose={() => setLogoCropperOpen(false)}
+        imageFileOrUrl={selectedLogoForCrop}
+        onCropComplete={handleLogoCropComplete}
+        isSaving={isLogoUploading}
+        title="Crop & Customize Invoice Logo"
+        initialShape="square"
       />
     </div>
   );

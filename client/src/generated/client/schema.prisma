@@ -1,0 +1,4289 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Branch {
+  DraftInvoice                                         DraftInvoice[]
+  id                                                   Int                           @id @default(autoincrement())
+  name                                                 String                        @unique
+  address                                              String
+  city                                                 String
+  state                                                String
+  pincode                                              String
+  country                                              String                        @default("India")
+  phone                                                String
+  email                                                String                        @unique
+  createdAt                                            DateTime                      @default(now())
+  updatedAt                                            DateTime                      @updatedAt
+  BookingAdvance                                       BookingAdvance[]
+  BookingTransfer_BookingTransfer_fromBranchIdToBranch BookingTransfer[]             @relation("BookingTransfer_fromBranchIdToBranch")
+  BookingTransfer_BookingTransfer_toBranchIdToBranch   BookingTransfer[]             @relation("BookingTransfer_toBranchIdToBranch")
+  categories                                           Category[]
+  costLayers                                           InventoryCostLayer[]
+  inventoryLedger                                      InventoryLedger[]
+  transfersFrom                                        InventoryTransfer[]           @relation("TransferFrom")
+  transfersTo                                          InventoryTransfer[]           @relation("TransferTo")
+  invoices                                             Invoice[]
+  MetalExchangeSession                                 MetalExchangeSession[]
+  ProductBooking                                       ProductBooking[]
+  branchCosts                                          ProductBranchCost[]
+  inventory                                            ProductItem[]
+  purchases                                            Purchase[]
+  stockAudits                                          StockAudit[]
+  subCategories                                        SubCategory[]
+  tagDefinitions                                       TagDefinition[]               @relation("BranchToTagDefinitions")
+  transactions                                         Transaction[]
+  users                                                User[]
+  wholesalers                                          Wholesaler[]
+  savingSchemes                                        SavingScheme[]
+  settings                                             BranchSettings?
+  userBranches                                         UserBranch[]
+  orderBookSettings                                    OrderBookSettings?
+  branchApprovalMatrix                                 BranchApprovalMatrix[]
+  rfidTags                                             RFIDTag[]
+  rfidReaders                                          RFIDReader[]
+  rfidZones                                            RFIDZone[]
+  rfidScanSessions                                     RFIDScanSession[]
+  rfidReadEvents                                       RFIDReadEvent[]
+  rfidSettings                                         RFIDSettings?
+  goldRateHistory                                      GoldRateHistoryLedger[]
+  returnExchangePolicySettings                         ReturnExchangePolicySettings?
+  returnExchangeTransactions                           ReturnExchangeTransaction[]
+  taxDocuments                                         TaxDocument[]
+  bullionSuppliers                                     BullionSupplier[]
+  purchaseBookings                                     PurchaseBooking[]
+  purchaseInvoices                                     PurchaseInvoice[]
+  purchasePayments                                     PurchasePayment[]
+  metalReceipts                                        PurchaseMetalReceipt[]
+  metalTransfersFrom                                   PurchaseMetalTransfer[]       @relation("TransferSourceBranch")
+  purchaseReturns                                      PurchaseReturn[]
+  purchaseCreditNotes                                  PurchaseCreditNote[]
+  purchaseDebitNotes                                   PurchaseDebitNote[]
+  purchaseGSTRecords                                   PurchaseGSTRecord[]
+  purchaseGSTPeriods                                   PurchaseGSTPeriod[]
+  verificationRequests                                 VerificationRequest[]
+}
+
+model BranchSettings {
+  id                    Int      @id @default(autoincrement())
+  branchId              Int      @unique
+  shopName              String?
+  gstNumber             String?
+  pan                   String?
+  currency              String   @default("INR")
+  address               String?
+  phoneNumbers          String?
+  email                 String?
+  website               String?
+  invoiceHeaderText     String?
+  termsAndConditions    String?
+  logoUrl               String?
+  qrCodeUrl             String?
+  invoiceFormat         String?  @default("standard") // standard, luxury
+  invoicePageSize       String?  @default("A4") // A4, A5
+  invoiceColor          String?  @default("brand") // brand, grayscale
+  termsPrintLocation    String?  @default("front") // front, back, separate
+  invoiceCustomizations Json?
+  themeMode             String?  @default("light") // light, dark, system
+  branch                Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model User {
+  id                         Int                         @id @default(autoincrement())
+  image                      String?
+  name                       String
+  email                      String                      @unique
+  password                   String
+  systemRole                 SystemRole                  @default(SALESMAN) // Renamed from role to preserve legacy
+  roleId                     Int?
+  role                       Role?                       @relation(fields: [roleId], references: [id])
+  gender                     Gender?
+  branchId                   Int?
+  createdById                Int?
+  createdAt                  DateTime                    @default(now())
+  phone                      String?
+  address                    String?
+  aadharNumber               String?                     @unique
+  panNumber                  String?
+  salary                     Float?
+  bankAccount                String?
+  ifscCode                   String?
+  isCommissionBased          Boolean                     @default(false)
+  commissionRate             Float?
+  totalSales                 Float?                      @default(0)
+  lastSaleDate               DateTime?
+  BookingAdvance             BookingAdvance[]
+  BookingAuditLog            BookingAuditLog[]
+  BookingLedger              BookingLedger[]
+  BookingTransfer            BookingTransfer[]
+  tagsAssigned               CustomerTag[]               @relation("UserToCustomerTagAssignments")
+  DeliverySession            DeliverySession[]
+  inventoryLedger            InventoryLedger[]
+  inventoryTransfers         InventoryTransfer[]
+  createdInvoices            Invoice[]                   @relation("CreatedInvoices")
+  MetalExchangeAudit         MetalExchangeAudit[]
+  MetalExchangeSession       MetalExchangeSession[]
+  Order                      Order[]
+  ProductBooking             ProductBooking[]
+  stockAudits                StockAudit[]
+  tagsCreated                TagDefinition[]             @relation("UserToCreatedTagDefinitions")
+  branch                     Branch?                     @relation(fields: [branchId], references: [id])
+  createdBy                  User?                       @relation("CreatedUsers", fields: [createdById], references: [id])
+  createdUsers               User[]                      @relation("CreatedUsers")
+  savingSchemes              SavingScheme[]
+  requestedReturns           ReturnExchangeTransaction[] @relation("RequestedReturns")
+  inspectedReturns           ReturnExchangeTransaction[] @relation("InspectedReturns")
+  approvedReturns            ReturnExchangeTransaction[] @relation("ApprovedReturns")
+  processedReturns           ReturnExchangeTransaction[] @relation("ProcessedReturns")
+  returnPhotosUploaded       ReturnItemPhoto[]           @relation("ReturnPhotoUploader")
+  returnInspections          ReturnInspection[]          @relation("InspectionInspector")
+  refundsRequested           RefundTransaction[]         @relation("RefundRequester")
+  refundsApproved            RefundTransaction[]         @relation("RefundApprover")
+  refundsProcessed           RefundTransaction[]         @relation("RefundProcessor")
+  oldGoldSettlementsApproved OldGoldSettlement[]         @relation("OldGoldSettlementApprover")
+
+  // Extended Profile
+  photo            String?
+  signature        String?
+  emergencyContact String?
+  department       String?
+  joiningDate      DateTime   @default(now())
+  status           UserStatus @default(ACTIVE)
+
+  // Security
+  lastLogin          DateTime?
+  twoFactorEnabled   Boolean   @default(false)
+  forcePasswordReset Boolean   @default(false)
+  loginTimeStart     String?
+  loginTimeEnd       String?
+  allowedIps         String[]
+  maxFailedAttempts  Int       @default(5)
+
+  // Relations for new modules
+  userBranches                 UserBranch[]
+  UserActivityLog              UserActivityLog[]
+  orderVersionsCreated         OrderVersion[]
+  orderDelaysReported          OrderDelayReason[]
+  AuditLog                     AuditLog[]
+  rfidAssignedTags             RFIDTag[]               @relation("AssignedBy")
+  rfidScanSessionsCreated      RFIDScanSession[]       @relation("ScanCreatedBy")
+  rfidScanSessionsApproved     RFIDScanSession[]       @relation("ScanApprovedBy")
+  rfidExceptionsResolved       RFIDException[]         @relation("ExceptionResolvedBy")
+  rfidExceptionsAuthorized     RFIDException[]         @relation("ExceptionAuthorizedBy")
+  rfidAssignmentsPerformed     RFIDAssignmentHistory[] @relation("AssignmentPerformedBy")
+  rfidAssignmentsAuthorized    RFIDAssignmentHistory[] @relation("AssignmentAuthorizedBy")
+  backupsCreated               BackupRecord[]          @relation("BackupCreatedBy")
+  restoresRequested            RestoreAudit[]          @relation("RestoreRequestedBy")
+  restoresAuthorized           RestoreAudit[]          @relation("RestoreAuthorizedBy")
+  userSecurity                 UserSecurity?
+  verificationRequestsCreated  VerificationRequest[]   @relation("VerificationRequestedBy")
+  verificationRequestsResolved VerificationRequest[]   @relation("VerificationResolvedBy")
+  verificationApprovalsGiven   VerificationApproval[]  @relation("VerificationApprover")
+  verificationAudits           VerificationAudit[]     @relation("VerificationAuditActor")
+  supplierLedgerEntriesCreated SupplierLedgerEntry[]   @relation("SupplierLedgerCreatedBy")
+  purchaseBookingsCreated      PurchaseBooking[]       @relation("PurchaseBookingCreatedBy")
+  purchaseBookingsVerified     PurchaseBooking[]       @relation("PurchaseBookingVerifiedBy")
+  purchaseInvoicesCreated      PurchaseInvoice[]       @relation("PurchaseInvoiceCreatedBy")
+  purchasePaymentsCreated      PurchasePayment[]       @relation("PurchasePaymentCreatedBy")
+  purchasePaymentsVerified     PurchasePayment[]       @relation("PurchasePaymentVerifiedBy")
+  metalReceiptsReceived        PurchaseMetalReceipt[]  @relation("MetalReceivedBy")
+  metalReceiptsVerified        PurchaseMetalReceipt[]  @relation("MetalReceiptVerifiedBy")
+  metalTransfersAuthorized     PurchaseMetalTransfer[] @relation("MetalTransferAuthorizedBy")
+  metalTransfersReceived       PurchaseMetalTransfer[] @relation("MetalTransferReceivedBy")
+  purchaseReturnsRequested     PurchaseReturn[]        @relation("PurchaseReturnRequestedBy")
+  purchaseReturnsApproved      PurchaseReturn[]        @relation("PurchaseReturnApprovedBy")
+  purchaseCreditNotesCreated   PurchaseCreditNote[]    @relation("PurchaseCreditNoteCreatedBy")
+  purchaseDebitNotesCreated    PurchaseDebitNote[]     @relation("PurchaseDebitNoteCreatedBy")
+  gstPeriodsLocked             PurchaseGSTPeriod[]     @relation("GSTPeriodLockedBy")
+  purchaseDocumentsUploaded    PurchaseDocument[]      @relation("PurchaseDocUploader")
+
+  @@index([branchId])
+  @@index([createdById])
+}
+
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  amount    Float
+  branchId  Int
+  createdAt DateTime @default(now())
+  branch    Branch   @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+}
+
+model Category {
+  id            Int           @id @default(autoincrement())
+  name          String
+  description   String?
+  createdAt     DateTime      @default(now())
+  branchId      Int
+  branch        Branch        @relation(fields: [branchId], references: [id])
+  OrderItem     OrderItem[]
+  subCategories SubCategory[]
+
+  @@unique([name, branchId])
+}
+
+model SubCategory {
+  id         Int           @id @default(autoincrement())
+  name       String
+  categoryId Int
+  createdAt  DateTime      @default(now())
+  branchId   Int
+  products   ProductItem[]
+  branch     Branch        @relation(fields: [branchId], references: [id])
+  category   Category      @relation(fields: [categoryId], references: [id])
+
+  @@index([branchId])
+  @@index([categoryId])
+}
+
+model ProductItem {
+  id                  Int                     @id @default(autoincrement())
+  name                String
+  barcode             String                  @unique
+  productCode         String                  @unique
+  huidNumber          String?                 @unique
+  gsWeight            Float
+  ntWeight            Float
+  purity              Float
+  price               Float?
+  otherCharges        String?
+  otherChargesPrice   Float?
+  quantity            Int                     @default(1)
+  image               String?
+  description         String?
+  reservedQty         Int                     @default(0)
+  size                String?
+  allowNegativeStock  Boolean                 @default(false)
+  branchId            Int
+  subCategoryId       Int
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  BookingItem         BookingItem[]
+  costLayers          InventoryCostLayer[]
+  inventoryLedger     InventoryLedger[]
+  transferItems       InventoryTransferItem[]
+  invoiceItems        InvoiceItem[]
+  branchCosts         ProductBranchCost[]
+  branch              Branch                  @relation(fields: [branchId], references: [id])
+  subCategory         SubCategory             @relation(fields: [subCategoryId], references: [id])
+  purchases           Purchase[]
+  auditItems          StockAuditItem[]
+  stoneDetails        StoneDetail[]
+  huidHistory         HuidHistory[]
+  rfidTag             RFIDTag?
+  rfidObservations    RFIDObservation[]
+  rfidExceptions      RFIDException[]
+  rfidAssignments     RFIDAssignmentHistory[]
+  returnExchangeItems ReturnExchangeItem[]
+
+  @@index([branchId])
+  @@index([subCategoryId])
+  @@index([branchId, quantity])
+  @@index([name])
+  @@index([createdAt])
+}
+
+model StoneDetail {
+  id            Int         @id @default(autoincrement())
+  name          String?
+  weight        Float       @default(0)
+  carat         String?
+  color         String?
+  colorGrade    String?
+  clarity       String?
+  cut           String?
+  shape         String?
+  origin        String?
+  treatment     String?
+  certification String?
+  quality       String
+  quantity      Int         @default(1)
+  price         Float?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  stoneImageUrl String?
+  certImageUrl  String?
+  productItemId Int
+  productItem   ProductItem @relation(fields: [productItemId], references: [id])
+
+  @@index([productItemId])
+}
+
+model Customer {
+  DraftInvoice               DraftInvoice[]
+  id                         Int                         @id @default(autoincrement())
+  name                       String
+  mobile                     String                      @unique
+  email                      String?                     @unique
+  pan                        String?                     @unique
+  gstin                      String?                     @unique
+  aadhar                     String?                     @unique
+  address                    String
+  city                       String
+  state                      String
+  pincode                    String
+  gender                     Gender
+  dob                        DateTime?
+  anniversary                DateTime?
+  customerGroup              String?
+  optInWhatsapp              Boolean                     @default(true)
+  optInSms                   Boolean                     @default(true)
+  optInEmail                 Boolean                     @default(true)
+  optInPromotions            Boolean                     @default(true)
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  walletBalance              Float                       @default(0)
+  Advance                    Advance[]
+  CustomerDocument           CustomerDocument[]
+  tags                       CustomerTag[]               @relation("CustomerToCustomerTags")
+  CustomerWallet             CustomerWallet?
+  invoices                   Invoice[]
+  KycUploadToken             KycUploadToken[]
+  MetalExchangeItem          MetalExchangeItem[]
+  MetalExchangeSession       MetalExchangeSession[]
+  Order                      Order[]
+  ProductBooking             ProductBooking[]
+  purchases                  Purchase[]
+  savingSchemes              SavingScheme[]
+  returnRequests             ReturnRequest[]
+  replacementRequests        ReplacementRequest[]
+  exchangeRequests           ExchangeRequest[]
+  returnExchangeTransactions ReturnExchangeTransaction[]
+  refundTransactions         RefundTransaction[]
+  taxDocuments               TaxDocument[]
+
+  @@index([name])
+  @@index([createdAt])
+}
+
+model Purchase {
+  id          Int         @id @default(autoincrement())
+  customerId  Int
+  productId   Int
+  branchId    Int
+  quantity    Int         @default(1)
+  totalPrice  Float
+  purchasedAt DateTime    @default(now())
+  branch      Branch      @relation(fields: [branchId], references: [id])
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  product     ProductItem @relation(fields: [productId], references: [id])
+
+  @@index([customerId])
+  @@index([productId])
+  @@index([branchId])
+}
+
+model Invoice {
+  id                         Int                         @id @default(autoincrement())
+  invoiceNumber              String                      @unique
+  customerId                 Int
+  branchId                   Int
+  createdById                Int?
+  totalMetalAmount           Float
+  totalMakingAmount          Float
+  totalStoneAmount           Float
+  discountOnMaking           Float                       @default(0)
+  overallDiscount            Float                       @default(0)
+  taxOnGold                  Float
+  taxOnMaking                Float
+  taxOnHallmarking           Float
+  hallmarkingCharge          Float                       @default(0)
+  cgst                       Float
+  sgst                       Float
+  totalAmount                Float
+  paymentMethod              PaymentMethod
+  paidAmount                 Float
+  balanceAmount              Float
+  isFullyPaid                Boolean                     @default(false)
+  excessGoldMode             String?
+  cashSettlementRate         Float?
+  cashOutReductionPct        Float?
+  oldGoldCashedOut           Float?
+  cashToCustomer             Float?
+  refundMethod               String?
+  refundDetails              String?
+  excessGoldReturned         Float?
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  branch                     Branch                      @relation(fields: [branchId], references: [id])
+  createdBy                  User?                       @relation("CreatedInvoices", fields: [createdById], references: [id])
+  customer                   Customer                    @relation(fields: [customerId], references: [id])
+  items                      InvoiceItem[]               @relation("InvoiceToItems")
+  payments                   InvoicePayment[]            @relation("InvoiceToPayments")
+  returnRequests             ReturnRequest[]
+  replacementRequests        ReplacementRequest[]
+  exchangeRequests           ExchangeRequest[]
+  returnExchangeTransactions ReturnExchangeTransaction[] @relation("OriginalInvoiceReturns")
+  replacementForExchanges    ReturnExchangeTransaction[] @relation("ReplacementInvoiceExchanges")
+  taxDocuments               TaxDocument[]               @relation("InvoiceTaxDocuments")
+
+  @@index([customerId])
+  @@index([branchId])
+  @@index([createdById])
+  @@index([branchId, createdAt])
+  @@index([isFullyPaid])
+  @@index([createdAt])
+}
+
+model InvoiceItem {
+  id                  Int                  @id @default(autoincrement())
+  invoiceId           Int
+  productId           Int
+  quantity            Int                  @default(1)
+  gsWeight            Float
+  ntWeight            Float
+  metalRate           Float
+  metalValue          Float
+  makingPercent       Float
+  makingAmount        Float
+  stoneCharge         Float
+  discountOnMaking    Float
+  totalBeforeTax      Float
+  cgst                Float
+  sgst                Float
+  totalAfterTax       Float
+  invoice             Invoice              @relation("InvoiceToItems", fields: [invoiceId], references: [id])
+  product             ProductItem          @relation(fields: [productId], references: [id])
+  returnExchangeItems ReturnExchangeItem[]
+
+  @@index([invoiceId])
+  @@index([productId])
+}
+
+model InvoicePayment {
+  id         Int           @id @default(autoincrement())
+  invoiceId  Int
+  method     PaymentMethod
+  amount     Float
+  paymentRef String?
+  paidAt     DateTime      @default(now())
+  invoice    Invoice       @relation("InvoiceToPayments", fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+}
+
+model Order {
+  id             String             @id @default(cuid())
+  orderNumber    String             @unique
+  customerId     Int?
+  customerName   String
+  customerMobile String
+  karigarId      String?
+  status         OrderStatus        @default(CREATED)
+  priority       OrderPriority      @default(STANDARD)
+  orderDate      DateTime           @default(now())
+  deliveryDate   DateTime
+  notes          String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  userId         Int?
+  branchId       Int
+  wholesalerId   String?
+  advance        Advance?
+  customer       Customer?          @relation(fields: [customerId], references: [id])
+  karigar        Karigar?           @relation(fields: [karigarId], references: [id])
+  User           User?              @relation(fields: [userId], references: [id])
+  Wholesaler     Wholesaler?        @relation(fields: [wholesalerId], references: [id])
+  items          OrderItem[]
+  versions       OrderVersion[]
+  approvals      OrderApproval[]
+  delayReasons   OrderDelayReason[]
+
+  @@index([customerId])
+  @@index([karigarId])
+  @@index([userId])
+  @@index([branchId])
+  @@index([wholesalerId])
+  @@index([status])
+  @@index([deliveryDate])
+  @@index([createdAt])
+  @@index([branchId, createdAt])
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  categoryId  Int
+  weight      Decimal?
+  measurement String?
+  description String?
+  images      String[] @default([])
+  voiceUrl    String?
+  createdAt   DateTime @default(now())
+  category    Category @relation(fields: [categoryId], references: [id])
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([categoryId])
+}
+
+model Advance {
+  id                   String         @id @default(cuid())
+  advanceReceiptNumber String         @unique
+  orderId              String?        @unique
+  customerId           Int
+  metalType            MetalType?
+  metalWeight          Float          @default(0)
+  metalPurity          String?
+  moneyAmount          Float          @default(0)
+  paymentMethod        PaymentMethod?
+  paymentRef           String?
+  isApplied            Boolean        @default(false)
+  appliedInvoiceId     Int?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  customer             Customer       @relation(fields: [customerId], references: [id])
+  order                Order?         @relation(fields: [orderId], references: [id])
+
+  @@index([customerId])
+  @@index([orderId])
+  @@index([appliedInvoiceId])
+  @@index([isApplied])
+}
+
+model Karigar {
+  id                     String                  @id @default(cuid())
+  name                   String
+  phoneNumber            String                  @unique
+  whatsappNumber         String?
+  address                String?
+  profilePhoto           String?
+  adharNumber            String?
+  panNumber              String?
+  department             KarigarDepartment
+  speciality             String[]
+  isActive               Boolean                 @default(true)
+  joiningDate            DateTime                @default(now())
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  KarigarHeldMetal       KarigarHeldMetal[]
+  jobs                   KarigarJob[]
+  Order                  Order[]
+  capacity               KarigarCapacity?
+  purchaseMetalTransfers PurchaseMetalTransfer[]
+}
+
+model KarigarJob {
+  id                String                @id @default(cuid())
+  karigarId         String
+  issuedWeight      Float
+  issuedPurity      Float
+  wastagePercent    Float?
+  calculationMode   String?               @default("MODE_A")
+  fineUsed          Float?
+  fineWastage       Float?
+  remainingRawMetal Float?
+  remainingAction   RemainingAction?
+  cashIssued        Float                 @default(0)
+  cashPaid          Float                 @default(0)
+  status            JobStatus             @default(OPEN)
+  remarks           String?
+  createdAt         DateTime              @default(now())
+  closedAt          DateTime?
+  heldMetals        KarigarHeldMetal[]
+  karigar           Karigar               @relation(fields: [karigarId], references: [id])
+  jewelleryItems    KarigarJobJewellery[]
+
+  @@index([karigarId])
+}
+
+model KarigarJobJewellery {
+  id        String          @id @default(cuid())
+  jobId     String
+  purity    JewelleryPurity
+  weight    Float
+  tonch     Float
+  fineGold  Float?
+  createdAt DateTime        @default(now())
+  job       KarigarJob      @relation(fields: [jobId], references: [id])
+
+  @@index([jobId])
+}
+
+model KarigarHeldMetal {
+  id           String      @id @default(cuid())
+  karigarId    String
+  purity       Float
+  weight       Float
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  karigarJobId String?
+  karigar      Karigar     @relation(fields: [karigarId], references: [id])
+  KarigarJob   KarigarJob? @relation(fields: [karigarJobId], references: [id])
+
+  @@unique([karigarId, purity])
+  @@index([karigarId])
+  @@index([karigarJobId])
+}
+
+model MetalExchangeSession {
+  id                 String               @id @default(cuid())
+  sessionNumber      String               @unique
+  date               DateTime             @default(now())
+  branchId           Int
+  customerId         Int?
+  createdById        Int?
+  totalItems         Int                  @default(0)
+  totalWeightBefore  Float                @default(0)
+  totalWeightAfter   Float                @default(0)
+  fineGold           Float                @default(0)
+  fineSilver         Float                @default(0)
+  remarks            String?
+  isClosed           Boolean              @default(false)
+  closedAt           DateTime?
+  authorizedBy       Int?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  MetalExchangeAudit MetalExchangeAudit[]
+  items              MetalExchangeItem[]
+  branch             Branch               @relation(fields: [branchId], references: [id])
+  createdBy          User?                @relation(fields: [createdById], references: [id])
+  customer           Customer?            @relation(fields: [customerId], references: [id])
+
+  @@index([branchId])
+  @@index([customerId])
+  @@index([createdById])
+}
+
+model MetalExchangeItem {
+  id                 String               @id @default(cuid())
+  sessionId          String
+  customerId         Int
+  metalType          MetalType
+  description        String?
+  weightBefore       Float
+  weightAfter        Float?
+  purityPercent      Float?
+  tonch              Float?
+  fineGold           Float?
+  lossWeight         Float?
+  status             MetalExchangeStatus  @default(PENDING)
+  isLocked           Boolean              @default(false)
+  notes              String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  customer           Customer             @relation(fields: [customerId], references: [id])
+  session            MetalExchangeSession @relation(fields: [sessionId], references: [id])
+  oldGoldSettlements OldGoldSettlement[]
+
+  @@index([sessionId])
+  @@index([customerId])
+}
+
+model MetalExchangeAudit {
+  id            String               @id @default(cuid())
+  sessionId     String
+  action        String
+  performedById Int?
+  metadata      Json?
+  createdAt     DateTime             @default(now())
+  performedBy   User?                @relation(fields: [performedById], references: [id])
+  session       MetalExchangeSession @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId])
+  @@index([performedById])
+}
+
+model Wholesaler {
+  id                     String                  @id @default(cuid())
+  code                   String                  @unique
+  name                   String
+  ownerName              String?
+  phone                  String                  @unique
+  whatsapp               String?
+  email                  String?
+  gstNumber              String?
+  panNumber              String?
+  address                String
+  city                   String
+  state                  String
+  pincode                String
+  country                String                  @default("India")
+  goldBal                Float                   @default(0)
+  silverBal              Float                   @default(0)
+  moneyBal               Float                   @default(0)
+  isActive               Boolean                 @default(true)
+  branchId               Int
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  orders                 Order[]
+  branch                 Branch                  @relation(fields: [branchId], references: [id])
+  ledgerEntries          WholesalerLedgerEntry[]
+  transactions           WholesalerTransaction[]
+  purchaseMetalTransfers PurchaseMetalTransfer[]
+}
+
+model WholesalerTransaction {
+  id              String                    @id @default(cuid())
+  wholesalerId    String
+  type            WholesalerTransactionType
+  metalType       WholesalerMetalType
+  purityLabel     String                    @default("")
+  purityFactor    Float                     @default(0)
+  weight          Float                     @default(0)
+  wastage         Float                     @default(0)
+  fineWeight      Float                     @default(0)
+  totalCashAmount Float                     @default(0)
+  remarks         String?
+  createdAt       DateTime                  @default(now())
+  cashItems       WholesalerCashItem[]
+  ledgerEntries   WholesalerLedgerEntry[]
+  wholesaler      Wholesaler                @relation(fields: [wholesalerId], references: [id])
+
+  @@index([wholesalerId])
+}
+
+model WholesalerCashItem {
+  id            String                @id @default(cuid())
+  transactionId String
+  itemName      String
+  cost          Float
+  transaction   WholesalerTransaction @relation(fields: [transactionId], references: [id])
+
+  @@index([transactionId])
+}
+
+model WholesalerLedgerEntry {
+  id            String                @id @default(cuid())
+  wholesalerId  String
+  transactionId String
+  entryType     String
+  metalAmount   Float                 @default(0)
+  cashAmount    Float                 @default(0)
+  description   String
+  createdAt     DateTime              @default(now())
+  transaction   WholesalerTransaction @relation(fields: [transactionId], references: [id])
+  wholesaler    Wholesaler            @relation(fields: [wholesalerId], references: [id])
+
+  @@index([wholesalerId])
+  @@index([transactionId])
+}
+
+model InventoryLedger {
+  id               String           @id @default(cuid())
+  productId        Int
+  branchId         Int
+  txnType          InventoryTxnType
+  refType          InventoryRefType
+  refId            String?
+  qtyIn            Int              @default(0)
+  qtyOut           Int              @default(0)
+  grossWeightIn    Float            @default(0)
+  grossWeightOut   Float            @default(0)
+  netWeightIn      Float            @default(0)
+  netWeightOut     Float            @default(0)
+  balanceQty       Int              @default(0)
+  balanceGrossWt   Float            @default(0)
+  balanceNetWt     Float            @default(0)
+  unitCost         Float?
+  totalValue       Float?
+  remarks          String?
+  createdById      Int?
+  createdAt        DateTime         @default(now())
+  karatage         Float?
+  purityPercent    Float?
+  fineWeightIn     Float?
+  fineWeightOut    Float?
+  balanceFineWt    Float            @default(0)
+  metalRateAtEntry Float?
+  metalRateUnit    String?
+  metalCost        Float?
+  stoneCost        Float?
+  makingCharges    Float?
+  otherCharges     Float?
+  stoneQty         Int?
+  stoneWeightCt    Float?
+  stoneType        String?
+  huidNumber       String?
+  batchLotNo       String?
+  hallmarkCertNo   String?
+  sequenceNo       Int?
+  isLocked         Boolean          @default(false)
+  allowedWastageWt Float?
+  actualWastageWt  Float?
+  branch           Branch           @relation(fields: [branchId], references: [id])
+  createdBy        User?            @relation(fields: [createdById], references: [id])
+  product          ProductItem      @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+  @@index([branchId])
+  @@index([txnType])
+  @@index([createdAt])
+  @@index([refId])
+  @@index([productId, branchId, createdAt])
+  @@index([huidNumber])
+  @@index([sequenceNo])
+}
+
+model InventoryTransfer {
+  id           String                  @id @default(cuid())
+  transferNo   String                  @unique
+  fromBranchId Int
+  toBranchId   Int
+  status       String                  @default("PENDING")
+  remarks      String?
+  createdById  Int?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  createdBy    User?                   @relation(fields: [createdById], references: [id])
+  fromBranch   Branch                  @relation("TransferFrom", fields: [fromBranchId], references: [id])
+  toBranch     Branch                  @relation("TransferTo", fields: [toBranchId], references: [id])
+  items        InventoryTransferItem[]
+
+  @@index([fromBranchId])
+  @@index([toBranchId])
+}
+
+model InventoryTransferItem {
+  id          String            @id @default(cuid())
+  transferId  String
+  productId   Int
+  qty         Int               @default(1)
+  grossWeight Float
+  netWeight   Float
+  product     ProductItem       @relation(fields: [productId], references: [id])
+  transfer    InventoryTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+
+  @@index([transferId])
+  @@index([productId])
+}
+
+model StockAudit {
+  id          String           @id @default(cuid())
+  auditNo     String           @unique
+  branchId    Int
+  status      String           @default("OPEN")
+  remarks     String?
+  createdById Int?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  branch      Branch           @relation(fields: [branchId], references: [id])
+  createdBy   User?            @relation(fields: [createdById], references: [id])
+  items       StockAuditItem[]
+}
+
+model StockAuditItem {
+  id          String      @id @default(cuid())
+  auditId     String
+  productId   Int
+  systemQty   Int
+  physicalQty Int
+  varianceQty Int
+  remarks     String?
+  audit       StockAudit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  product     ProductItem @relation(fields: [productId], references: [id])
+
+  @@index([auditId])
+  @@index([productId])
+}
+
+model CompanySettings {
+  id                  String   @id @default(cuid())
+  companyName         String   @default("My Jewelry Store")
+  costingMethod       String   @default("WAC")
+  requireHuidForSales Boolean  @default(false)
+  defaultLockDays     Int      @default(90)
+  financialYearStart  Int      @default(4)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model MetalRateHistory {
+  id        String   @id @default(cuid())
+  metalType String
+  karatage  Float?
+  rate      Float
+  rateUnit  String   @default("PER_GRAM")
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([metalType, date])
+  @@index([karatage])
+}
+
+model ProductBranchCost {
+  id           String      @id @default(cuid())
+  productId    Int
+  branchId     Int
+  avgCostPrice Float       @default(0)
+  totalQty     Int         @default(0)
+  updatedAt    DateTime    @updatedAt
+  branch       Branch      @relation(fields: [branchId], references: [id])
+  product      ProductItem @relation(fields: [productId], references: [id])
+
+  @@unique([productId, branchId])
+  @@index([productId])
+  @@index([branchId])
+}
+
+model InventoryCostLayer {
+  id            String      @id @default(cuid())
+  productId     Int
+  branchId      Int
+  unitCost      Float
+  qtyRemaining  Int
+  createdAt     DateTime    @default(now())
+  ledgerEntryId String?
+  branch        Branch      @relation(fields: [branchId], references: [id])
+  product       ProductItem @relation(fields: [productId], references: [id])
+
+  @@index([productId, branchId])
+  @@index([createdAt])
+}
+
+model BackupLog {
+  id           String   @id @default(cuid())
+  branchId     Int
+  format       String
+  sizeBytes    Int
+  includes     String[]
+  createdById  Int
+  createdAt    DateTime @default(now())
+  driveFileId  String?
+  driveFileUrl String?
+  branchScope  String?  @default("SINGLE")
+  status       String?  @default("SUCCESS")
+  recordCounts Json?
+  type         String?  @default("BACKUP")
+}
+
+model TagDefinition {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  label       String
+  description String?
+  type        TagType
+  color       String        @default("gray")
+  isActive    Boolean       @default(true)
+  isDeleted   Boolean       @default(false)
+  branchId    Int?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  createdById Int?
+  assignments CustomerTag[] @relation("TagDefinitionToCustomerTags")
+  branch      Branch?       @relation("BranchToTagDefinitions", fields: [branchId], references: [id])
+  createdBy   User?         @relation("UserToCreatedTagDefinitions", fields: [createdById], references: [id])
+
+  @@index([branchId])
+}
+
+model CustomerTag {
+  id              String        @id @default(cuid())
+  customerId      Int
+  tagDefinitionId String
+  assignedAt      DateTime      @default(now())
+  assignedById    Int?
+  reason          String?
+  assignedBy      User?         @relation("UserToCustomerTagAssignments", fields: [assignedById], references: [id])
+  customer        Customer      @relation("CustomerToCustomerTags", fields: [customerId], references: [id], onDelete: Cascade)
+  tagDefinition   TagDefinition @relation("TagDefinitionToCustomerTags", fields: [tagDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, tagDefinitionId])
+  @@index([customerId])
+  @@index([tagDefinitionId])
+}
+
+model TagAssignmentHistory {
+  id              String   @id @default(cuid())
+  customerId      Int
+  tagDefinitionId String
+  tagLabel        String
+  action          String
+  performedById   Int?
+  reason          String?
+  createdAt       DateTime @default(now())
+
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model CustomerDocument {
+  id           String    @id @default(cuid())
+  customerId   Int
+  documentType String
+  fileName     String
+  filePath     String
+  iv           String?
+  uploadedAt   DateTime  @default(now())
+  verified     Boolean   @default(false)
+  verifiedAt   DateTime?
+  notes        String?
+  customer     Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+}
+
+model KycUploadToken {
+  id         String   @id @default(cuid())
+  customerId Int
+  token      String   @unique
+  expiresAt  DateTime
+  isUsed     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+}
+
+model BookingAdvance {
+  id                 String         @id
+  bookingId          String
+  advanceType        AdvanceType
+  cashAmount         Float          @default(0)
+  paymentRef         String?
+  metalWeight        Float?
+  metalPurity        String?
+  metalRateApplied   Float?
+  metalValueInRupees Float?
+  netValue           Float
+  branchId           Int
+  receivedById       Int?
+  createdAt          DateTime       @default(now())
+  ProductBooking     ProductBooking @relation(fields: [bookingId], references: [id])
+  Branch             Branch         @relation(fields: [branchId], references: [id])
+  User               User?          @relation(fields: [receivedById], references: [id])
+
+  @@index([bookingId])
+  @@index([branchId])
+  @@index([createdAt])
+}
+
+model BookingAuditLog {
+  id             String         @id
+  bookingId      String
+  action         String
+  changedById    Int?
+  previousValue  Json?
+  newValue       Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime       @default(now())
+  ProductBooking ProductBooking @relation(fields: [bookingId], references: [id])
+  User           User?          @relation(fields: [changedById], references: [id])
+
+  @@index([bookingId])
+  @@index([createdAt])
+}
+
+model BookingItem {
+  id                  String         @id
+  bookingId           String
+  productId           Int
+  makingChargePercent Float          @default(0)
+  weightGrams         Float
+  purity              Float
+  itemValue           Float
+  ProductBooking      ProductBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  ProductItem         ProductItem    @relation(fields: [productId], references: [id])
+
+  @@index([bookingId])
+  @@index([productId])
+}
+
+model BookingLedger {
+  id             String                 @id
+  bookingId      String
+  entryType      BookingLedgerEntryType
+  description    String
+  amount         Float                  @default(0)
+  balanceAfter   Float                  @default(0)
+  performedById  Int?
+  metadata       Json?
+  createdAt      DateTime               @default(now())
+  ProductBooking ProductBooking         @relation(fields: [bookingId], references: [id])
+  User           User?                  @relation(fields: [performedById], references: [id])
+
+  @@index([bookingId])
+  @@index([createdAt])
+}
+
+model BookingTransfer {
+  id                                          String         @id
+  bookingId                                   String
+  fromBranchId                                Int
+  toBranchId                                  Int
+  reason                                      String
+  notes                                       String?
+  status                                      TransferStatus @default(PENDING)
+  initiatedById                               Int?
+  completedAt                                 DateTime?
+  createdAt                                   DateTime       @default(now())
+  ProductBooking                              ProductBooking @relation(fields: [bookingId], references: [id])
+  Branch_BookingTransfer_fromBranchIdToBranch Branch         @relation("BookingTransfer_fromBranchIdToBranch", fields: [fromBranchId], references: [id])
+  User                                        User?          @relation(fields: [initiatedById], references: [id])
+  Branch_BookingTransfer_toBranchIdToBranch   Branch         @relation("BookingTransfer_toBranchIdToBranch", fields: [toBranchId], references: [id])
+
+  @@index([bookingId])
+}
+
+model CustomerWallet {
+  id                   String                 @id
+  customerId           Int                    @unique
+  cashBalance          Float                  @default(0)
+  metal22KBalance      Float                  @default(0)
+  metal24KBalance      Float                  @default(0)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime
+  Customer             Customer               @relation(fields: [customerId], references: [id])
+  CustomerWalletLedger CustomerWalletLedger[]
+
+  @@index([customerId])
+}
+
+model CustomerWalletLedger {
+  id              String         @id
+  walletId        String
+  transactionType String
+  assetType       String
+  amount          Float
+  description     String?
+  relatedEntityId String?
+  goldRateApplied Float?
+  createdAt       DateTime       @default(now())
+  CustomerWallet  CustomerWallet @relation(fields: [walletId], references: [id])
+
+  @@index([createdAt])
+  @@index([walletId])
+}
+
+model DeliverySession {
+  id                 String         @id
+  bookingId          String
+  deliveryType       DeliveryType   @default(FULL)
+  lockedPortionValue Float          @default(0)
+  deliveryRateValue  Float          @default(0)
+  walletAmountUsed   Float          @default(0)
+  advancePaid        Float          @default(0)
+  outstandingAmount  Float          @default(0)
+  deliveryGoldRate   Float
+  paymentMethod      PaymentMethod?
+  paymentRef         String?
+  performedById      Int?
+  notes              String?
+  createdAt          DateTime       @default(now())
+  ProductBooking     ProductBooking @relation(fields: [bookingId], references: [id])
+  User               User?          @relation(fields: [performedById], references: [id])
+
+  @@index([bookingId])
+}
+
+model ProductBooking {
+  id                 String            @id
+  bookingNumber      String            @unique
+  customerId         Int
+  branchId           Int
+  createdById        Int?
+  rateLockPlanId     String?
+  bookingGoldRate    Float
+  rateLockStatus     RateLockStatus    @default(NO_LOCK)
+  lockedRate         Float?
+  lockedAt           DateTime?
+  lockedPortion      Float?
+  lockedWeightGrams  Float?
+  deliveryRatePlan   DeliveryRatePlan  @default(SPLIT)
+  totalCashAdvance   Float             @default(0)
+  totalMetalAdvance  Float             @default(0)
+  totalWalletUsed    Float             @default(0)
+  totalAdvance       Float             @default(0)
+  advancePercent     Float             @default(0)
+  bookingDate        DateTime          @default(now())
+  expiryDate         DateTime
+  deliveryDueDate    DateTime?
+  deliveredAt        DateTime?
+  status             BookingStatus     @default(ACTIVE)
+  cancellationReason String?
+  cancelledAt        DateTime?
+  cancelledById      Int?
+  originalBranchId   Int?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime
+  additionalCharges  Float             @default(0)
+  grandTotal         Float
+  gstAmount          Float             @default(0)
+  subTotal           Float             @default(0)
+  totalWeightGrams   Float             @default(0)
+  BookingAdvance     BookingAdvance[]
+  BookingAuditLog    BookingAuditLog[]
+  BookingItem        BookingItem[]
+  BookingLedger      BookingLedger[]
+  BookingTransfer    BookingTransfer[]
+  DeliverySession    DeliverySession[]
+  Branch             Branch            @relation(fields: [branchId], references: [id])
+  User               User?             @relation(fields: [createdById], references: [id])
+  Customer           Customer          @relation(fields: [customerId], references: [id])
+  RateLockPlan       RateLockPlan?     @relation(fields: [rateLockPlanId], references: [id])
+
+  @@index([bookingDate])
+  @@index([bookingNumber])
+  @@index([branchId])
+  @@index([customerId])
+  @@index([expiryDate])
+  @@index([status])
+}
+
+model RateLockPlan {
+  id                 String           @id
+  name               String
+  lockDurationDays   Int
+  minAdvancePercent  Float
+  rateLockPercent    Float
+  partialLockPercent Float
+  cancellationCharge Float            @default(2.0)
+  isActive           Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime
+  ProductBooking     ProductBooking[]
+}
+
+enum KarigarDepartment {
+  GOLD
+  SILVER
+  DIAMOND
+}
+
+enum JobStatus {
+  OPEN
+  CLOSED
+}
+
+enum RemainingAction {
+  HOLD
+  RETURN
+}
+
+enum JewelleryPurity {
+  K22
+  K20
+  K18
+  K14
+}
+
+enum MetalType {
+  GOLD
+  SILVER
+}
+
+enum MetalExchangeStatus {
+  PENDING
+  PROCESSING
+  TONCHED
+}
+
+enum WholesalerTransactionType {
+  ISSUE_METAL
+  RECEIVE_JEWELLERY
+}
+
+enum WholesalerMetalType {
+  GOLD
+  SILVER
+  DIAMOND
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+  CHEQUE
+  NEFT
+  RTGS
+  WALLET
+  METAL
+  ADVANCE
+  OLD_GOLD_CASHOUT
+  SCHEME
+  OTHER
+}
+
+enum SystemRole {
+  ADMIN
+  MANAGER
+  SALESMAN
+  VIEWER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum OrderPriority {
+  STANDARD
+  URGENT
+  RUSH
+}
+
+enum OrderStatus {
+  CREATED
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum InventoryTxnType {
+  OPENING
+  PURCHASE_IN
+  SALE_OUT
+  SALE_RETURN_IN
+  PURCHASE_RETURN_OUT
+  TRANSFER_OUT
+  TRANSFER_IN
+  KARIGAR_ISSUE_OUT
+  KARIGAR_RECEIVE_IN
+  MANUFACTURE_IN
+  DAMAGE_OUT
+  MELT_OUT
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  RESERVE_OUT
+  UNRESERVE_IN
+  OLD_GOLD_IN
+  HALLMARK_OUT
+  HALLMARK_IN
+  REPAIR_ISSUE_OUT
+  REPAIR_RECEIVE_IN
+  APPROVAL_OUT
+  APPROVAL_IN
+  CONSIGNMENT_OUT
+  CONSIGNMENT_IN
+  ASSAY_OUT
+  ASSAY_IN
+  REMELTING_IN
+  BREAKAGE_ADJUST
+  CLOSING_SNAPSHOT
+}
+
+enum InventoryRefType {
+  MANUAL
+  PURCHASE
+  INVOICE
+  ORDER
+  KARIGAR_JOB
+  METAL_EXCHANGE
+  TRANSFER
+  SYSTEM
+  REPAIR_JOB
+  APPROVAL_MEMO
+  CONSIGNMENT
+  HALLMARK_BATCH
+  ASSAY_REPORT
+}
+
+enum TagType {
+  SYSTEM
+  MANUAL
+}
+
+enum AdvanceType {
+  CASH
+  UPI
+  CARD
+  BANK_TRANSFER
+  WALLET
+  METAL_22K
+  METAL_24K
+}
+
+enum BookingLedgerEntryType {
+  BOOKING_CREATED
+  ADVANCE_ADDED
+  WALLET_USED
+  RATE_LOCKED
+  DELIVERY_PARTIAL
+  DELIVERY_COMPLETE
+  CANCELLATION
+  REFUND_WALLET
+  REFUND_CASH
+  EXPIRY_EXTENDED
+  TRANSFER
+}
+
+enum BookingStatus {
+  ACTIVE
+  RATE_LOCKED
+  PARTIAL_LOCK
+  DELIVERY_PENDING
+  DELIVERED
+  CANCELLED
+  EXPIRED
+}
+
+enum DeliveryRatePlan {
+  LOCK_NOW
+  SPLIT
+  MARKET_RATE
+  OPTION_A_MARKET_RATE
+  OPTION_B_15_DAY_LOCK
+  OPTION_C_METAL_WALLET
+  OPTION_D_FIXED_RATE
+}
+
+enum DeliveryType {
+  FULL
+  PARTIAL
+}
+
+enum RateLockStatus {
+  NO_LOCK
+  PARTIAL_LOCK
+  FULL_LOCK
+}
+
+enum TransferStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+}
+
+model DraftInvoice {
+  id          String    @id @default(cuid())
+  draftNumber String    @unique
+  branchId    Int
+  branch      Branch    @relation(fields: [branchId], references: [id])
+  customerId  Int?
+  customer    Customer? @relation(fields: [customerId], references: [id])
+
+  billingData String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime
+}
+
+enum SavingSchemeType {
+  FIXED_MONTHLY
+  ANONYMOUS_DEPOSIT
+  GOLD_DEPOSIT
+}
+
+enum SchemeStatus {
+  ACTIVE
+  MATURED
+  REDEEMED
+  PARTIALLY_REDEEMED
+  CANCELLED
+  EXPIRED
+}
+
+enum SchemeDepositType {
+  CASH
+  GOLD
+  SILVER
+  OTHER_METAL
+  BONUS
+}
+
+model SavingScheme {
+  id                   String             @id @default(cuid())
+  schemeNumber         String             @unique
+  type                 SavingSchemeType
+  status               SchemeStatus       @default(ACTIVE)
+  customerId           Int
+  customer             Customer           @relation(fields: [customerId], references: [id])
+  branchId             Int
+  branch               Branch             @relation(fields: [branchId], references: [id])
+  createdById          Int?
+  createdBy            User?              @relation(fields: [createdById], references: [id])
+  fixedMonthlyAmount   Float?
+  maxDurationMonths    Int                @default(12)
+  startDate            DateTime           @default(now())
+  maturityDate         DateTime?
+  totalCashDeposited   Float              @default(0)
+  totalGoldDepositedGm Float              @default(0)
+  totalBonusAmount     Float              @default(0)
+  depositCount         Int                @default(0)
+  totalRedeemed        Float              @default(0)
+  redeemedInvoiceIds   String?
+  physicalCardNumber   String?            @unique
+  cardIssuedAt         DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  deposits             SchemeDeposit[]
+  redemptions          SchemeRedemption[]
+
+  @@index([customerId])
+  @@index([branchId])
+  @@index([status])
+  @@index([schemeNumber])
+}
+
+model SchemeDeposit {
+  id             String            @id @default(cuid())
+  schemeId       String
+  scheme         SavingScheme      @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+  depositType    SchemeDepositType
+  cashAmount     Float?
+  metalWeightGm  Float?
+  metalPurity    Float?
+  metalType      String?
+  metalRatePerGm Float?
+  monthNumber    Int?
+  isBonus        Boolean           @default(false)
+  remarks        String?
+  receiptNumber  String?           @unique
+  depositedAt    DateTime          @default(now())
+  recordedById   Int?
+
+  @@index([schemeId])
+  @@index([depositedAt])
+}
+
+model SchemeRedemption {
+  id             String       @id @default(cuid())
+  schemeId       String
+  scheme         SavingScheme @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+  invoiceId      Int?
+  amountUsed     Float
+  goldWeightUsed Float?
+  redeemedAt     DateTime     @default(now())
+  remarks        String?
+
+  @@index([schemeId])
+  @@index([invoiceId])
+}
+
+model Role {
+  id             Int              @id @default(autoincrement())
+  name           String           @unique
+  description    String?
+  permissions    Json
+  isSystem       Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  users          User[]
+  ApprovalMatrix ApprovalMatrix[]
+}
+
+model UserBranch {
+  userId   Int
+  branchId Int
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([userId, branchId])
+  @@index([userId])
+  @@index([branchId])
+}
+
+model UserActivityLog {
+  id        String   @id @default(cuid())
+  userId    Int
+  action    String
+  module    String
+  branchId  Int?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model ApprovalMatrix {
+  id             Int    @id @default(autoincrement())
+  action         String @unique
+  requiredRoleId Int
+  role           Role   @relation(fields: [requiredRoleId], references: [id])
+}
+
+model GlobalProductSettings {
+  id              String   @id @default(cuid())
+  branchId        Int?     @unique
+  metalConfig     Json?
+  codeConfig      Json?
+  weightConfig    Json?
+  pricingConfig   Json?
+  stoneConfig     Json?
+  hallmarkConfig  Json?
+  mediaConfig     Json?
+  inventoryConfig Json?
+  printConfig     Json?
+  customFields    Json?
+  validationRules Json?
+  financialConfig Json?
+  schemeConfig    Json?
+  goldRateConfig  Json?
+  customerConfig  Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model OrderBookSettings {
+  id                 String   @id @default(cuid())
+  branchId           Int      @unique
+  numberingSettings  Json? // Prefix, Auto Gen, Slip Numbering
+  lifecycleSettings  Json? // Default Status, Reopen completed orders
+  customerSettings   Json? // Mandatory fields, Duplicate Merge
+  multiItemSettings  Json? // Max Items, Allow duplicates
+  designSettings     Json? // Max images, size, formats, Voice notes
+  deliverySettings   Json? // Default days, Priority Levels, Overdue alerts
+  karigarAssignment  Json? // Auto assignment, track history
+  advanceSettings    Json? // Cash enable, min/max, Metal Advance
+  financialRules     Json? // Min booking %, max advance %
+  cancellationRules  Json? // Cancellation charges, Refund rules
+  orderNotesSettings Json? // Visibility of notes
+  printingSettings   Json? // Customer Slip, Workshop Slip elements
+  dashboardSettings  Json? // Enable/disable cards
+  notifications      Json? // Settings for when to notify
+  documentSettings   Json? // Required documents
+  rbacSettings       Json? // Enforcing Manager vs Admin roles
+  auditSettings      Json? // Which actions to track
+  reportsSettings    Json? // Enable specific reports
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  branch             Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+}
+
+model OrderVersion {
+  id            String   @id @default(cuid())
+  orderId       String
+  versionNumber Int
+  snapshot      Json // Snapshot of order and items
+  createdAt     DateTime @default(now())
+  createdById   Int?
+  Order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  User          User?    @relation(fields: [createdById], references: [id])
+}
+
+model OrderApproval {
+  id                String   @id @default(cuid())
+  orderId           String
+  status            String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  remarks           String?
+  customerSignature String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  Order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrderDelayReason {
+  id           String   @id @default(cuid())
+  orderId      String
+  reason       String // Customer Request, Karigar Delay, Stone Delay, Gold Not Available
+  remarks      String?
+  reportedById Int?
+  createdAt    DateTime @default(now())
+  Order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  User         User?    @relation(fields: [reportedById], references: [id])
+}
+
+model KarigarCapacity {
+  id             String  @id @default(cuid())
+  karigarId      String  @unique
+  maxActiveJobs  Int     @default(5)
+  maxTotalWeight Float   @default(500) // grams
+  Karigar        Karigar @relation(fields: [karigarId], references: [id], onDelete: Cascade)
+}
+
+model BranchApprovalMatrix {
+  id                    String  @id @default(cuid())
+  branchId              Int
+  actionName            String // CHANGE_DELIVERY_DATE, CANCEL_HIGH_VALUE, EDIT_ADVANCE
+  requiresAdminApproval Boolean @default(true)
+  branch                Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, actionName])
+}
+
+model SequenceTracker {
+  id           String   @id @default(cuid())
+  branchId     Int
+  categoryName String // e.g., "Necklace"
+  lastValue    Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([branchId, categoryName])
+}
+
+model ReturnRequest {
+  id                String       @id @default(cuid())
+  originalInvoiceId Int
+  customerId        Int
+  huidNumber        String?
+  status            ReturnStatus @default(REQUESTED)
+  refundAmount      Float
+  reason            String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  invoice    Invoice     @relation(fields: [originalInvoiceId], references: [id])
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  creditNote CreditNote?
+
+  @@index([originalInvoiceId])
+  @@index([customerId])
+  @@index([huidNumber])
+}
+
+model ReplacementRequest {
+  id                String            @id @default(cuid())
+  originalInvoiceId Int
+  customerId        Int
+  oldHuidNumber     String?
+  newHuidNumber     String?
+  status            ReplacementStatus @default(REQUESTED)
+  reason            String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  invoice  Invoice  @relation(fields: [originalInvoiceId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([originalInvoiceId])
+  @@index([customerId])
+}
+
+model ExchangeRequest {
+  id                String         @id @default(cuid())
+  originalInvoiceId Int
+  customerId        Int
+  oldHuidNumber     String?
+  newHuidNumber     String?
+  status            ExchangeStatus @default(REQUESTED)
+  oldValue          Float
+  newValue          Float
+  differenceAmount  Float
+  reason            String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  invoice    Invoice     @relation(fields: [originalInvoiceId], references: [id])
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  creditNote CreditNote?
+  debitNote  DebitNote?
+
+  @@index([originalInvoiceId])
+  @@index([customerId])
+}
+
+model CreditNote {
+  id                String   @id @default(cuid())
+  returnRequestId   String?  @unique
+  exchangeRequestId String?  @unique
+  taxableValue      Float
+  cgstAmount        Float
+  sgstAmount        Float
+  totalAmount       Float
+  issueDate         DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  returnRequest   ReturnRequest?   @relation(fields: [returnRequestId], references: [id])
+  exchangeRequest ExchangeRequest? @relation(fields: [exchangeRequestId], references: [id])
+}
+
+model DebitNote {
+  id                String   @id @default(cuid())
+  exchangeRequestId String   @unique
+  taxableValue      Float
+  cgstAmount        Float
+  sgstAmount        Float
+  totalAmount       Float
+  issueDate         DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  exchangeRequest ExchangeRequest @relation(fields: [exchangeRequestId], references: [id])
+}
+
+model HuidHistory {
+  id            String     @id @default(cuid())
+  productItemId Int
+  status        HuidStatus
+  referenceId   String?
+  referenceType String?
+  remarks       String?
+  createdAt     DateTime   @default(now())
+
+  productItem ProductItem @relation(fields: [productItemId], references: [id])
+
+  @@index([productItemId])
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  entityType    String
+  entityId      String
+  action        String
+  oldValues     Json?
+  newValues     Json?
+  performedById Int?
+  createdAt     DateTime @default(now())
+
+  performedBy User? @relation(fields: [performedById], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([performedById])
+}
+
+enum ReturnStatus {
+  REQUESTED
+  INSPECTION_PENDING
+  INSPECTED
+  APPROVED
+  REJECTED
+  REFUNDED
+  CLOSED
+}
+
+enum ReplacementStatus {
+  REQUESTED
+  INSPECTION_PENDING
+  INSPECTED
+  APPROVED
+  REJECTED
+  REPLACED
+  CLOSED
+}
+
+enum ExchangeStatus {
+  REQUESTED
+  INSPECTION_PENDING
+  INSPECTED
+  APPROVED
+  REJECTED
+  EXCHANGED
+  CLOSED
+}
+
+enum HuidStatus {
+  AVAILABLE
+  SOLD
+  RETURNED
+  REPAIR
+  MELT
+  ARCHIVED
+}
+
+// ==========================================
+// RFID MODULE MODELS & ENUMS
+// ==========================================
+
+enum RFIDTagStatus {
+  UNASSIGNED
+  ENCODED
+  ASSIGNED
+  ACTIVE
+  SUSPENDED
+  REPLACED
+  RETIRED
+}
+
+enum RFIDConnectionType {
+  NETWORK_TCP
+  HTTP_REST
+  WEBSOCKET
+  SERIAL_USB
+  MOCK_SIMULATOR
+}
+
+enum RFIDReaderStatus {
+  ONLINE
+  OFFLINE
+  ERROR
+  SCANNING
+  CALIBRATING
+}
+
+enum RFIDZoneType {
+  COUNTER
+  SHOWROOM
+  VAULT
+  SAFE
+  REPAIR_WORKSHOP
+  KARIGAR_DESK
+  PACKAGING
+  DISPATCH
+  RECEIVING
+  ENTRANCE_GATE
+}
+
+enum RFIDScanSessionType {
+  QUICK_SCAN
+  INVENTORY_AUDIT
+  ZONE_AUDIT
+  TRANSFER_DISPATCH
+  TRANSFER_RECEIVE
+  SAFE_AUDIT
+  BILLING_ASSIST
+  MANUAL_SCAN
+}
+
+enum RFIDScanStatus {
+  CREATED
+  SCANNING
+  REVIEW
+  APPROVED
+  CLOSED
+  CANCELLED
+}
+
+enum RFIDReconciliationStatus {
+  MATCHED
+  MISSING
+  UNEXPECTED
+  WRONG_ZONE
+  WRONG_BRANCH
+  STATUS_MISMATCH
+  UNASSIGNED
+  SOLD_DETECTED
+}
+
+enum RFIDExceptionType {
+  MISSING
+  UNEXPECTED
+  WRONG_ZONE
+  WRONG_BRANCH
+  STATUS_MISMATCH
+  SOLD_ITEM_DETECTED
+  UNASSIGNED_TAG
+  SECURITY_ALERT
+  HIGH_VALUE_ALERT
+}
+
+enum RFIDExceptionSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RFIDExceptionStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  DISMISSED
+}
+
+enum RFIDResolutionType {
+  ITEM_FOUND
+  LOCATION_UPDATED
+  TRANSFER_IN_PROGRESS
+  SALE_PENDING
+  RFID_TAG_REPLACED
+  FALSE_POSITIVE
+  MANUAL_CORRECTION
+  OTHER
+}
+
+model RFIDTag {
+  id            String        @id @default(cuid())
+  epc           String        @unique
+  tid           String?
+  status        RFIDTagStatus @default(UNASSIGNED)
+  productItemId Int?          @unique
+  branchId      Int
+  currentZoneId String?
+  lastSeenAt    DateTime?
+  lastReaderId  String?
+  lastAntenna   Int?
+  lastRssi      Float?
+  assignedAt    DateTime?
+  assignedById  Int?
+  retiredAt     DateTime?
+  retiredReason String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  productItem       ProductItem?            @relation(fields: [productItemId], references: [id])
+  branch            Branch                  @relation(fields: [branchId], references: [id])
+  currentZone       RFIDZone?               @relation(fields: [currentZoneId], references: [id])
+  assignedBy        User?                   @relation("AssignedBy", fields: [assignedById], references: [id])
+  lastReader        RFIDReader?             @relation(fields: [lastReaderId], references: [id])
+  readEvents        RFIDReadEvent[]
+  assignmentHistory RFIDAssignmentHistory[]
+  exceptions        RFIDException[]
+
+  @@index([branchId])
+  @@index([status])
+  @@index([currentZoneId])
+  @@index([lastSeenAt])
+}
+
+model RFIDReader {
+  id             String             @id @default(cuid())
+  readerCode     String             @unique
+  name           String
+  manufacturer   String             @default("Generic")
+  model          String?
+  ipAddress      String?
+  port           Int?               @default(5084)
+  connectionType RFIDConnectionType @default(NETWORK_TCP)
+  status         RFIDReaderStatus   @default(OFFLINE)
+  powerDbm       Float              @default(30.0)
+  firmware       String?
+  macAddress     String?
+  branchId       Int
+  zoneId         String?
+  lastHeartbeat  DateTime?
+  isMock         Boolean            @default(false)
+  metadata       Json?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  branch       Branch            @relation(fields: [branchId], references: [id])
+  zone         RFIDZone?         @relation(fields: [zoneId], references: [id])
+  antennas     RFIDAntenna[]
+  readEvents   RFIDReadEvent[]
+  scanSessions RFIDScanSession[]
+  tagsLastSeen RFIDTag[]
+
+  @@index([branchId])
+  @@index([status])
+  @@index([zoneId])
+}
+
+model RFIDAntenna {
+  id        String   @id @default(cuid())
+  readerId  String
+  antennaNo Int
+  name      String?
+  powerDbm  Float    @default(30.0)
+  gainDbi   Float    @default(6.0)
+  isEnabled Boolean  @default(true)
+  zoneId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reader     RFIDReader      @relation(fields: [readerId], references: [id], onDelete: Cascade)
+  zone       RFIDZone?       @relation(fields: [zoneId], references: [id])
+  readEvents RFIDReadEvent[]
+
+  @@unique([readerId, antennaNo])
+  @@index([readerId])
+  @@index([zoneId])
+}
+
+model RFIDZone {
+  id            String       @id @default(cuid())
+  code          String
+  name          String
+  type          RFIDZoneType @default(COUNTER)
+  branchId      Int
+  isSecureVault Boolean      @default(false)
+  description   String?
+  color         String       @default("gold")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  branch             Branch            @relation(fields: [branchId], references: [id])
+  readers            RFIDReader[]
+  antennas           RFIDAntenna[]
+  tags               RFIDTag[]
+  readEvents         RFIDReadEvent[]
+  scanSessions       RFIDScanSession[]
+  exceptionsExpected RFIDException[]   @relation("ExpectedZone")
+  exceptionsDetected RFIDException[]   @relation("DetectedZone")
+
+  @@unique([branchId, code])
+  @@index([branchId])
+}
+
+model RFIDScanSession {
+  id                  String              @id @default(cuid())
+  sessionNo           String              @unique
+  name                String
+  type                RFIDScanSessionType @default(INVENTORY_AUDIT)
+  status              RFIDScanStatus      @default(CREATED)
+  branchId            Int
+  zoneId              String?
+  readerId            String?
+  startedAt           DateTime?
+  endedAt             DateTime?
+  createdById         Int?
+  approvedById        Int?
+  totalExpected       Int                 @default(0)
+  totalDetected       Int                 @default(0)
+  matchedCount        Int                 @default(0)
+  missingCount        Int                 @default(0)
+  unexpectedCount     Int                 @default(0)
+  wrongZoneCount      Int                 @default(0)
+  wrongBranchCount    Int                 @default(0)
+  statusMismatchCount Int                 @default(0)
+  scopeFilter         Json?
+  notes               String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  branch       Branch            @relation(fields: [branchId], references: [id])
+  zone         RFIDZone?         @relation(fields: [zoneId], references: [id])
+  reader       RFIDReader?       @relation(fields: [readerId], references: [id])
+  createdBy    User?             @relation("ScanCreatedBy", fields: [createdById], references: [id])
+  approvedBy   User?             @relation("ScanApprovedBy", fields: [approvedById], references: [id])
+  readEvents   RFIDReadEvent[]
+  observations RFIDObservation[]
+  exceptions   RFIDException[]
+
+  @@index([branchId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model RFIDReadEvent {
+  id             String   @id @default(cuid())
+  epc            String
+  tid            String?
+  readerId       String
+  antennaId      String?
+  branchId       Int
+  zoneId         String?
+  scanSessionId  String?
+  rssi           Float    @default(-50.0)
+  readCount      Int      @default(1)
+  timestamp      DateTime @default(now())
+  frequency      Float?
+  phase          Float?
+  isDeduplicated Boolean  @default(false)
+
+  tag         RFIDTag?         @relation(fields: [epc], references: [epc])
+  reader      RFIDReader       @relation(fields: [readerId], references: [id])
+  antenna     RFIDAntenna?     @relation(fields: [antennaId], references: [id])
+  branch      Branch           @relation(fields: [branchId], references: [id])
+  zone        RFIDZone?        @relation(fields: [zoneId], references: [id])
+  scanSession RFIDScanSession? @relation(fields: [scanSessionId], references: [id], onDelete: Cascade)
+
+  @@index([epc])
+  @@index([scanSessionId])
+  @@index([readerId])
+  @@index([timestamp])
+  @@index([branchId])
+}
+
+model RFIDObservation {
+  id                   String                   @id @default(cuid())
+  scanSessionId        String
+  epc                  String
+  productItemId        Int?
+  reconciliationStatus RFIDReconciliationStatus @default(MATCHED)
+  expectedBranchId     Int?
+  expectedZoneId       String?
+  detectedBranchId     Int
+  detectedZoneId       String?
+  firstSeenAt          DateTime                 @default(now())
+  lastSeenAt           DateTime                 @default(now())
+  readCount            Int                      @default(1)
+  peakRssi             Float?
+  readerId             String?
+  antennaId            String?
+  confidenceScore      Float                    @default(1.0)
+  hasException         Boolean                  @default(false)
+
+  scanSession RFIDScanSession @relation(fields: [scanSessionId], references: [id], onDelete: Cascade)
+  productItem ProductItem?    @relation(fields: [productItemId], references: [id])
+
+  @@unique([scanSessionId, epc])
+  @@index([scanSessionId])
+  @@index([epc])
+  @@index([reconciliationStatus])
+}
+
+model RFIDException {
+  id                 String                @id @default(cuid())
+  exceptionNo        String                @unique
+  type               RFIDExceptionType
+  severity           RFIDExceptionSeverity @default(MEDIUM)
+  status             RFIDExceptionStatus   @default(OPEN)
+  scanSessionId      String?
+  productItemId      Int?
+  tagEpc             String
+  expectedBranchId   Int?
+  expectedZoneId     String?
+  detectedBranchId   Int?
+  detectedZoneId     String?
+  details            String?
+  investigationNotes String?
+  resolutionType     RFIDResolutionType?
+  resolutionNotes    String?
+  resolvedAt         DateTime?
+  resolvedById       Int?
+  authorizedById     Int?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  scanSession  RFIDScanSession? @relation(fields: [scanSessionId], references: [id], onDelete: SetNull)
+  productItem  ProductItem?     @relation(fields: [productItemId], references: [id])
+  tag          RFIDTag?         @relation(fields: [tagEpc], references: [epc])
+  resolvedBy   User?            @relation("ExceptionResolvedBy", fields: [resolvedById], references: [id])
+  authorizedBy User?            @relation("ExceptionAuthorizedBy", fields: [authorizedById], references: [id])
+  expectedZone RFIDZone?        @relation("ExpectedZone", fields: [expectedZoneId], references: [id])
+  detectedZone RFIDZone?        @relation("DetectedZone", fields: [detectedZoneId], references: [id])
+
+  @@index([status])
+  @@index([severity])
+  @@index([type])
+  @@index([scanSessionId])
+  @@index([tagEpc])
+  @@index([createdAt])
+}
+
+model RFIDAssignmentHistory {
+  id               String   @id @default(cuid())
+  tagId            String
+  epc              String
+  productItemId    Int?
+  action           String // ASSIGNED, REASSIGNED, SUSPENDED, REPLACED, RETIRED
+  oldProductItemId Int?
+  newProductItemId Int?
+  oldStatus        String?
+  newStatus        String?
+  reason           String?
+  performedById    Int?
+  authorizedById   Int?
+  createdAt        DateTime @default(now())
+
+  tag          RFIDTag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  productItem  ProductItem? @relation(fields: [productItemId], references: [id])
+  performedBy  User?        @relation("AssignmentPerformedBy", fields: [performedById], references: [id])
+  authorizedBy User?        @relation("AssignmentAuthorizedBy", fields: [authorizedById], references: [id])
+
+  @@index([tagId])
+  @@index([epc])
+  @@index([productItemId])
+  @@index([createdAt])
+}
+
+model RFIDSettings {
+  id                             String   @id @default(cuid())
+  branchId                       Int      @unique
+  rfidEnabled                    Boolean  @default(true)
+  defaultScanDurationSec         Int      @default(30)
+  deduplicationWindowMs          Int      @default(2000)
+  readerPollingIntervalMs        Int      @default(5000)
+  heartbeatTimeoutSec            Int      @default(30)
+  highValueThreshold             Float    @default(100000)
+  requireManagerAuthForReassign  Boolean  @default(true)
+  requireManagerAuthForRetire    Boolean  @default(true)
+  requireManagerAuthForSoldAlert Boolean  @default(true)
+  autoGenerateExceptions         Boolean  @default(true)
+  soundEffectsEnabled            Boolean  @default(true)
+  inAppAlertsEnabled             Boolean  @default(true)
+  mockReaderEnabled              Boolean  @default(true)
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// BACKUP & RESTORE SUBSYSTEM MODELS
+// ==========================================
+
+enum BackupType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  MANUAL
+  PRE_RESTORE_SAFETY
+  PRE_MIGRATION
+}
+
+enum BackupStatus {
+  QUEUED
+  RUNNING
+  COMPRESSING
+  ENCRYPTING
+  UPLOADING
+  VERIFYING
+  VERIFIED
+  FAILED
+  EXPIRED
+  RESTORING
+  RESTORED
+}
+
+enum BackupStorageType {
+  R2
+  S3_COMPATIBLE
+  AWS_S3
+  LOCAL_STORAGE
+}
+
+model BackupRecord {
+  id       String       @id @default(cuid())
+  backupId String       @unique // Human-friendly e.g. BKP-20260822-0100-XYZ
+  type     BackupType   @default(MANUAL)
+  status   BackupStatus @default(QUEUED)
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  durationMs  Int?
+
+  databaseProvider String  @default("PostgreSQL")
+  databaseName     String?
+
+  applicationVersion String  @default("v1.0.0")
+  prismaVersion      String?
+  latestMigration    String?
+  tablesCount        Int?
+  recordsCount       Int?
+
+  fileName        String
+  storageProvider BackupStorageType @default(R2)
+  storageBucket   String
+  storageKey      String
+
+  rawSize           BigInt? // Uncompressed size
+  fileSize          BigInt // Encrypted compressed size
+  checksum          String // SHA-256
+  checksumAlgorithm String  @default("SHA-256")
+
+  isEncrypted         Boolean @default(true)
+  encryptionAlgorithm String  @default("AES-256-GCM")
+
+  isVerified              Boolean   @default(false)
+  verificationStartedAt   DateTime?
+  verificationCompletedAt DateTime?
+  restoreTestedAt         DateTime?
+  restoreTestPassed       Boolean?
+
+  errorMessage String?
+  errorDetails Json?
+  retryCount   Int     @default(0)
+
+  createdById Int?
+  createdBy   User? @relation("BackupCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  events   Json? // Array of timeline events [{timestamp, stage, message}]
+  metadata Json? // Additional metadata (table counts, schema checksums, etc.)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  restoreAudits RestoreAudit[]
+
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@index([isVerified])
+}
+
+model BackupSettings {
+  id           Int     @id @default(1)
+  enabled      Boolean @default(true)
+  frequency    String  @default("DAILY") // DAILY, HOURLY, WEEKLY
+  scheduleTime String  @default("01:00") // HH:MM
+  timezone     String  @default("Asia/Kolkata")
+
+  retentionDaily   Int @default(30)
+  retentionWeekly  Int @default(12)
+  retentionMonthly Int @default(12)
+
+  storageProvider String  @default("r2")
+  storageBucket   String?
+
+  // Cloudflare R2 Credentials & Storage Config
+  r2AccountId       String?
+  r2BucketName      String? @default("moual-backup")
+  r2Endpoint        String?
+  r2AccessKeyId     String?
+  r2SecretAccessKey String?
+  r2Region          String? @default("auto")
+
+  // Local OS Filesystem Storage Config
+  localBackupPath String? @default("/MoualDB-Backups")
+  saveLocalCopy   Boolean @default(true)
+
+  // Connection status & telemetry
+  r2Connected    Boolean   @default(false)
+  r2LastTestedAt DateTime?
+  r2LatencyMs    Int?
+
+  requirePreRestoreBackup      Boolean @default(true)
+  require2FAForRestore         Boolean @default(true)
+  maintenanceModeDuringRestore Boolean @default(true)
+
+  lastSuccessfulBackupAt DateTime?
+  lastVerifiedBackupAt   DateTime?
+  nextScheduledBackupAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RestoreAudit {
+  id             String       @id @default(cuid())
+  restoreId      String       @unique // RESTORE-20260822-XYZ
+  backupRecordId String
+  backupRecord   BackupRecord @relation(fields: [backupRecordId], references: [id], onDelete: Cascade)
+
+  targetDatabaseType String // TEMPORARY, PRODUCTION
+  status             String // REQUESTED, PREVIEW_PASSED, PREVIEW_FAILED, IN_PROGRESS, COMPLETED, FAILED, ROLLED_BACK
+
+  isDryRun           Boolean @default(false)
+  preRestoreBackupId String? // ID of safety backup taken before production restore
+
+  migrationCompatibility Json? // { backupMigration, currentMigration, compatible, warnings }
+  validationResults      Json? // { connectionPassed, tablesPassed, constraintsPassed, recordCounts }
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  durationMs  Int?
+
+  requestedById  Int
+  requestedBy    User  @relation("RestoreRequestedBy", fields: [requestedById], references: [id])
+  authorizedById Int?
+  authorizedBy   User? @relation("RestoreAuthorizedBy", fields: [authorizedById], references: [id])
+
+  errorMessage String?
+  logs         Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([backupRecordId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SystemMaintenanceState {
+  id            Int       @id @default(1)
+  isMaintenance Boolean   @default(false)
+  reason        String?
+  startedAt     DateTime?
+  startedById   Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ==========================================
+// MULTI-PROVIDER TENANT-AWARE EMAIL SYSTEM
+// ==========================================
+
+model EmailSettings {
+  id          String  @id @default(cuid())
+  tenantId    String  @default("default-tenant")
+  branchId    Int? // null = global tenant default, number = branch specific override
+  isInherited Boolean @default(true)
+
+  // Provider Selection
+  provider String @default("ERP_MANAGED") // ERP_MANAGED, CUSTOM_SMTP, BREVO, RESEND, SES, GWORKSPACE, M365
+
+  // Custom SMTP Configuration (AES-256-GCM Encrypted)
+  smtpHost              String?
+  smtpPort              Int?    @default(587)
+  smtpEncryption        String? @default("STARTTLS") // STARTTLS, SSL, NONE
+  smtpUsername          String?
+  smtpPasswordEncrypted String?
+
+  // Direct Provider API Configuration (Optional)
+  providerApiKeyEncrypted String?
+
+  // Sender Identity & Branding
+  senderName      String? @default("Jewellery ERP")
+  senderEmail     String? @default("no-reply@jewelleryerp.com")
+  replyTo         String?
+  companyLogoUrl  String?
+  emailSignature  String?
+  businessAddress String?
+  phone           String?
+  website         String?
+  gstin           String?
+
+  // Auto Dispatch Preferences (Categorized JSON)
+  dispatchPreferences Json?
+
+  // Usage & Quota Telemetry
+  monthlyLimit Int @default(5000)
+  monthlyUsage Int @default(0)
+
+  // Verification State
+  lastVerifiedAt     DateTime?
+  verificationStatus String?   @default("PENDING") // VERIFIED, FAILED, PENDING
+  verificationError  String?
+  latencyMs          Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, branchId])
+  @@index([tenantId])
+  @@index([branchId])
+}
+
+model EmailJob {
+  id       String @id @default(cuid())
+  tenantId String @default("default-tenant")
+  branchId Int?
+
+  recipient   String
+  cc          String?
+  bcc         String?
+  templateId  String?
+  subject     String
+  bodyHtml    String? @db.Text
+  bodyText    String? @db.Text
+  attachments Json?
+  payload     Json?
+
+  provider    String // ERP_MANAGED, CUSTOM_SMTP, etc.
+  status      String @default("QUEUED") // QUEUED, SENDING, SENT, DELIVERED, FAILED, BOUNCED, CANCELLED
+  attempts    Int    @default(0)
+  maxAttempts Int    @default(3)
+
+  scheduledAt DateTime  @default(now())
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  failedAt    DateTime?
+
+  errorCode         String?
+  errorMessage      String?
+  providerMessageId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([createdAt])
+}
+
+model EmailAuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("default-tenant")
+  branchId  Int?
+  userId    Int?
+  userEmail String?
+  action    String // CONFIG_UPDATED, CREDENTIAL_REPLACED, TEST_EMAIL_SENT, PROVIDER_CHANGED, ALL_BRANCHES_APPLIED
+  details   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([createdAt])
+}
+
+// ==========================================
+// ENTERPRISE 2FA & SECURITY ACCESS CONTROL
+// ==========================================
+
+model UserSecurity {
+  id                      String    @id @default(cuid())
+  tenantId                String    @default("default-tenant")
+  userId                  Int       @unique
+  twoFactorEnabled        Boolean   @default(false)
+  twoFactorMethod         String    @default("TOTP") // TOTP, SMS_DLT
+  totpSecretEncrypted     String?
+  totpEnabledAt           DateTime?
+  failedTwoFactorAttempts Int       @default(0)
+  lockedUntil             DateTime?
+  lastTwoFactorVerifiedAt DateTime?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model RecoveryCode {
+  id        String    @id @default(cuid())
+  tenantId  String    @default("default-tenant")
+  userId    Int
+  codeHash  String
+  used      Boolean   @default(false)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([used])
+}
+
+model TenantSecurityPolicy {
+  id       String @id @default(cuid())
+  tenantId String @unique @default("default-tenant")
+
+  // 2FA Policies
+  twoFactorEnabled                 Boolean @default(false)
+  allowUserDisable2FA              Boolean @default(true)
+  require2FAAfterPasswordReset     Boolean @default(true)
+  require2FAForNewDevices          Boolean @default(false)
+  rememberTrustedDevice            Boolean @default(true)
+  trustedDeviceDurationDays        Int     @default(30)
+  twoFactorRoles                   Json? // Map of Role => "REQUIRED" | "OPTIONAL" | "DISABLED"
+  requireEnrollmentAfterFirstLogin Boolean @default(false)
+  enrollmentGracePeriodHours       Int     @default(24)
+  blockAccessUntilEnrolled         Boolean @default(false)
+
+  // TOTP Configuration
+  totpIssuer    String @default("MOUAL ERP")
+  totpAlgorithm String @default("SHA-1")
+  totpDigits    Int    @default(6)
+  totpPeriod    Int    @default(30)
+  totpTolerance Int    @default(1)
+
+  // reCAPTCHA Policies
+  recaptchaEnabled                Boolean @default(false)
+  recaptchaActions                Json? // { login: true, passwordReset: true, recovery: true }
+  recaptchaLoginThreshold         Float   @default(0.50)
+  recaptchaPasswordResetThreshold Float   @default(0.70)
+  recaptchaRecoveryThreshold      Float   @default(0.80)
+
+  // IP Whitelisting Policies
+  ipWhitelistEnabled Boolean @default(false)
+  ipWhitelistMode    String  @default("MONITOR_ONLY") // DISABLED, MONITOR_ONLY, RESTRICT_ADMIN_MANAGER, RESTRICT_ALL
+
+  // Login & Lockout Protection
+  maxLoginAttempts             Int     @default(5)
+  lockoutDurationMinutes       Int     @default(15)
+  progressiveLockout           Boolean @default(true)
+  rateLimitLogin               Boolean @default(true)
+  rateLimitPasswordReset       Boolean @default(true)
+  rateLimit2FA                 Boolean @default(true)
+  notifyAdminOnSuspiciousLogin Boolean @default(true)
+
+  // Session Security
+  sessionTimeoutMinutes              Int     @default(480) // 8 hours
+  idleTimeoutMinutes                 Int     @default(30)
+  maxConcurrentSessions              Int     @default(5)
+  requireStepUpAuth                  Boolean @default(true)
+  invalidateSessionsOnPasswordChange Boolean @default(true)
+  invalidateSessionsOn2FAReset       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model SecurityIntegrationConfig {
+  id       String @id @default(cuid())
+  tenantId String @unique @default("default-tenant")
+
+  // Google reCAPTCHA v3 Credentials (Encrypted Secret)
+  recaptchaSiteKey            String?
+  recaptchaSecretKeyEncrypted String?
+  recaptchaEnvironment        String    @default("PRODUCTION") // PRODUCTION, TEST
+  recaptchaStatus             String    @default("NOT_CONFIGURED") // CONNECTED, NOT_CONFIGURED, ERROR
+  recaptchaLastTestedAt       DateTime?
+
+  // IP Security & Proxy Setup
+  ipDetectionMode String   @default("AUTO") // AUTO, DIRECT, REVERSE_PROXY
+  trustedProxies  String[] @default([])
+  proxyHeader     String   @default("AUTO") // AUTO, X-Forwarded-For, CF-Connecting-IP, X-Real-IP
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model IpWhitelistRule {
+  id             String   @id @default(cuid())
+  tenantId       String   @default("default-tenant")
+  branchId       Int?
+  ipCidr         String
+  description    String
+  status         String   @default("ACTIVE") // ACTIVE, DISABLED
+  appliesToRoles String[] @default([]) // Empty = all roles
+  createdById    Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([status])
+}
+
+model SecurityAuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("default-tenant")
+  userId    Int?
+  userEmail String?
+  branchId  Int?
+  eventType String // LOGIN_SUCCESS, LOGIN_FAILED, LOGIN_BLOCKED, 2FA_ENABLED, IP_BLOCKED, etc.
+  action    String
+  success   Boolean
+  ipAddress String?
+  userAgent String?
+  reason    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([createdAt])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, userId, createdAt])
+  @@index([tenantId, eventType, createdAt])
+}
+
+model UserSessionRecord {
+  id               String   @id @default(cuid())
+  tenantId         String   @default("default-tenant")
+  userId           Int
+  sessionTokenHash String   @unique
+  device           String?
+  browser          String?
+  os               String?
+  ipAddress        String?
+  location         String?
+  lastActiveAt     DateTime @default(now())
+  expiresAt        DateTime
+  isRevoked        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([isRevoked])
+}
+
+model TrustedDevice {
+  id              String   @id @default(cuid())
+  tenantId        String   @default("default-tenant")
+  userId          Int
+  deviceTokenHash String   @unique
+  deviceName      String
+  browser         String?
+  ipAddress       String?
+  lastUsedAt      DateTime @default(now())
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model SecurityChallenge {
+  id             String   @id @default(cuid())
+  challengeToken String   @unique
+  tenantId       String   @default("default-tenant")
+  userId         Int
+  purpose        String   @default("2FA_LOGIN") // 2FA_LOGIN, STEP_UP
+  expiresAt      DateTime
+  used           Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([challengeToken])
+  @@index([used])
+}
+
+// ==========================================
+// ENTERPRISE AUDIT & ACTIVITY TRACKING
+// ==========================================
+
+model EnterpriseAuditLog {
+  id                     String   @id @default(cuid())
+  tenantId               String   @default("default-tenant")
+  userId                 Int?
+  userNameSnapshot       String?
+  roleSnapshot           String?
+  branchId               Int?
+  branchNameSnapshot     String?
+  module                 String // BILLING, INVENTORY, METAL, PAYMENTS, USERS, SECURITY, SETTINGS, etc.
+  action                 String // BILLING.INVOICE_CREATED, INVENTORY.STOCK_ADJUSTED, etc.
+  entityType             String? // INVOICE, PRODUCT, METAL_EXCHANGE, USER, etc.
+  entityId               String?
+  entityDisplayName      String?
+  description            String?
+  before                 Json?
+  after                  Json?
+  changedFields          String[] @default([])
+  reason                 String?
+  approvalId             String?
+  approvedById           Int?
+  approvedByNameSnapshot String?
+  ipAddress              String?
+  userAgent              String?
+  deviceInfo             String?
+  requestId              String?
+  correlationId          String?
+  status                 String   @default("SUCCESS") // SUCCESS, FAILED, BLOCKED, DENIED, PENDING
+  failureReason          String?
+  severity               String   @default("INFO") // INFO, LOW, MEDIUM, HIGH, CRITICAL
+  isSecurityEvent        Boolean  @default(false)
+  metadata               Json?
+  createdAt              DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, userId, createdAt])
+  @@index([tenantId, module, createdAt])
+  @@index([tenantId, action, createdAt])
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, branchId, createdAt])
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, severity, createdAt])
+  @@index([tenantId, ipAddress, createdAt])
+  @@index([tenantId, correlationId])
+}
+
+model TechnicalRequestLog {
+  id               String   @id @default(cuid())
+  tenantId         String   @default("default-tenant")
+  requestId        String
+  method           String
+  route            String
+  statusCode       Int
+  responseTimeMs   Int
+  ipAddress        String?
+  userId           Int?
+  userNameSnapshot String?
+  userAgent        String?
+  createdAt        DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, route, createdAt])
+  @@index([tenantId, statusCode, createdAt])
+  @@index([tenantId, userId, createdAt])
+}
+
+model AuditRetentionPolicy {
+  id                        String   @id @default(cuid())
+  tenantId                  String   @unique @default("default-tenant")
+  businessLogRetentionDays  Int      @default(365)
+  technicalLogRetentionDays Int      @default(30)
+  autoArchiveEnabled        Boolean  @default(false)
+  highRiskAlertEmail        String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model GoldRateHistoryLedger {
+  id             String   @id @default(cuid())
+  branchId       Int?
+  source         String   @default("LIVE_API") // "LIVE_API" | "MANUAL_OVERRIDE"
+  rate24k        Float
+  rate22k        Float
+  rate18k        Float
+  rate14k        Float
+  silverRate     Float?
+  xauUsd         Float?
+  usdInr         Float?
+  changeFromPrev Float?
+  notes          String?
+  rawMetadata    Json?
+  recordedAt     DateTime @default(now())
+
+  branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@index([branchId, recordedAt])
+  @@index([source, recordedAt])
+  @@index([recordedAt])
+}
+
+// ==========================================
+// ENTERPRISE RETURN & EXCHANGE ENGINE MODELS
+// ==========================================
+
+enum ReturnExchangeType {
+  RETURN
+  EXCHANGE
+}
+
+enum ReturnExchangeStatus {
+  DRAFT
+  REQUESTED
+  INSPECTION_PENDING
+  INSPECTED
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  PROCESSING
+  CREDIT_NOTE_CREATED
+  REFUND_PENDING
+  COMPLETED
+  CLOSED
+  CANCELLED
+}
+
+enum ItemCondition {
+  GOOD
+  MINOR_DAMAGE
+  MAJOR_DAMAGE
+  ALTERED
+  MISSING_STONE
+  MISSING_TAG
+  SUSPECTED_SUBSTITUTION
+  OTHER
+}
+
+enum ItemInventoryRoute {
+  RETURNED_HOLD
+  AVAILABLE
+  REPAIR
+  MELT
+  QUARANTINE
+}
+
+enum RefundMethod {
+  CASH
+  UPI
+  CARD
+  BANK_TRANSFER
+  STORE_CREDIT
+  CUSTOMER_WALLET
+  EXCHANGE_OFFSET
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum TaxDocumentType {
+  INVOICE
+  CREDIT_NOTE
+  DEBIT_NOTE
+}
+
+enum TaxDocReportingStatus {
+  PENDING
+  REPORTED
+  FAILED
+}
+
+enum OldGoldSettlementMode {
+  PHYSICAL_RETURN
+  ORIGINAL_VALUE_REFUND
+  WALLET_CREDIT
+  EXCHANGE_ADJUSTMENT
+}
+
+enum PhotoCategory {
+  FRONT
+  BACK
+  SIDE
+  TAG_OR_HALLMARK
+  DETAIL
+  CUSTOM
+}
+
+model ReturnExchangePolicySettings {
+  id                              String   @id @default(cuid())
+  branchId                        Int      @unique
+  returnWindowDays                Int      @default(3)
+  exchangeWindowDays              Int      @default(7)
+  minimumReturnPhotoCount         Int      @default(2)
+  maximumReturnPhotoCount         Int      @default(5)
+  requireBarcodeVerification      Boolean  @default(true)
+  requireWeightVerification       Boolean  @default(true)
+  requireHuidVerification         Boolean  @default(false)
+  requireRfidVerification         Boolean  @default(false)
+  requirePhotoVerification        Boolean  @default(true)
+  weightToleranceGrams            Float    @default(0.010)
+  allowStoreCredit                Boolean  @default(true)
+  allowCashRefund                 Boolean  @default(true)
+  allowOriginalPaymentRefund      Boolean  @default(true)
+  allowOldGoldPhysicalReturn      Boolean  @default(true)
+  allowOldGoldMonetarySettlement  Boolean  @default(true)
+  allowPolicyOverride             Boolean  @default(true)
+  managerApprovalRequired         Boolean  @default(true)
+  highValueApprovalThreshold      Float    @default(100000)
+  requireStepUpAuthAboveThreshold Boolean  @default(true)
+  makingChargeReturnPolicy        String   @default("FULL") // "FULL" | "PARTIAL" | "NON_REFUNDABLE"
+  stoneChargeReturnPolicy         String   @default("FULL") // "FULL" | "PARTIAL" | "NON_REFUNDABLE"
+  hallmarkChargeReturnPolicy      String   @default("FULL") // "FULL" | "PARTIAL" | "NON_REFUNDABLE"
+  damageDeductionPolicy           String   @default("NONE") // "NONE" | "FIXED" | "PERCENTAGE" | "MANAGER_APPROVED"
+  taxAdjustmentStatutoryDays      Int      @default(180)
+  createdAt                       DateTime @default(now())
+  updatedAt                       DateTime @updatedAt
+  branch                          Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+}
+
+model ReturnExchangeTransaction {
+  id                   String               @id @default(cuid())
+  transactionNumber    String               @unique // RET/26-27/000031 or EX/26-27/000018
+  transactionType      ReturnExchangeType
+  branchId             Int
+  customerId           Int
+  originalInvoiceId    Int
+  replacementInvoiceId Int? // For exchanges: newly generated Invoice ID
+  status               ReturnExchangeStatus @default(REQUESTED)
+
+  requestedById Int?
+  inspectedById Int?
+  approvedById  Int?
+  processedById Int?
+
+  policySnapshot      Json? // Snapshot of branch policy applied
+  eligibilitySnapshot Json? // Snapshot of eligibility calculation result
+  financialSnapshot   Json? // Original values, deductions, tax reversal, refund breakdown
+
+  reason          String?
+  notes           String?
+  rejectionReason String?
+
+  policyOverride Boolean @default(false)
+  overrideReason String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  inspectedAt DateTime?
+  approvedAt  DateTime?
+  completedAt DateTime?
+  closedAt    DateTime?
+
+  branch             Branch   @relation(fields: [branchId], references: [id])
+  customer           Customer @relation(fields: [customerId], references: [id])
+  originalInvoice    Invoice  @relation("OriginalInvoiceReturns", fields: [originalInvoiceId], references: [id])
+  replacementInvoice Invoice? @relation("ReplacementInvoiceExchanges", fields: [replacementInvoiceId], references: [id])
+
+  requestedBy User? @relation("RequestedReturns", fields: [requestedById], references: [id])
+  inspectedBy User? @relation("InspectedReturns", fields: [inspectedById], references: [id])
+  approvedBy  User? @relation("ApprovedReturns", fields: [approvedById], references: [id])
+  processedBy User? @relation("ProcessedReturns", fields: [processedById], references: [id])
+
+  items              ReturnExchangeItem[]
+  taxDocuments       TaxDocument[]
+  refundTransactions RefundTransaction[]
+  oldGoldSettlements OldGoldSettlement[]
+
+  @@index([transactionNumber])
+  @@index([branchId])
+  @@index([customerId])
+  @@index([originalInvoiceId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ReturnExchangeItem {
+  id                    String             @id @default(cuid())
+  transactionId         String
+  originalInvoiceItemId Int
+  originalProductItemId Int
+  requestedAction       ReturnExchangeType
+  quantity              Int                @default(1)
+
+  // Historical Values Snapshot from original InvoiceItem
+  originalValuesSnapshot Json // productCode, barcode, huid, gsWeight, ntWeight, purity, metalRate, metalValue, makingAmount, stoneCharge, discount, taxableValue, cgst, sgst, igst, totalAfterTax
+
+  // Returned & Measured Values
+  returnedValues Json? // measuredGrossWeight, measuredNetWeight, measuredPurity, deductionAmount, netRefundAmount
+
+  condition      ItemCondition        @default(GOOD)
+  inventoryRoute ItemInventoryRoute   @default(RETURNED_HOLD)
+  returnReason   String?
+  status         ReturnExchangeStatus @default(REQUESTED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transaction         ReturnExchangeTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  originalInvoiceItem InvoiceItem               @relation(fields: [originalInvoiceItemId], references: [id])
+  originalProductItem ProductItem               @relation(fields: [originalProductItemId], references: [id])
+
+  inspection ReturnInspection?
+  photos     ReturnItemPhoto[]
+
+  @@index([transactionId])
+  @@index([originalInvoiceItemId])
+  @@index([originalProductItemId])
+}
+
+model ReturnItemPhoto {
+  id                   String        @id @default(cuid())
+  returnExchangeItemId String
+  photoCategory        PhotoCategory @default(DETAIL)
+  storageUrl           String
+  storageKey           String?
+  mimeType             String        @default("image/jpeg")
+  sizeBytes            Int?
+  sha256Hash           String?
+  uploadedById         Int?
+  uploadedAt           DateTime      @default(now())
+
+  item       ReturnExchangeItem @relation(fields: [returnExchangeItemId], references: [id], onDelete: Cascade)
+  uploadedBy User?              @relation("ReturnPhotoUploader", fields: [uploadedById], references: [id])
+
+  @@index([returnExchangeItemId])
+}
+
+model ReturnInspection {
+  id              String  @id @default(cuid())
+  itemId          String  @unique
+  barcodeVerified Boolean @default(false)
+  weightVerified  Boolean @default(false)
+  purityVerified  Boolean @default(false)
+  huidVerified    Boolean @default(false)
+  rfidVerified    Boolean @default(false)
+  stoneVerified   Boolean @default(false)
+  photoVerified   Boolean @default(false)
+
+  measuredGrossWeight Float
+  measuredNetWeight   Float
+  measuredPurity      Float
+
+  damageDetected    Boolean       @default(false)
+  damageDescription String?
+  condition         ItemCondition @default(GOOD)
+  inspectionNotes   String?
+
+  inspectedById Int?
+  inspectedAt   DateTime @default(now())
+
+  item        ReturnExchangeItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  inspectedBy User?              @relation("InspectionInspector", fields: [inspectedById], references: [id])
+
+  @@index([itemId])
+}
+
+model TaxDocument {
+  id             String          @id @default(cuid())
+  documentNumber String          @unique // CN/26-27/000122 or DN/26-27/000005
+  financialYear  String // 26-27
+  documentType   TaxDocumentType
+  issueDate      DateTime        @default(now())
+
+  branchId              Int
+  customerId            Int
+  transactionId         String?
+  originalInvoiceId     Int
+  originalInvoiceNumber String
+  originalInvoiceDate   DateTime
+
+  supplierSnapshot  Json // name, gstin, address, state, stateCode, phone, email
+  recipientSnapshot Json // name, gstin, address, state, mobile
+  recipientGstin    String?
+  placeOfSupply     String
+
+  reason       String?
+  taxableValue Float
+  cgstAmount   Float   @default(0)
+  sgstAmount   Float   @default(0)
+  igstAmount   Float   @default(0)
+  cessAmount   Float   @default(0)
+  totalTax     Float
+  totalAmount  Float
+
+  status                 String                @default("ISSUED") // DRAFT, ISSUED, CANCELLED
+  reportingStatus        TaxDocReportingStatus @default(PENDING)
+  reportingReference     String?
+  reportingFailureReason String?
+  pdfUrl                 String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branch          Branch                     @relation(fields: [branchId], references: [id])
+  customer        Customer                   @relation(fields: [customerId], references: [id])
+  transaction     ReturnExchangeTransaction? @relation(fields: [transactionId], references: [id])
+  originalInvoice Invoice                    @relation("InvoiceTaxDocuments", fields: [originalInvoiceId], references: [id])
+
+  @@index([documentNumber])
+  @@index([branchId])
+  @@index([customerId])
+  @@index([originalInvoiceId])
+  @@index([financialYear])
+}
+
+model RefundTransaction {
+  id               String       @id @default(cuid())
+  refundNumber     String       @unique // REF/26-27/000044
+  transactionId    String
+  customerId       Int
+  amount           Float
+  method           RefundMethod
+  paymentReference String?
+  status           RefundStatus @default(PENDING)
+
+  requestedById Int?
+  approvedById  Int?
+  processedById Int?
+
+  processedAt   DateTime?
+  failureReason String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  transaction ReturnExchangeTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  customer    Customer                  @relation(fields: [customerId], references: [id])
+  requestedBy User?                     @relation("RefundRequester", fields: [requestedById], references: [id])
+  approvedBy  User?                     @relation("RefundApprover", fields: [approvedById], references: [id])
+  processedBy User?                     @relation("RefundProcessor", fields: [processedById], references: [id])
+
+  @@index([refundNumber])
+  @@index([transactionId])
+  @@index([customerId])
+  @@index([status])
+}
+
+model OldGoldSettlement {
+  id                          String                @id @default(cuid())
+  transactionId               String
+  originalMetalExchangeItemId String?
+  originalWeight              Float
+  originalPurity              Float
+  originalFineWeight          Float
+  originalRate                Float
+  originalValuation           Float
+  settlementMode              OldGoldSettlementMode
+  physicalReturnAvailable     Boolean               @default(false)
+  physicalReturnProcessed     Boolean               @default(false)
+  monetarySettlement          Float?
+  walletSettlement            Float?
+  notes                       String?
+  approvedById                Int?
+  createdAt                   DateTime              @default(now())
+  updatedAt                   DateTime              @updatedAt
+
+  transaction       ReturnExchangeTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  metalExchangeItem MetalExchangeItem?        @relation(fields: [originalMetalExchangeItemId], references: [id])
+  approvedBy        User?                     @relation("OldGoldSettlementApprover", fields: [approvedById], references: [id])
+
+  @@index([transactionId])
+  @@index([originalMetalExchangeItemId])
+}
+
+// ==========================================
+// UNIFIED VERIFICATION & APPROVAL ENGINE
+// ==========================================
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ESCALATED
+  CANCELLED
+  EXPIRED
+}
+
+enum VerificationActionType {
+  HIGH_VALUE_PURCHASE
+  RATE_OVERRIDE
+  WEIGHT_DISCREPANCY
+  SUPPLIER_CHANGE
+  PAYMENT_THRESHOLD
+  CASH_PAYMENT_THRESHOLD
+  PURCHASE_CANCEL
+  PURCHASE_RETURN
+  CREDIT_NOTE
+  DEBIT_NOTE
+  GST_ADJUSTMENT
+  GST_PERIOD_LOCK
+  METAL_TRANSFER
+  MANUAL_LEDGER_ADJUSTMENT
+  OTHER
+}
+
+model VerificationRequest {
+  id            String                 @id @default(cuid())
+  requestNumber String                 @unique // VR-2026-00001
+  tenantId      String                 @default("default-tenant")
+  branchId      Int
+  actionType    VerificationActionType
+  title         String
+  description   String?
+  entityType    String // PURCHASE_BOOKING, PURCHASE_INVOICE, METAL_RECEIPT, PAYMENT, RETURN, etc.
+  entityId      String
+  entityNumber  String?
+  amount        Float?
+  requiredRole  String                 @default("MANAGER") // MANAGER, ADMIN, SUPER_ADMIN
+  status        VerificationStatus     @default(PENDING)
+  reason        String?
+  riskLevel     String                 @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+
+  requestedById Int
+  requestedBy   User @relation("VerificationRequestedBy", fields: [requestedById], references: [id])
+
+  resolvedById    Int?
+  resolvedBy      User?     @relation("VerificationResolvedBy", fields: [resolvedById], references: [id])
+  resolvedAt      DateTime?
+  resolutionNotes String?
+
+  branch    Branch                 @relation(fields: [branchId], references: [id])
+  items     VerificationItem[]
+  approvals VerificationApproval[]
+  audits    VerificationAudit[]
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([branchId])
+  @@index([status])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model VerificationItem {
+  id                    String              @id @default(cuid())
+  verificationRequestId String
+  request               VerificationRequest @relation(fields: [verificationRequestId], references: [id], onDelete: Cascade)
+  itemKey               String // RATE, GROSS_WEIGHT, FINE_WEIGHT, AMOUNT, SUPPLIER, etc.
+  label                 String
+  expectedValue         String
+  actualValue           String
+  difference            String?
+  isFlagged             Boolean             @default(false)
+  notes                 String?
+  createdAt             DateTime            @default(now())
+
+  @@index([verificationRequestId])
+}
+
+model VerificationApproval {
+  id                    String              @id @default(cuid())
+  verificationRequestId String
+  request               VerificationRequest @relation(fields: [verificationRequestId], references: [id], onDelete: Cascade)
+  approverId            Int
+  approver              User                @relation("VerificationApprover", fields: [approverId], references: [id])
+  decision              VerificationStatus // APPROVED, REJECTED, ESCALATED
+  decisionNotes         String?
+  escalatedToRole       String?
+  pinVerified           Boolean             @default(true)
+  stepUpTokenUsed       String?
+  ipAddress             String?
+  userAgent             String?
+  createdAt             DateTime            @default(now())
+
+  @@index([verificationRequestId])
+  @@index([approverId])
+}
+
+model VerificationAudit {
+  id                    String              @id @default(cuid())
+  verificationRequestId String
+  request               VerificationRequest @relation(fields: [verificationRequestId], references: [id], onDelete: Cascade)
+  actorId               Int?
+  actor                 User?               @relation("VerificationAuditActor", fields: [actorId], references: [id])
+  action                String // CREATED, VIEWED, ESCALATED, APPROVED, REJECTED, OVERRIDDEN
+  details               String?
+  metadata              Json?
+  ipAddress             String?
+  createdAt             DateTime            @default(now())
+
+  @@index([verificationRequestId])
+}
+
+// ==========================================
+// BULLION & SUPPLIER MASTER
+// ==========================================
+
+enum BullionSupplierType {
+  BULLION_DEALER
+  REFINERY
+  WHOLESALE_SUPPLIER
+  BANK
+  KARIGAR_SUPPLIER
+  OTHER
+}
+
+enum SupplierGSTStatus {
+  ACTIVE
+  CANCELLED
+  SUSPENDED
+  UNREGISTERED
+  COMPOSITION
+}
+
+model BullionSupplier {
+  id            String              @id @default(cuid())
+  code          String              @unique // SUP-001
+  businessName  String
+  legalName     String?
+  gstin         String?
+  pan           String?
+  supplierType  BullionSupplierType @default(BULLION_DEALER)
+  contactPerson String?
+  phone         String
+  email         String?
+  address       String
+  city          String
+  state         String
+  stateCode     String              @default("19") // 19 = West Bengal default
+  pincode       String
+  country       String              @default("India")
+
+  bankName      String?
+  accountNumber String?
+  ifscCode      String?
+  branchName    String?
+
+  paymentTermsDays     Int               @default(0) // 0 = immediate
+  creditLimit          Float             @default(0)
+  gstStatus            SupplierGSTStatus @default(ACTIVE)
+  defaultPlaceOfSupply String?
+  isActive             Boolean           @default(true)
+
+  openingPayable         Float @default(0)
+  currentPayable         Float @default(0)
+  totalPurchasedValue    Float @default(0)
+  totalGoldPurchasedGm   Float @default(0)
+  totalSilverPurchasedGm Float @default(0)
+
+  branchId Int?
+  branch   Branch? @relation(fields: [branchId], references: [id])
+
+  bookings      PurchaseBooking[]
+  invoices      PurchaseInvoice[]
+  payments      PurchasePayment[]
+  metalReceipts PurchaseMetalReceipt[]
+  returns       PurchaseReturn[]
+  creditNotes   PurchaseCreditNote[]
+  debitNotes    PurchaseDebitNote[]
+  ledgerEntries SupplierLedgerEntry[]
+  documents     PurchaseDocument[]
+  gstRecords    PurchaseGSTRecord[]
+
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([gstin])
+  @@index([phone])
+  @@index([isActive])
+}
+
+enum SupplierLedgerEntryType {
+  PURCHASE_INVOICE
+  PAYMENT
+  ADVANCE
+  CREDIT_NOTE
+  DEBIT_NOTE
+  RETURN
+  ADJUSTMENT
+  OPENING_BALANCE
+}
+
+model SupplierLedgerEntry {
+  id         String                  @id @default(cuid())
+  supplierId String
+  supplier   BullionSupplier         @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  branchId   Int
+  entryType  SupplierLedgerEntryType
+  debit      Float                   @default(0) // Payments, Credit Notes reduce payable
+  credit     Float                   @default(0) // Invoices, Debit Notes increase payable
+  balance    Float                   @default(0) // Running balance
+
+  referenceType   String // PURCHASE_INVOICE, PURCHASE_PAYMENT, CREDIT_NOTE, DEBIT_NOTE, RETURN
+  referenceId     String?
+  documentNumber  String?
+  description     String
+  transactionDate DateTime @default(now())
+  transactionAt   DateTime @default(now())
+
+  createdById Int?
+  createdBy   User?    @relation("SupplierLedgerCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([supplierId, transactionDate])
+  @@index([branchId])
+  @@index([referenceType, referenceId])
+}
+
+// ==========================================
+// PURCHASE BOOKINGS & RATES
+// ==========================================
+
+enum PurchaseBookingStatus {
+  DRAFT
+  PENDING_VERIFICATION
+  VERIFIED
+  BOOKED
+  PARTIALLY_RECEIVED
+  FULLY_RECEIVED
+  CANCELLED
+  CLOSED
+}
+
+enum BookingPaymentStatus {
+  PAYMENT_PENDING
+  PARTIAL_PAYMENT
+  FULLY_PAID
+}
+
+enum BookingMetalReceiptStatus {
+  PENDING
+  PARTIALLY_RECEIVED
+  FULLY_RECEIVED
+}
+
+enum MetalCategory {
+  GOLD_24K
+  GOLD_22K
+  GOLD_18K
+  GOLD_14K
+  SILVER_999
+  SILVER_925
+  PLATINUM_950
+  OTHER
+}
+
+enum RateSourceType {
+  LIVE_MCX
+  SUPPLIER_FIXED
+  MANUAL_OVERRIDE
+  IBJA_BENCHMARK
+}
+
+model PurchaseBooking {
+  id            String          @id @default(cuid())
+  bookingNumber String          @unique // PB-2026-00001
+  supplierId    String
+  supplier      BullionSupplier @relation(fields: [supplierId], references: [id])
+  branchId      Int
+  branch        Branch          @relation(fields: [branchId], references: [id])
+
+  bookingDate         DateTime  @default(now())
+  transactionAt       DateTime  @default(now())
+  expectedReceiptDate DateTime?
+
+  metalCategory MetalCategory @default(GOLD_24K)
+  purityPercent Float         @default(99.50)
+  grossWeight   Float // grams
+  fineWeight    Float // pure weight
+
+  marketRate     Float // live rate per gram
+  bookingRate    Float // agreed rate per gram
+  effectiveRate  Float // final rate after adjustments
+  rateSource     RateSourceType @default(LIVE_MCX)
+  rateTimestamp  DateTime       @default(now())
+  isRateLocked   Boolean        @default(true)
+  isRateOverride Boolean        @default(false)
+  overrideReason String?
+  overrideUserId Int?
+
+  taxableValue Float
+  estimatedGst Float @default(0)
+  totalAmount  Float
+
+  paidAmount     Float @default(0)
+  balancePayment Float @default(0)
+
+  receivedGrossWeight Float @default(0)
+  receivedFineWeight  Float @default(0)
+  pendingGrossWeight  Float @default(0)
+
+  status             PurchaseBookingStatus     @default(BOOKED)
+  paymentStatus      BookingPaymentStatus      @default(PAYMENT_PENDING)
+  metalReceiptStatus BookingMetalReceiptStatus @default(PENDING)
+
+  verificationId String?
+  notes          String?
+
+  createdById  Int?
+  createdBy    User? @relation("PurchaseBookingCreatedBy", fields: [createdById], references: [id])
+  verifiedById Int?
+  verifiedBy   User? @relation("PurchaseBookingVerifiedBy", fields: [verifiedById], references: [id])
+
+  invoices      PurchaseInvoice[]
+  payments      PurchasePayment[]
+  metalReceipts PurchaseMetalReceipt[]
+  rateSnapshots PurchaseRateSnapshot[]
+  documents     PurchaseDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookingNumber])
+  @@index([supplierId])
+  @@index([branchId])
+  @@index([status])
+  @@index([bookingDate])
+}
+
+model PurchaseRateSnapshot {
+  id           String          @id @default(cuid())
+  bookingId    String
+  booking      PurchaseBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  marketRate   Float
+  supplierRate Float
+  finalRate    Float
+  source       String          @default("LIVE_API")
+  timestamp    DateTime        @default(now())
+  capturedById Int?
+  metadata     Json?
+  createdAt    DateTime        @default(now())
+
+  @@index([bookingId])
+}
+
+// ==========================================
+// PURCHASE INVOICES & ITEMS
+// ==========================================
+
+enum PurchaseInvoiceStatus {
+  DRAFT
+  PENDING_VERIFICATION
+  VERIFIED
+  POSTED
+  CANCELLED
+}
+
+enum PurchasePaymentStatusEnum {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
+
+model PurchaseInvoice {
+  id                    String           @id @default(cuid())
+  invoiceNumber         String           @unique // PUR-2026-00001
+  supplierInvoiceNumber String
+  supplierId            String
+  supplier              BullionSupplier  @relation(fields: [supplierId], references: [id])
+  branchId              Int
+  branch                Branch           @relation(fields: [branchId], references: [id])
+  bookingId             String?
+  booking               PurchaseBooking? @relation(fields: [bookingId], references: [id])
+
+  invoiceDate     DateTime @default(now())
+  transactionAt   DateTime @default(now())
+  placeOfSupply   String   @default("West Bengal (19)")
+  isReverseCharge Boolean  @default(false)
+  isInterState    Boolean  @default(false)
+
+  totalGrossWeight Float // grams
+  totalFineWeight  Float // pure metal
+
+  taxableValue Float
+  cgstRate     Float @default(1.5)
+  sgstRate     Float @default(1.5)
+  igstRate     Float @default(0)
+  cgstAmount   Float @default(0)
+  sgstAmount   Float @default(0)
+  igstAmount   Float @default(0)
+  cessAmount   Float @default(0)
+  roundOff     Float @default(0)
+  invoiceTotal Float
+
+  paidAmount    Float @default(0)
+  balanceAmount Float @default(0)
+
+  paymentStatus      PurchasePaymentStatusEnum @default(UNPAID)
+  metalReceiptStatus BookingMetalReceiptStatus @default(PENDING)
+  itcStatus          ITCReconciliationStatus   @default(NOT_RECONCILED)
+  status             PurchaseInvoiceStatus     @default(POSTED)
+
+  verificationId String?
+  notes          String?
+
+  createdById Int?
+  createdBy   User? @relation("PurchaseInvoiceCreatedBy", fields: [createdById], references: [id])
+
+  items         PurchaseInvoiceItem[]
+  payments      PurchasePayment[]
+  metalReceipts PurchaseMetalReceipt[]
+  returns       PurchaseReturn[]
+  creditNotes   PurchaseCreditNote[]
+  debitNotes    PurchaseDebitNote[]
+  gstRecords    PurchaseGSTRecord[]
+  documents     PurchaseDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([supplierId, supplierInvoiceNumber])
+  @@index([invoiceNumber])
+  @@index([supplierId])
+  @@index([branchId])
+  @@index([status])
+  @@index([invoiceDate])
+}
+
+model PurchaseInvoiceItem {
+  id            String          @id @default(cuid())
+  invoiceId     String
+  invoice       PurchaseInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  hsnCode       String          @default("7108")
+  description   String
+  metalCategory MetalCategory   @default(GOLD_24K)
+  purityPercent Float           @default(99.50)
+  grossWeight   Float
+  netWeight     Float
+  fineWeight    Float
+  ratePerGram   Float
+  taxableValue  Float
+  cgstAmount    Float           @default(0)
+  sgstAmount    Float           @default(0)
+  igstAmount    Float           @default(0)
+  totalAmount   Float
+  createdAt     DateTime        @default(now())
+
+  @@index([invoiceId])
+}
+
+// ==========================================
+// PURCHASE PAYMENTS & CASH FLOW
+// ==========================================
+
+enum PurchasePaymentType {
+  ADVANCE
+  INVOICE_PAYMENT
+  SETTLEMENT
+  REFUND
+  ADJUSTMENT
+}
+
+enum ChequeStatus {
+  ISSUED
+  DEPOSITED
+  CLEARED
+  BOUNCED
+  CANCELLED
+}
+
+enum PaymentTxnStatus {
+  PENDING
+  VERIFIED
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+model PurchasePayment {
+  id                String           @id @default(cuid())
+  paymentNumber     String           @unique // PAY-2026-00001
+  supplierId        String
+  supplier          BullionSupplier  @relation(fields: [supplierId], references: [id])
+  branchId          Int
+  branch            Branch           @relation(fields: [branchId], references: [id])
+  purchaseInvoiceId String?
+  invoice           PurchaseInvoice? @relation(fields: [purchaseInvoiceId], references: [id])
+  purchaseBookingId String?
+  booking           PurchaseBooking? @relation(fields: [purchaseBookingId], references: [id])
+
+  amount        Float
+  paymentMethod PaymentMethod       @default(NEFT)
+  paymentType   PurchasePaymentType @default(INVOICE_PAYMENT)
+
+  referenceNumber String?
+  chequeNumber    String?
+  chequeDate      DateTime?
+  chequeStatus    ChequeStatus?
+  bankName        String?
+  transactionId   String?
+
+  paymentDate   DateTime         @default(now())
+  transactionAt DateTime         @default(now())
+  status        PaymentTxnStatus @default(COMPLETED)
+
+  idempotencyKey String? @unique
+  verificationId String?
+  notes          String?
+
+  createdById  Int?
+  createdBy    User? @relation("PurchasePaymentCreatedBy", fields: [createdById], references: [id])
+  verifiedById Int?
+  verifiedBy   User? @relation("PurchasePaymentVerifiedBy", fields: [verifiedById], references: [id])
+
+  documents PurchaseDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([paymentNumber])
+  @@index([supplierId])
+  @@index([branchId])
+  @@index([paymentDate])
+  @@index([status])
+}
+
+// ==========================================
+// PHYSICAL METAL RECEIVING & TOLERANCE
+// ==========================================
+
+enum MetalReceiptStatusEnum {
+  RECEIVED
+  PARTIALLY_RECEIVED
+  REJECTED
+  VERIFIED
+}
+
+model PurchaseMetalReceipt {
+  id                String           @id @default(cuid())
+  receiptNumber     String           @unique // GRN-2026-00001
+  supplierId        String
+  supplier          BullionSupplier  @relation(fields: [supplierId], references: [id])
+  receivingBranchId Int
+  branch            Branch           @relation(fields: [receivingBranchId], references: [id])
+  purchaseInvoiceId String?
+  invoice           PurchaseInvoice? @relation(fields: [purchaseInvoiceId], references: [id])
+  purchaseBookingId String?
+  booking           PurchaseBooking? @relation(fields: [purchaseBookingId], references: [id])
+
+  metalCategory MetalCategory @default(GOLD_24K)
+  purityPercent Float         @default(99.50)
+
+  expectedGrossWeight Float
+  actualGrossWeight   Float
+  expectedFineWeight  Float
+  actualFineWeight    Float
+  weightDifference    Float @default(0)
+
+  receiptDate         DateTime @default(now())
+  receivedAt          DateTime @default(now())
+  lotBatchNo          String?
+  purityTestingResult String?
+  testCertificateNo   String?
+
+  isWeightDiscrepancy Boolean                @default(false)
+  discrepancyReason   String?
+  verificationId      String?
+  status              MetalReceiptStatusEnum @default(RECEIVED)
+  notes               String?
+
+  receivedById Int?
+  receivedBy   User? @relation("MetalReceivedBy", fields: [receivedById], references: [id])
+  verifiedById Int?
+  verifiedBy   User? @relation("MetalReceiptVerifiedBy", fields: [verifiedById], references: [id])
+
+  documents PurchaseDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([receiptNumber])
+  @@index([supplierId])
+  @@index([receivingBranchId])
+  @@index([receiptDate])
+}
+
+// ==========================================
+// METAL TRANSFERS (KARIGAR / WHOLESALER)
+// ==========================================
+
+enum TransferDestinationType {
+  KARIGAR
+  WHOLESALER
+  BRANCH
+  VAULT
+  OTHER
+}
+
+enum MetalTransferStatusEnum {
+  ISSUED
+  IN_TRANSIT
+  DELIVERED
+  RETURNED
+  SETTLED
+  CANCELLED
+}
+
+model PurchaseMetalTransfer {
+  id              String                  @id @default(cuid())
+  transferNumber  String                  @unique // MT-2026-00001
+  sourceBranchId  Int
+  sourceBranch    Branch                  @relation("TransferSourceBranch", fields: [sourceBranchId], references: [id])
+  destinationType TransferDestinationType @default(KARIGAR)
+
+  karigarId      String?
+  karigar        Karigar?    @relation(fields: [karigarId], references: [id])
+  wholesalerId   String?
+  wholesaler     Wholesaler? @relation(fields: [wholesalerId], references: [id])
+  targetBranchId Int?
+
+  destinationName String
+
+  metalCategory MetalCategory @default(GOLD_24K)
+  purityPercent Float         @default(99.50)
+  grossWeight   Float
+  fineWeight    Float
+  lotBatchNo    String?
+
+  issueDate          DateTime  @default(now())
+  transactionAt      DateTime  @default(now())
+  expectedReturnDate DateTime?
+  purpose            String
+
+  wastageAllowedPercent Float @default(0)
+  metalReceivedBack     Float @default(0)
+  metalConsumed         Float @default(0)
+  metalBalance          Float @default(0)
+
+  status         MetalTransferStatusEnum @default(ISSUED)
+  verificationId String?
+  notes          String?
+
+  authorizedById Int?
+  authorizedBy   User? @relation("MetalTransferAuthorizedBy", fields: [authorizedById], references: [id])
+  receivedById   Int?
+  receivedBy     User? @relation("MetalTransferReceivedBy", fields: [receivedById], references: [id])
+
+  documents PurchaseDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([transferNumber])
+  @@index([sourceBranchId])
+  @@index([destinationType])
+  @@index([karigarId])
+  @@index([wholesalerId])
+  @@index([status])
+}
+
+// ==========================================
+// PURCHASE RETURNS & CREDIT/DEBIT NOTES
+// ==========================================
+
+enum PurchaseReturnStatusEnum {
+  REQUESTED
+  INSPECTED
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+model PurchaseReturn {
+  id                String          @id @default(cuid())
+  returnNumber      String          @unique // PR-2026-00001
+  purchaseInvoiceId String
+  invoice           PurchaseInvoice @relation(fields: [purchaseInvoiceId], references: [id])
+  supplierId        String
+  supplier          BullionSupplier @relation(fields: [supplierId], references: [id])
+  branchId          Int
+  branch            Branch          @relation(fields: [branchId], references: [id])
+
+  returnDate    DateTime @default(now())
+  transactionAt DateTime @default(now())
+
+  metalCategory       MetalCategory @default(GOLD_24K)
+  purityPercent       Float         @default(99.50)
+  returnedGrossWeight Float
+  returnedFineWeight  Float
+
+  taxableValue Float
+  cgstAmount   Float @default(0)
+  sgstAmount   Float @default(0)
+  igstAmount   Float @default(0)
+  totalAmount  Float
+
+  reason          String
+  inspectionNotes String?
+  status          PurchaseReturnStatusEnum @default(REQUESTED)
+
+  verificationId String?
+  creditNoteId   String?
+  creditNote     PurchaseCreditNote? @relation("ReturnCreditNote")
+
+  requestedById Int?
+  requestedBy   User? @relation("PurchaseReturnRequestedBy", fields: [requestedById], references: [id])
+  approvedById  Int?
+  approvedBy    User? @relation("PurchaseReturnApprovedBy", fields: [approvedById], references: [id])
+
+  documents PurchaseDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([returnNumber])
+  @@index([supplierId])
+  @@index([branchId])
+  @@index([purchaseInvoiceId])
+}
+
+enum NoteSettlementMode {
+  DEDUCT_PAYABLE
+  BANK_REFUND
+  METAL_OFFSET
+  OTHER
+}
+
+model PurchaseCreditNote {
+  id                   String           @id @default(cuid())
+  creditNoteNumber     String           @unique // PCN-2026-00001
+  supplierCreditNoteNo String?
+  purchaseInvoiceId    String?
+  invoice              PurchaseInvoice? @relation(fields: [purchaseInvoiceId], references: [id])
+  purchaseReturnId     String?          @unique
+  purchaseReturn       PurchaseReturn?  @relation("ReturnCreditNote", fields: [purchaseReturnId], references: [id])
+  supplierId           String
+  supplier             BullionSupplier  @relation(fields: [supplierId], references: [id])
+  branchId             Int
+  branch               Branch           @relation(fields: [branchId], references: [id])
+
+  issueDate             DateTime @default(now())
+  transactionAt         DateTime @default(now())
+  originalInvoiceNumber String
+  originalInvoiceDate   DateTime
+  reason                String
+
+  taxableValue       Float
+  cgstAmount         Float @default(0)
+  sgstAmount         Float @default(0)
+  igstAmount         Float @default(0)
+  totalAmount        Float
+  itcReductionAmount Float @default(0)
+
+  affectedGrossWeight Float              @default(0)
+  affectedFineWeight  Float              @default(0)
+  settlementMode      NoteSettlementMode @default(DEDUCT_PAYABLE)
+
+  status         String  @default("ISSUED")
+  verificationId String?
+
+  createdById Int?
+  createdBy   User? @relation("PurchaseCreditNoteCreatedBy", fields: [createdById], references: [id])
+
+  gstRecords PurchaseGSTRecord[]
+  documents  PurchaseDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([creditNoteNumber])
+  @@index([supplierId])
+  @@index([branchId])
+}
+
+model PurchaseDebitNote {
+  id                  String          @id @default(cuid())
+  debitNoteNumber     String          @unique // PDN-2026-00001
+  supplierDebitNoteNo String?
+  purchaseInvoiceId   String
+  invoice             PurchaseInvoice @relation(fields: [purchaseInvoiceId], references: [id])
+  supplierId          String
+  supplier            BullionSupplier @relation(fields: [supplierId], references: [id])
+  branchId            Int
+  branch              Branch          @relation(fields: [branchId], references: [id])
+
+  issueDate             DateTime @default(now())
+  transactionAt         DateTime @default(now())
+  originalInvoiceNumber String
+  originalInvoiceDate   DateTime
+  reason                String
+
+  taxableValue        Float
+  cgstAmount          Float @default(0)
+  sgstAmount          Float @default(0)
+  igstAmount          Float @default(0)
+  totalAmount         Float
+  additionalItcAmount Float @default(0)
+
+  status         String  @default("ISSUED")
+  verificationId String?
+
+  createdById Int?
+  createdBy   User? @relation("PurchaseDebitNoteCreatedBy", fields: [createdById], references: [id])
+
+  gstRecords PurchaseGSTRecord[]
+  documents  PurchaseDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([debitNoteNumber])
+  @@index([supplierId])
+  @@index([branchId])
+}
+
+// ==========================================
+// PURCHASE GST / ITC & MONTHLY SNAPSHOTS
+// ==========================================
+
+enum ITCReconciliationStatus {
+  NOT_RECONCILED
+  MATCHED
+  PARTIALLY_MATCHED
+  MISMATCH
+  MISSING
+  CREDIT_NOTE_PENDING
+  ITC_ELIGIBLE
+  ITC_INELIGIBLE
+  REVIEW_REQUIRED
+}
+
+enum ITCEligibilityType {
+  ELIGIBLE
+  INELIGIBLE
+  RESTRICTED
+  BLOCKED_17_5
+}
+
+enum GSTPeriodStatusEnum {
+  DRAFT
+  REVIEW
+  VERIFIED
+  LOCKED
+}
+
+model PurchaseGSTRecord {
+  id                   String              @id @default(cuid())
+  branchId             Int
+  branch               Branch              @relation(fields: [branchId], references: [id])
+  supplierId           String
+  supplier             BullionSupplier     @relation(fields: [supplierId], references: [id])
+  purchaseInvoiceId    String?
+  invoice              PurchaseInvoice?    @relation(fields: [purchaseInvoiceId], references: [id])
+  purchaseCreditNoteId String?
+  creditNote           PurchaseCreditNote? @relation(fields: [purchaseCreditNoteId], references: [id])
+  purchaseDebitNoteId  String?
+  debitNote            PurchaseDebitNote?  @relation(fields: [purchaseDebitNoteId], references: [id])
+
+  financialYear String
+  periodMonth   Int
+  periodYear    Int
+
+  gstin         String
+  placeOfSupply String
+  isInterState  Boolean @default(false)
+
+  taxableValue Float
+  cgst         Float @default(0)
+  sgst         Float @default(0)
+  igst         Float @default(0)
+  totalTax     Float
+
+  itcEligibility       ITCEligibilityType      @default(ELIGIBLE)
+  itcClaimedAmount     Float                   @default(0)
+  reconciliationStatus ITCReconciliationStatus @default(NOT_RECONCILED)
+
+  gstr2bFilingDate    DateTime?
+  gstr2bMatchedDate   DateTime?
+  supplierReportedTax Float?
+  taxDifference       Float?    @default(0)
+  remarks             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([financialYear, periodMonth])
+  @@index([branchId])
+  @@index([supplierId])
+  @@index([reconciliationStatus])
+}
+
+model PurchaseGSTPeriod {
+  id            String @id @default(cuid())
+  branchId      Int
+  branch        Branch @relation(fields: [branchId], references: [id])
+  financialYear String
+  periodMonth   Int
+  periodYear    Int
+
+  totalPurchases      Float @default(0)
+  taxableValue        Float @default(0)
+  grossCgst           Float @default(0)
+  grossSgst           Float @default(0)
+  grossIgst           Float @default(0)
+  creditNoteReduction Float @default(0)
+  debitNoteAddition   Float @default(0)
+
+  eligibleItc   Float @default(0)
+  ineligibleItc Float @default(0)
+  netItc        Float @default(0)
+
+  reconciledCount   Int @default(0)
+  unreconciledCount Int @default(0)
+
+  status     GSTPeriodStatusEnum @default(DRAFT)
+  lockedAt   DateTime?
+  lockedById Int?
+  lockedBy   User?               @relation("GSTPeriodLockedBy", fields: [lockedById], references: [id])
+
+  verificationId String?
+  notes          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([branchId, financialYear, periodMonth])
+  @@index([financialYear, periodMonth])
+  @@index([status])
+}
+
+// ==========================================
+// PURCHASE DOCUMENTS & OCR SCANNING
+// ==========================================
+
+enum PurchaseDocType {
+  INVOICE_SCAN
+  BOOKING_NOTE
+  WEIGHT_SLIP
+  PURITY_CERTIFICATE
+  PAYMENT_VOUCHER
+  CREDIT_NOTE
+  DEBIT_NOTE
+  DELIVERY_CHALLAN
+  KYC_DOCUMENT
+  OTHER
+}
+
+enum DocStorageProvider {
+  CLOUDINARY
+  R2
+  LOCAL_STORAGE
+}
+
+enum OCRProcessingStatus {
+  NOT_ATTEMPTED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum DocumentVerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  REJECTED
+}
+
+model PurchaseDocument {
+  id             String          @id @default(cuid())
+  documentNumber String          @unique // DOC-2026-00001
+  documentType   PurchaseDocType @default(INVOICE_SCAN)
+
+  supplierId        String?
+  supplier          BullionSupplier?       @relation(fields: [supplierId], references: [id])
+  purchaseInvoiceId String?
+  invoice           PurchaseInvoice?       @relation(fields: [purchaseInvoiceId], references: [id])
+  purchaseBookingId String?
+  booking           PurchaseBooking?       @relation(fields: [purchaseBookingId], references: [id])
+  metalReceiptId    String?
+  metalReceipt      PurchaseMetalReceipt?  @relation(fields: [metalReceiptId], references: [id])
+  purchasePaymentId String?
+  payment           PurchasePayment?       @relation(fields: [purchasePaymentId], references: [id])
+  metalTransferId   String?
+  metalTransfer     PurchaseMetalTransfer? @relation(fields: [metalTransferId], references: [id])
+  purchaseReturnId  String?
+  purchaseReturn    PurchaseReturn?        @relation(fields: [purchaseReturnId], references: [id])
+  creditNoteId      String?
+  creditNote        PurchaseCreditNote?    @relation(fields: [creditNoteId], references: [id])
+  debitNoteId       String?
+  debitNote         PurchaseDebitNote?     @relation(fields: [debitNoteId], references: [id])
+
+  storageUrl       String
+  storageKey       String?
+  storageProvider  DocStorageProvider @default(CLOUDINARY)
+  mimeType         String             @default("application/pdf")
+  fileSizeBytes    Int?
+  fileHash         String?
+  originalFileName String?
+
+  ocrStatus          OCRProcessingStatus        @default(NOT_ATTEMPTED)
+  ocrExtractedData   Json?
+  verificationStatus DocumentVerificationStatus @default(UNVERIFIED)
+
+  uploadedById Int?
+  uploadedBy   User? @relation("PurchaseDocUploader", fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([supplierId])
+  @@index([purchaseInvoiceId])
+  @@index([purchaseBookingId])
+  @@index([documentType])
+}

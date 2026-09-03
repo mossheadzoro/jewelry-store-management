@@ -344,8 +344,16 @@ export default function CustomerDetails({
                           <div>
                             <p className="text-sm font-semibold text-[#F0EBE0]">{cust.name}</p>
                             <p className="text-xs text-[#8E8A85] flex items-center gap-3 mt-0.5">
-                              <span>📱 {cust.mobile}</span>
-                              {cust.city && <span>📍 {cust.city}</span>}
+                              <span className="flex items-center gap-1">
+                                <Phone className="w-3 h-3 text-[#C9943A]/80" />
+                                {cust.mobile}
+                              </span>
+                              {cust.city && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3 text-[#C9943A]/80" />
+                                  {cust.city}
+                                </span>
+                              )}
                             </p>
                           </div>
                           <Badge variant="outline" className="border-[#C9943A]/40 text-[#C9943A] text-[10px]">

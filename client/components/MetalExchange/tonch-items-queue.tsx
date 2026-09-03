@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { IconLoader2 } from "@tabler/icons-react";
 import { roundFineGold } from "@/lib/fineGold";
 import OldGoldSlipModal from "./OldGoldSlipModal";
+import { useUserStore } from "@/lib/store/useUserStore";
+import { toast } from "sonner";
 
 export default function TonchItemsQueue({
   items,
@@ -185,24 +187,37 @@ export default function TonchItemsQueue({
       <Button
         disabled={!canFinalize || finalizing}
         onClick={async () => {
-          setFinalizing(true);
+          try {
+            setFinalizing(true);
 
-          for (const item of pendingItems) {
-            await fetch("/api/metal-exchange/item/tonch", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                itemId: item.id,
-                weightBefore: item.before,
-                weightAfter: item.after,
-                purityPercent: item.purity,
-              }),
-            });
+            for (const item of pendingItems) {
+              const res = await fetch("/api/metal-exchange/item/tonch", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  itemId: item.id,
+                  weightBefore: item.before,
+                  weightAfter: item.after,
+                  purityPercent: item.purity,
+                  userId: user?.id,
+                }),
+              });
+
+              if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `Failed to finalize item ${item.queueId}`);
+              }
+            }
+
+            toast.success("All tonch items finalized successfully!");
+            await onRefresh();
+            setShowFinalize(false);
+          } catch (err: any) {
+            console.error("Finalize tonch error:", err);
+            toast.error(err.message || "Failed to finalize tonch items");
+          } finally {
+            setFinalizing(false);
           }
-
-          await onRefresh();
-          setFinalizing(false);
-          setShowFinalize(false);
         }}
       >
         {finalizing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}

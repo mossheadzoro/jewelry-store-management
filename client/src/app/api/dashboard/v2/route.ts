@@ -6,13 +6,14 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const branchIdParam = searchParams.get("branchId");
     const dateRange = searchParams.get("dateRange") || "today";
+    const trendTimeframe = searchParams.get("trendTimeframe") || "90d";
 
     let branchId = null;
     if (branchIdParam && branchIdParam !== "all") {
       branchId = parseInt(branchIdParam, 10);
     }
 
-    const data = await getDashboardData(branchId, dateRange);
+    const data = await getDashboardData(branchId, dateRange, trendTimeframe);
 
     return NextResponse.json(data);
   } catch (error: any) {

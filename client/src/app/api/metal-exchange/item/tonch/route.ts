@@ -146,25 +146,33 @@ export async function POST(req: Request) {
 
     // 🔥 2. CREDIT CUSTOMER WALLET
     if (item.customerId) {
-      const walletId = `WAL-${item.customerId}`;
-      await tx.customerWallet.upsert({
+      let wallet = await tx.customerWallet.findUnique({
         where: { customerId: item.customerId },
-        create: {
-          id: walletId,
-          customerId: item.customerId,
-          metal24KBalance: fine,
-          updatedAt: new Date(),
-        },
-        update: {
-          metal24KBalance: { increment: fine },
-          updatedAt: new Date(),
-        },
       });
+
+      if (!wallet) {
+        wallet = await tx.customerWallet.create({
+          data: {
+            id: `wallet_${item.customerId}_${Date.now()}`,
+            customerId: item.customerId,
+            metal24KBalance: fine,
+            updatedAt: new Date(),
+          },
+        });
+      } else {
+        wallet = await tx.customerWallet.update({
+          where: { id: wallet.id },
+          data: {
+            metal24KBalance: { increment: fine },
+            updatedAt: new Date(),
+          },
+        });
+      }
 
       await tx.customerWalletLedger.create({
         data: {
           id: `CWL-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          walletId,
+          walletId: wallet.id,
           transactionType: "CREDIT",
           assetType: "METAL_24K",
           amount: fine,

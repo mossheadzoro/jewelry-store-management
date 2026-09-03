@@ -305,6 +305,19 @@ export default function SecuritySettingsPanel() {
     }
   };
 
+  // Revoke Trusted Device
+  const handleRevokeTrustedDevice = async (deviceId: string) => {
+    try {
+      const res = await axios.delete(`/api/security/2fa/devices/${deviceId}`);
+      if (res.data?.success) {
+        toast.success("Trusted device revoked successfully");
+        refetchUser2FA();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to revoke trusted device");
+    }
+  };
+
   // Add IP Rule
   const handleAddIpRule = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -796,6 +809,75 @@ export default function SecuritySettingsPanel() {
             >
               <RefreshCw className="w-4 h-4 text-gold" /> Regenerate 10 Backup Codes
             </button>
+          </div>
+
+          {/* Trusted Devices (30-Day Bypass) Card */}
+          <div className="col-span-1 lg:col-span-2 bg-[#111113] p-6 rounded-2xl border border-[#1F1F24] space-y-4">
+            <div className="flex items-center justify-between border-b border-[#1F1F24] pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center text-gold">
+                  <Laptop className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-semibold text-platinum">Recognized Trusted Devices</h3>
+                  <p className="text-[12px] text-platinum-muted">
+                    Devices remembered for 30 days that can sign in without a 2FA prompt
+                  </p>
+                </div>
+              </div>
+
+              <span className="text-[12px] font-mono px-3 py-1 rounded-full bg-[#0A0A0B] border border-[#25252B] text-gold font-bold">
+                {user2FAStatus?.trustedDevices?.length || 0} Active Device{user2FAStatus?.trustedDevices?.length === 1 ? "" : "s"}
+              </span>
+            </div>
+
+            {user2FAStatus?.trustedDevices && user2FAStatus.trustedDevices.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[13px]">
+                  <thead className="bg-[#0A0A0B] text-platinum-muted text-[11px] uppercase tracking-wider border-y border-[#1F1F24]">
+                    <tr>
+                      <th className="py-2.5 px-3.5">Device Name</th>
+                      <th className="py-2.5 px-3.5">Browser & OS</th>
+                      <th className="py-2.5 px-3.5">Last Used</th>
+                      <th className="py-2.5 px-3.5">Expires</th>
+                      <th className="py-2.5 px-3.5 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#1F1F24]">
+                    {user2FAStatus.trustedDevices.map((dev: any) => (
+                      <tr key={dev.id} className="hover:bg-[#16161A] transition-colors">
+                        <td className="py-3 px-3.5 font-medium text-platinum flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <span>{dev.deviceName || "Trusted Browser"}</span>
+                        </td>
+                        <td className="py-3 px-3.5 text-platinum-muted text-[12px] max-w-[200px] truncate">
+                          {dev.browser || "Web Browser"}
+                        </td>
+                        <td className="py-3 px-3.5 text-platinum-muted text-[12px]">
+                          {dev.lastUsedAt ? new Date(dev.lastUsedAt).toLocaleDateString("en-IN") : "Never"}
+                        </td>
+                        <td className="py-3 px-3.5 text-emerald-400 font-mono text-[12px]">
+                          {dev.expiresAt ? new Date(dev.expiresAt).toLocaleDateString("en-IN") : "30 Days"}
+                        </td>
+                        <td className="py-3 px-3.5 text-right">
+                          <button
+                            onClick={() => handleRevokeTrustedDevice(dev.id)}
+                            className="p-1.5 rounded text-neutral-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                            title="Revoke Trust"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-6 text-center text-platinum-muted text-[13px] bg-[#0A0A0B] rounded-xl border border-[#1F1F24]">
+                No trusted devices registered yet. When signing in with 2FA, check &ldquo;Remember this trusted device for 30 days&rdquo; to register this device.
+              </div>
+            )}
           </div>
         </div>
       )}

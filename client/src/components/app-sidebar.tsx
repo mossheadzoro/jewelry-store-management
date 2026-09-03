@@ -21,6 +21,14 @@ import {
   IconDashboard,
   IconRadio,
   IconHelp,
+  IconArrowsRightLeft,
+  IconBuildingBank,
+  IconCoins,
+  IconTruckDelivery,
+  IconReceiptTax,
+  IconScale,
+  IconCash,
+  IconReportMoney,
 } from "@tabler/icons-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -67,6 +75,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       icon: IconFolder,
     },
     {
+      title: "Returns & Exchanges",
+      url: "/returns",
+      icon: IconArrowsRightLeft,
+    },
+    {
       title: "Saving Schemes",
       url: "/saving-schemes",
       icon: IconPigMoney,
@@ -97,6 +110,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       icon: IconGridGoldenratio,
     },
   ];
+
+  // Sector 1.5: Bullion Procurement & Purchase Management (Exclusively Manager/Admin)
+  const purchase = isManagerOrAdmin
+    ? [
+        {
+          title: "Purchase Panel",
+          url: "/purchase",
+          icon: IconBuildingBank,
+        },
+      ]
+    : [];
 
   // Sector 2: People & Relationships (Staffs restricted to Manager/Admin)
   const people = [
@@ -162,6 +186,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent className="space-y-1 py-1 overflow-x-hidden">
         {/* Sector 1: Core Operations */}
         <NavMain items={operations} />
+
+        {/* Sector 1.5: Purchase Panel (Manager & Admin only) */}
+        {isManagerOrAdmin && (
+          <>
+            <SidebarSeparator className="my-1.5 opacity-60" />
+            <NavMain items={purchase} label="PURCHASE" />
+          </>
+        )}
 
         {/* Sector Divider & Gap */}
         <SidebarSeparator className="my-1.5 opacity-60" />

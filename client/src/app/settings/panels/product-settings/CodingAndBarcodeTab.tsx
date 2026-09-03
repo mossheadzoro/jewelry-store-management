@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
-import { Save, Image as ImageIcon, Upload, X, Tag, AlignJustify, AlignLeft, BarChart2 } from "lucide-react";
+import { Save, Image as ImageIcon, Upload, X, Tag, AlignJustify, AlignLeft, BarChart2, Crop } from "lucide-react";
+import LogoCropperModal from "@/components/ui/LogoCropperModal";
 
 export default function CodingAndBarcodeTab({ config, onSave }: { config: any, onSave: (d: any) => Promise<boolean> }) {
   const [data, setData] = useState({
@@ -25,12 +26,20 @@ export default function CodingAndBarcodeTab({ config, onSave }: { config: any, o
     setSaving(false);
   };
 
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [selectedImageForCrop, setSelectedImageForCrop] = useState<File | string | null>(null);
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setData({ ...data, logoUrl: url });
+      setSelectedImageForCrop(file);
+      setCropperOpen(true);
+      e.target.value = "";
     }
+  };
+
+  const handleCropComplete = (file: File, previewUrl: string) => {
+    setData((prev) => ({ ...prev, logoUrl: previewUrl }));
   };
 
   const layouts = [
@@ -261,11 +270,29 @@ export default function CodingAndBarcodeTab({ config, onSave }: { config: any, o
               
               <div className="flex items-center gap-4">
                 {data.logoUrl ? (
-                  <div className="relative w-16 h-16 bg-white rounded-lg border border-onyx-border flex items-center justify-center overflow-hidden">
+                  <div className="relative w-16 h-16 bg-white rounded-lg border border-onyx-border flex items-center justify-center overflow-hidden group">
                     <img src={data.logoUrl} alt="Logo" className="max-w-full max-h-full object-contain p-1" />
-                    <button onClick={() => setData({...data, logoUrl: ""})} className="absolute top-0 right-0 bg-red-500/80 hover:bg-red-500 text-foreground p-0.5 rounded-bl-lg transition-colors">
-                      <X className="w-3 h-3" />
-                    </button>
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 transition-opacity">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedImageForCrop(data.logoUrl);
+                          setCropperOpen(true);
+                        }}
+                        className="p-1 bg-gold text-onyx rounded hover:bg-gold-light"
+                        title="Crop / Edit"
+                      >
+                        <Crop className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setData({ ...data, logoUrl: "" })}
+                        className="p-1 bg-red-500 text-white rounded hover:bg-red-600"
+                        title="Remove"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="w-16 h-16 bg-onyx border border-onyx-border border-dashed rounded-lg flex flex-col items-center justify-center text-platinum-muted">
@@ -309,6 +336,15 @@ export default function CodingAndBarcodeTab({ config, onSave }: { config: any, o
 
         </div>
       </div>
+
+      <LogoCropperModal
+        isOpen={cropperOpen}
+        onClose={() => setCropperOpen(false)}
+        imageFileOrUrl={selectedImageForCrop}
+        onCropComplete={handleCropComplete}
+        title="Crop & Customize Barcode Logo"
+        initialShape="square"
+      />
     </div>
   );
 }

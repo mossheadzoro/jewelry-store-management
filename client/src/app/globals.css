@@ -176,6 +176,15 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+  .no-scrollbar::-webkit-scrollbar,
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar,
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 /* Gold shimmer animation for rate-lock eligible */

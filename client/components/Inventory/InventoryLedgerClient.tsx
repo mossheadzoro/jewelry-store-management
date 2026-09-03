@@ -563,7 +563,7 @@ export default function InventoryLedgerClient() {
                     { filter: "fineIn", label: "Fine Wt In", value: `${(ledgerSummary.totalFineWtIn || 0).toFixed(3)} g`, icon: <ArrowDownLeft className="w-4 h-4 text-cyan-400" />, color: "text-cyan-400" },
                     { filter: "fineOut", label: "Fine Wt Out", value: `${(ledgerSummary.totalFineWtOut || 0).toFixed(3)} g`, icon: <ArrowUpRight className="w-4 h-4 text-purple-400" />, color: "text-purple-400" },
                     { label: "Net Fine Wt (Live)", value: `${(ledgerSummary.liveNetFineWeight !== undefined ? ledgerSummary.liveNetFineWeight : Math.max(0, (ledgerSummary.totalFineWtIn || 0) - (ledgerSummary.totalFineWtOut || 0))).toFixed(3)} g`, icon: <Scale className="w-4 h-4 text-emerald-400" />, color: "text-emerald-400" },
-                    { label: "Free Fine Wt (24K Idle)", value: `${(ledgerSummary.freeFineWeight || 0).toFixed(3)} g`, icon: <Sparkles className="w-4 h-4 text-[#E8B84B]" />, color: "text-[#E8B84B]", border: "border-[#C9943A]/40 bg-secondary" },
+                    { filter: "freeFine", label: "Free Fine Wt (24K Idle)", value: `${(ledgerSummary.freeFineWeight || 0).toFixed(3)} g`, icon: <Sparkles className="w-4 h-4 text-[#E8B84B]" />, color: "text-[#E8B84B]", border: "border-[#C9943A]/40 bg-secondary" },
                     {
                       label: "Unmarked Jewellery",
                       value: `${(ledgerSummary.unmarkedKarigarJewellery?.netWeight || 0).toFixed(3)} g`,
