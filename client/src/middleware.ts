@@ -39,7 +39,23 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Extract and verify session token
+  // 1.5 Fast-path for RSC prefetch requests (sidebar hover, Link prefetch).
+  // These fire frequently and don't need full session DB verification —
+  // the actual navigation request that follows will run the full check.
+  const isPrefetch = req.headers.get("next-router-prefetch") === "1"
+    || req.headers.get("purpose") === "prefetch";
+
+  if (isPrefetch) {
+    // Just check that a session cookie exists (JWT signature is still validated by next-auth)
+    const sessionCookie = req.cookies.get("next-auth.session-token")
+      ?? req.cookies.get("__Secure-next-auth.session-token");
+    if (sessionCookie?.value) {
+      return NextResponse.next(); // Has a session cookie — allow prefetch
+    }
+    // No cookie — fall through to full getToken check below
+  }
+
+  // 2. Extract and verify session token (full check — triggers jwt callback)
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET || "jewelry_store_management_secret_key_2026_default",

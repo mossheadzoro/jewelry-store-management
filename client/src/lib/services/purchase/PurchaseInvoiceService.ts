@@ -1,7 +1,7 @@
 // client/src/lib/services/purchase/PurchaseInvoiceService.ts
 // Purchase Invoice Service — Invoices, Itemized Taxes, Supplier Ledgers & GST
 
-import { prisma, MetalCategory, ITCEligibilityType, ITCReconciliationStatus } from "@/lib/prisma";
+import { prisma, MetalCategory, ITCEligibilityType, ITCReconciliationStatus, PurchasePaymentStatusEnum } from "@/lib/prisma";
 import { PurchaseNumberingService } from "./PurchaseNumberingService";
 import { AuditLogService } from "@/lib/audit/AuditLogService";
 
@@ -95,10 +95,11 @@ export class PurchaseInvoiceService {
         else purity = 99.50;
       }
 
-      // 24K bullion is 99.50% standard purity as traded — fine weight equals net weight as 24K metal
-      const fine = (item.metalCategory === "GOLD_24K" && purity >= 99.50)
+      // 24K raw gold standard is 99.50% category — 24K raw gold is taken directly 1:1 without second fining
+      const is24K = item.metalCategory === "GOLD_24K";
+      const fine = is24K
         ? Number(net.toFixed(3))
-        : Number(((net * purity) / 99.50).toFixed(3));
+        : Number(((net * purity) / 100).toFixed(3));
       const taxable = Number((gross * item.ratePerGram).toFixed(2));
 
       let cgst = 0;

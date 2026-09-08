@@ -36,21 +36,31 @@ export async function GET(
     }
 
     // Find applied advance, if any
-    const appliedAdvance = await prisma.advance.findFirst({
+    let appliedAdvance = await prisma.advance.findFirst({
       where: { appliedInvoiceId: invoiceId },
     });
+
+    if (!appliedAdvance) {
+      // Fallback: check if invoice payments contain an ADVANCE payment with the receipt number
+      const advancePayment = invoice.payments.find((p) => p.method === "ADVANCE");
+      if (advancePayment && advancePayment.paymentRef) {
+        appliedAdvance = await prisma.advance.findFirst({
+          where: { advanceReceiptNumber: advancePayment.paymentRef.trim() },
+        });
+        if (appliedAdvance && !appliedAdvance.appliedInvoiceId) {
+          await prisma.advance.update({
+            where: { id: appliedAdvance.id },
+            data: { isApplied: true, appliedInvoiceId: invoiceId },
+          });
+        }
+      }
+    }
 
     // Fetch scheme redemptions separately since the relation might not be defined on Invoice model
     const schemeRedemptions = await prisma.schemeRedemption.findMany({
       where: { invoiceId },
       include: { scheme: true },
     });
-
-    // Determine tax settings from the saved invoice values
-    const taxOnTotal = invoice.taxOnGold === 0 && invoice.taxOnMaking === 0 && invoice.cgst > 0;
-    const taxOnMetal = invoice.taxOnGold > 0;
-    const taxOnMaking = invoice.taxOnMaking > 0;
-    const hallmarkCharge = invoice.hallmarkingCharge > 0;
 
     // Format products list to match useBillingLogic hook expected items
     const products = invoice.items.map((item) => {
@@ -83,10 +93,11 @@ export async function GET(
       };
     });
 
-    // Reconstruct exchangeGoldWeight and exchangeGoldValue
+    // Reconstruct exchangeGoldWeight, exchangeGoldValue, and metalExchange
     const totalGoldWeight = invoice.items.reduce((sum, item) => sum + item.ntWeight, 0);
     const metalRate = invoice.items.length > 0 ? invoice.items[0].metalRate : 0;
     let exchangeGoldWeight = 0;
+    let metalExchange = false;
 
     // Check if we have the custom Old Gold Exchange Weight payment record first
     const oldGoldPaymentRecord = invoice.payments.find((p) =>
@@ -109,11 +120,15 @@ export async function GET(
 
       const rateMatch = oldGoldPaymentRecord.paymentRef?.match(/Rate:\s*₹([\d.]+)/);
       if (rateMatch) exchangeMetalRate = parseFloat(rateMatch[1]);
+
+      const meMatch = oldGoldPaymentRecord.paymentRef?.match(/MetalExchange:\s*(true|false)/i);
+      if (meMatch) metalExchange = meMatch[1].toLowerCase() === 'true';
     } else {
       // Fallback to mathematical reconstruction for legacy invoices
       if (invoice.totalMetalAmount > 0 && metalRate > 0) {
         // Normal metal exchange (not excess gold)
         exchangeGoldWeight = totalGoldWeight - invoice.totalMetalAmount / metalRate;
+        if (exchangeGoldWeight > 0.001) metalExchange = true;
       } else if (invoice.excessGoldMode) {
         // Excess gold scenario where netGoldValue is 0, so totalMetalAmount is 0
         if (invoice.excessGoldMode === "CASH_OUT") {
@@ -130,6 +145,7 @@ export async function GET(
             excessWeight = invoice.oldGoldCashedOut / (metalRate * (1 - reduction/100));
           }
           exchangeGoldWeight = totalGoldWeight + excessWeight;
+          metalExchange = true;
         } else if (invoice.excessGoldMode === "RETURN_GOLD") {
           const returnPayment = invoice.payments.find((p) =>
             p.paymentRef?.includes("Excess Gold Returned to Customer")
@@ -143,19 +159,59 @@ export async function GET(
             excessWeight = invoice.excessGoldReturned;
           }
           exchangeGoldWeight = totalGoldWeight + excessWeight;
+          metalExchange = true;
+        }
+      }
+    }
+
+    // Determine tax & exchange settings from System Bill Settings payment record, or legacy fallback
+    const systemSettingsRecord = invoice.payments.find((p) => p.paymentRef?.includes("System Bill Settings:"));
+    let taxOnTotal = false;
+    let hallmarkCharge = (invoice.hallmarkingCharge || 0) > 0;
+    let taxOnMetal = (invoice.taxOnGold || 0) > 0;
+    let taxOnMaking = (invoice.taxOnMaking || 0) > 0;
+
+    if (systemSettingsRecord && systemSettingsRecord.paymentRef) {
+      const ref = systemSettingsRecord.paymentRef;
+      const matchTaxOnTotal = ref.match(/TaxOnTotal:\s*(true|false)/i);
+      if (matchTaxOnTotal) taxOnTotal = matchTaxOnTotal[1].toLowerCase() === 'true';
+
+      const matchHallmark = ref.match(/HallmarkCharge:\s*(true|false)/i);
+      if (matchHallmark) hallmarkCharge = matchHallmark[1].toLowerCase() === 'true';
+
+      const matchTaxOnMetal = ref.match(/TaxOnMetal:\s*(true|false)/i);
+      if (matchTaxOnMetal) taxOnMetal = matchTaxOnMetal[1].toLowerCase() === 'true';
+
+      const matchTaxOnMaking = ref.match(/TaxOnMaking:\s*(true|false)/i);
+      if (matchTaxOnMaking) taxOnMaking = matchTaxOnMaking[1].toLowerCase() === 'true';
+
+      const matchMetalExchange = ref.match(/MetalExchange:\s*(true|false)/i);
+      if (matchMetalExchange) metalExchange = matchMetalExchange[1].toLowerCase() === 'true';
+    } else {
+      // Fallback for legacy invoices without System Bill Settings record:
+      const hallmarkCgst = (invoice.taxOnHallmarking || 0) / 2;
+      const remainingCgst = (invoice.cgst || 0) - ((invoice.taxOnGold || 0) / 2) - ((invoice.taxOnMaking || 0) / 2) - hallmarkCgst;
+      taxOnTotal = remainingCgst > 0.01;
+
+      // If metalExchange was not set from paymentRef, infer from metal amount reduction
+      if (!metalExchange && exchangeGoldWeight > 0) {
+        const expectedMetalAmount = totalGoldWeight * metalRate;
+        if (metalRate > 0 && Math.abs(expectedMetalAmount - (invoice.totalMetalAmount || 0)) > 1) {
+          metalExchange = true;
         }
       }
     }
 
     // Format payments list to match useBillingLogic hook structure
-    // Exclude the internal system payment entries for old gold cashouts/returns/exchange
+    // Exclude the internal system payment entries for old gold cashouts/returns/exchange and settings
     const regularPayments = invoice.payments
       .filter(
         (p) =>
           !p.paymentRef?.includes("OLD Gold Cashed Out") &&
           !p.paymentRef?.includes("Cash Given to Customer (Old Gold Excess Settlement)") &&
           !p.paymentRef?.includes("Excess Gold Returned to Customer") &&
-          !p.paymentRef?.includes("Old Gold Exchange Weight:")
+          !p.paymentRef?.includes("Old Gold Exchange Weight:") &&
+          !p.paymentRef?.includes("System Bill Settings:")
       )
       .map((p) => {
         let metalWeight = "";
@@ -164,6 +220,7 @@ export async function GET(
         }
         
         const isScheme = p.method === "SCHEME";
+        const isAdvance = p.method === "ADVANCE";
         // Attempt to find the matching redemption to get the schemeId
         let schemeId = undefined;
         if (isScheme) {
@@ -176,7 +233,7 @@ export async function GET(
           amount: p.amount.toString(),
           metalWeight,
           narration: p.paymentRef || "",
-          isLocked: isScheme,
+          isLocked: isScheme || isAdvance,
           ...(schemeId ? { schemeId } : {})
         };
       });
@@ -208,6 +265,7 @@ export async function GET(
       taxOnMetal,
       taxOnMaking,
       hallmarkCharge,
+      metalExchange,
       hallmarkingCharge: invoice.hallmarkingCharge || 0,
       totalMetalAmount: invoice.totalMetalAmount || 0,
       totalMakingAmount: invoice.totalMakingAmount || 0,
@@ -280,6 +338,11 @@ export async function PUT(
       cgst,
       sgst,
       totalAmount,
+      taxOnTotal = true,
+      hallmarkCharge: hallmarkChargeToggle = true,
+      taxOnMetal = false,
+      taxOnMakingToggle = false,
+      metalExchange = false,
       appliedAdvanceId,
       // Excess old gold data
       excessGoldMode,
@@ -521,10 +584,20 @@ export async function PUT(
             invoiceId,
             method: "OTHER",
             amount: 0,
-            paymentRef: `Old Gold Exchange Weight: ${exchangeGoldWeight?.toFixed(3)}g | Purity: ${exchangeGoldPurity || '22k'} | Deduction: ${exchangeGoldDeductionPercent || 2}% | Rate: ₹${exchangeMetalRate?.toFixed(2)} | Value: ₹${exchangeGoldValue?.toFixed(2)}`,
+            paymentRef: `Old Gold Exchange Weight: ${exchangeGoldWeight?.toFixed(3)}g | Purity: ${exchangeGoldPurity || '22k'} | Deduction: ${exchangeGoldDeductionPercent || 2}% | Rate: ₹${exchangeMetalRate?.toFixed(2)} | Value: ₹${exchangeGoldValue?.toFixed(2)} | MetalExchange: ${metalExchange ? 'true' : 'false'}`,
           },
         });
       }
+
+      // 7c. Record System Bill Settings for perfect edit-mode fidelity
+      await tx.invoicePayment.create({
+        data: {
+          invoiceId,
+          method: "OTHER",
+          amount: 0,
+          paymentRef: `System Bill Settings: TaxOnTotal: ${taxOnTotal ? 'true' : 'false'} | HallmarkCharge: ${hallmarkChargeToggle ? 'true' : 'false'} | TaxOnMetal: ${taxOnMetal ? 'true' : 'false'} | TaxOnMaking: ${taxOnMakingToggle ? 'true' : 'false'} | MetalExchange: ${metalExchange ? 'true' : 'false'}`,
+        },
+      });
 
       // 8. Re-apply Advance if selected
       if (appliedAdvanceId) {

@@ -5,6 +5,7 @@ import { prisma, MetalCategory, TransferDestinationType, MetalTransferStatusEnum
 import { PurchaseNumberingService } from "./PurchaseNumberingService";
 import { AuditLogService } from "@/lib/audit/AuditLogService";
 import { insertLedgerEntry } from "@/lib/inventoryLedger";
+import { BullionInventoryService } from "./BullionInventoryService";
 
 export interface IssueMetalTransferParams {
   sourceBranchId: number;
@@ -71,20 +72,21 @@ export class MetalTransferService {
     else if (metalCategory === "SILVER_925") { defaultPurity = 92.50; karatage = 0; }
 
     const purityPercent = params.purityPercent || defaultPurity;
-    // 24K bullion is 99.50% standard — fine weight equals gross weight for 24K metal
-    const fineWeight = (metalCategory === "GOLD_24K" && purityPercent >= 99.50)
+    // 24K raw gold standard is 99.50% category — 24K raw gold is taken directly 1:1 without second fining
+    const is24K = metalCategory === "GOLD_24K";
+    const fineWeight = is24K
       ? Number(grossWeight.toFixed(3))
-      : Number(((grossWeight * purityPercent) / 99.50).toFixed(3));
+      : Number(((grossWeight * purityPercent) / 100).toFixed(3));
 
     const transferNumber = await PurchaseNumberingService.generateNumber("METAL_TRANSFER", sourceBranchId);
 
-    // Find bullion product item
-    const bullionProduct = await prisma.productItem.findFirst({
-      where: {
-        branchId: sourceBranchId,
-        productCode: `BULLION-${metalCategory}`,
-      },
-    });
+    // Find or ensure bullion product item
+    const bullionProduct = await BullionInventoryService.getOrCreateBullionProduct(
+      prisma,
+      sourceBranchId,
+      metalCategory,
+      purityPercent
+    );
 
     const transfer = await prisma.$transaction(async (tx) => {
       // 1. Create PurchaseMetalTransfer record
@@ -142,7 +144,8 @@ export class MetalTransferService {
           },
           {
             karatage,
-            purityPercent,
+            purityPercent: is24K ? 100 : purityPercent,
+            fineWeightOut: fineWeight,
             batchLotNo: created.lotBatchNo || undefined,
           }
         );
@@ -264,12 +267,12 @@ export class MetalTransferService {
 
       // 2. If metal received back and product exists, intake back into inventory
       if (metalReceivedBack > 0) {
-        const bullionProduct = await tx.productItem.findFirst({
-          where: {
-            branchId: transfer.sourceBranchId,
-            productCode: `BULLION-${transfer.metalCategory}`,
-          },
-        });
+        const bullionProduct = await BullionInventoryService.getOrCreateBullionProduct(
+          tx,
+          transfer.sourceBranchId,
+          transfer.metalCategory,
+          transfer.purityPercent
+        );
 
         if (bullionProduct) {
           await insertLedgerEntry(

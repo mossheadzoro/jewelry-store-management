@@ -16,6 +16,7 @@ const BillingSummary = ({ billing, customer, onCheckout, isSubmitting, isEditMod
     sgst,
     makingCgst,
     makingSgst,
+    taxableSubtotal,
     hallmarkFee,
     grandTotal,
     hallmarkingSGST,
@@ -128,6 +129,14 @@ const BillingSummary = ({ billing, customer, onCheckout, isSubmitting, isEditMod
 
         <div className="my-2 border-t border-white/5"></div>
 
+        <Row 
+          label="Subtotal (Taxable Value)" 
+          value={taxableSubtotal ?? (netGoldValue + totalMaking + totalAdditional + (hallmarkCharge ? hallmarkFee : 0))} 
+          isHighlight={true} 
+        />
+
+        <div className="my-2 border-t border-white/5"></div>
+
         {/* Dynamic Tax Display */}
         {taxOnMetal && (
           <>
@@ -143,17 +152,17 @@ const BillingSummary = ({ billing, customer, onCheckout, isSubmitting, isEditMod
           </>
         )}
 
-        {hallmarkCharge && (
-          <>
-            <Row label="Hallmark CGST (9%)" value={hallmarkingCGST} />
-            <Row label="Hallmark SGST (9%)" value={hallmarkingSGST} />
-          </>
-        )}
-
         {taxOnTotal && (
           <>
             <Row label={`CGST (1.5%)${isExchangeTotalTaxMode ? " [Net+Mk]" : ""}`} value={cgst} />
             <Row label={`SGST (1.5%)${isExchangeTotalTaxMode ? " [Net+Mk]" : ""}`} value={sgst} />
+          </>
+        )}
+
+        {hallmarkCharge && (
+          <>
+            <Row label="Hallmark CGST (9%)" value={hallmarkingCGST} />
+            <Row label="Hallmark SGST (9%)" value={hallmarkingSGST} />
           </>
         )}
 

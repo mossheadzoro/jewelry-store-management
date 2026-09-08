@@ -45,14 +45,16 @@ export default function LuxuryInvoiceTemplate({ invoice: rawInvoice, regularPaym
 
   const hasDiscount = invoice.totalDiscountAmount > 0 || invoice.items.some((it: any) => ((it.discountPercent || 0) > 0));
 
-  const cgst3 = invoice.cgst || (netTaxableBase * 0.015);
-  const sgst3 = invoice.sgst || (netTaxableBase * 0.015);
-  const subtotalWith3PctGst = netTaxableBase + cgst3 + sgst3;
-
   const hallmarkCharge = invoice.hallmarkingCharge || 0;
   const hallmarkTotalTax = invoice.taxOnHallmarking || (hallmarkCharge > 0 ? hallmarkCharge * 0.18 : 0);
-  const hallmarkCgst = hallmarkTotalTax / 2;
-  const hallmarkSgst = hallmarkTotalTax / 2;
+  const hallmarkCgst = invoice.hallmarkCgst || (hallmarkTotalTax / 2);
+  const hallmarkSgst = invoice.hallmarkSgst || (hallmarkTotalTax / 2);
+
+  const rawCgst = (invoice.cgst !== undefined && invoice.cgst !== null) ? invoice.cgst : (netTaxableBase * 0.015);
+  const rawSgst = (invoice.sgst !== undefined && invoice.sgst !== null) ? invoice.sgst : (netTaxableBase * 0.015);
+  const cgst3 = rawCgst;
+  const sgst3 = rawSgst;
+  const subtotalWith3PctGst = netTaxableBase + cgst3 + sgst3;
 
   const hasProductImages = invoice.items.some((it: any) => (it.product?.image || it.image));
   const totalItemMetalValue = invoice.items.reduce((sum: number, item: any) => sum + (item.ntWeight * item.metalRate), 0);

@@ -62,6 +62,20 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
             billing.setProducts(draftData.products || []);
             billing.setPayments(draftData.payments || []);
             billing.updateMetalRate(draftData.metalRate || 0);
+            if (draftData.taxOnTotal !== undefined) billing.setTaxOnTotal(draftData.taxOnTotal);
+            if (draftData.hallmarkCharge !== undefined) billing.setHallmarkCharge(draftData.hallmarkCharge);
+            if (draftData.taxOnMetal !== undefined) billing.setTaxOnMetal(draftData.taxOnMetal);
+            if (draftData.taxOnMakingToggle !== undefined) billing.setTaxOnMaking(draftData.taxOnMakingToggle);
+            else if (draftData.taxOnMaking !== undefined) billing.setTaxOnMaking(draftData.taxOnMaking);
+            if (draftData.metalExchange !== undefined) billing.setMetalExchange(draftData.metalExchange);
+            if (draftData.exchangeGoldWeight !== undefined) billing.setExchangeGoldWeight(draftData.exchangeGoldWeight);
+            if (draftData.exchangeGoldPurity) billing.setExchangeGoldPurity(draftData.exchangeGoldPurity);
+            if (draftData.exchangeGoldDeductionPercent !== undefined) billing.setExchangeGoldDeductionPercent(draftData.exchangeGoldDeductionPercent);
+            if (draftData.exchangeMetalRate !== undefined) billing.setSavedExchangeMetalRate(draftData.exchangeMetalRate);
+            if (draftData.appliedAdvance) billing.setAppliedAdvance(draftData.appliedAdvance);
+            if (draftData.appliedSchemes) billing.setAppliedSchemes(draftData.appliedSchemes);
+            if (draftData.excessGoldMode) billing.setExcessGoldMode(draftData.excessGoldMode);
+            if (draftData.cashOutReductionPercent !== undefined) billing.setCashOutReductionPercent(draftData.cashOutReductionPercent);
             
             if (data.draft.customerId) {
               setActiveCustomerId(data.draft.customerId.toString());
@@ -227,6 +241,7 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
         billing.setHallmarkCharge(data.hallmarkCharge);
         billing.setTaxOnMetal(data.taxOnMetal);
         billing.setTaxOnMaking(data.taxOnMaking);
+        billing.setMetalExchange(data.metalExchange ?? false);
         billing.setExchangeGoldWeight(data.exchangeGoldWeight);
         if (data.exchangeGoldPurity) billing.setExchangeGoldPurity(data.exchangeGoldPurity);
         if (data.exchangeGoldDeductionPercent !== undefined) billing.setExchangeGoldDeductionPercent(data.exchangeGoldDeductionPercent);
@@ -281,6 +296,19 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
         sgst: billing.sgst + billing.goldSgst + billing.makingSgst + billing.hallmarkingSGST,
         refundMethod: billing.refundMethod,
         refundDetails: billing.refundDetails,
+        taxOnTotal: billing.taxOnTotal,
+        hallmarkCharge: billing.hallmarkCharge,
+        taxOnMetal: billing.taxOnMetal,
+        taxOnMakingToggle: billing.taxOnMaking,
+        metalExchange: billing.metalExchange,
+        exchangeGoldWeight: billing.exchangeGoldWeight,
+        exchangeGoldPurity: billing.exchangeGoldPurity,
+        exchangeGoldDeductionPercent: billing.exchangeGoldDeductionPercent,
+        exchangeMetalRate: billing.exchangeMetalRate,
+        appliedAdvance: billing.appliedAdvance,
+        appliedSchemes: billing.appliedSchemes,
+        excessGoldMode: billing.excessGoldMode,
+        cashOutReductionPercent: billing.cashOutReductionPercent,
       }
     };
     
@@ -346,7 +374,12 @@ const BillingPage = ({ invoiceId }: BillingPageProps) => {
              cgst: billing.cgst + billing.goldCgst + billing.makingCgst + billing.hallmarkingCGST,
              sgst: billing.sgst + billing.goldSgst + billing.makingSgst + billing.hallmarkingSGST,
              totalAmount: billing.grandTotal,
+             taxOnTotal: billing.taxOnTotal,
+             hallmarkCharge: billing.hallmarkCharge,
+             taxOnMetal: billing.taxOnMetal,
+             taxOnMakingToggle: billing.taxOnMaking,
              appliedAdvanceId: billing.appliedAdvance?.id,
+             appliedAdvance: billing.appliedAdvance,
              excessGoldMode: billing.excessGoldMode,
              cashOutReductionPercent: billing.cashOutReductionPercent,
              cashSettlementRate: billing.cashSettlementRate,

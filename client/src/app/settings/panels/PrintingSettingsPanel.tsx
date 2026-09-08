@@ -418,19 +418,19 @@ export default function DocumentsAndPrintingPanel() {
 
       await axios.post("/api/branch/settings", {
         branchId: selectedBranch.id,
-        ...branchSettings,
         invoiceFormat: taxInvoiceData.format,
         invoicePageSize: taxInvoiceData.paperSize,
         invoiceColor: taxInvoiceData.invoiceColor,
         termsPrintLocation: taxInvoiceData.termsPrintLocation,
         termsAndConditions: taxInvoiceData.termsAndConditions,
-        invoiceCustomizations: updatedCustomizations
+        invoiceCustomizations: updatedCustomizations,
+        ...(formData.customizations?.companyLogoUrl ? { logoUrl: formData.customizations.companyLogoUrl } : {})
       });
-      alert("Settings Saved Successfully");
+      toast.success("Printing settings & primary template saved successfully!");
       await fetchBranchSettings(selectedBranch.id);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Error saving settings");
+      toast.error(err.response?.data?.error || "Failed to save printing settings");
     } finally {
       setSaving(false);
     }
@@ -558,7 +558,11 @@ export default function DocumentsAndPrintingPanel() {
                       <div className="mt-2 flex flex-col justify-end flex-1">
                         <div className="font-medium text-platinum flex items-center justify-between text-[13px]">
                           {format.name}
-                          {docSettings.format === format.id && <div className="w-2 h-2 rounded-full bg-gold"></div>}
+                          {docSettings.format === format.id && (
+                            <span className="text-[10px] bg-gold/20 text-gold font-bold px-1.5 py-0.5 rounded flex items-center gap-1 border border-gold/30">
+                              <span className="w-1.5 h-1.5 rounded-full bg-gold"></span> Primary
+                            </span>
+                          )}
                         </div>
                         <div className="text-[11px] text-platinum-muted mt-1 leading-tight line-clamp-2">
                           {format.description}

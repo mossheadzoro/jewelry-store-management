@@ -137,7 +137,9 @@ export async function GET(req: NextRequest) {
           "Customer Mobile": inv.customer.mobile,
           "Customer GSTIN": inv.customer.gstin || "",
           "Net Weight (g)": parseFloat(netWt.toFixed(3)),
-          "Taxable Amount": inv.totalMetalAmount + inv.totalMakingAmount + inv.totalStoneAmount,
+          "Taxable Amount": inv.totalMetalAmount + inv.totalMakingAmount + inv.totalStoneAmount + (inv.hallmarkingCharge || 0),
+          "Hallmark Charge": inv.hallmarkingCharge || 0,
+          "Tax on Hallmarking": inv.taxOnHallmarking || 0,
           CGST: inv.cgst,
           SGST: inv.sgst,
           "Total Amount": inv.totalAmount,
@@ -247,7 +249,7 @@ export async function GET(req: NextRequest) {
         }
 
         const netWt = inv.items.reduce((s, i) => s + i.ntWeight, 0);
-        const taxable = inv.totalMetalAmount + inv.totalMakingAmount + inv.totalStoneAmount;
+        const taxable = inv.totalMetalAmount + inv.totalMakingAmount + inv.totalStoneAmount + (inv.hallmarkingCharge || 0);
         const gst = inv.cgst + inv.sgst;
         const status = inv.isFullyPaid ? "PAID" : inv.paidAmount > 0 ? "PARTIAL" : "PENDING";
 

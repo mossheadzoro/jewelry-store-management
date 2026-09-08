@@ -104,7 +104,8 @@ export default function InventoryClient() {
   const paginatedActivity = (recentActivity || []).slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    <div className="min-h-screen bg-onyx text-foreground p-8 w-full">
+    <main className="flex-1 min-h-screen bg-onyx text-foreground overflow-auto">
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-8 py-8 w-full">
       {/* Header */}
       <div className="flex justify-between items-center mb-10">
         <div>
@@ -286,6 +287,7 @@ export default function InventoryClient() {
       {addCategoryOpen && (
         <AddCategoryForm open={addCategoryOpen} setOpen={setAddCategoryOpen} onSuccess={invalidateAll} />
       )}
-    </div>
+      </div>
+    </main>
   );
 }

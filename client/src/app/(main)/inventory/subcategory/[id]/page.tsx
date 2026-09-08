@@ -3,8 +3,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Search, Filter, MoreVertical, ChevronLeft, ChevronRight, Edit, Eye, Printer } from "lucide-react";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
 import { ProductDetailsModal } from "@/components/Inventory/Product/ProductDetailsModal";
 import { printBarcodes } from "@/lib/barcodePrinter";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -135,9 +133,8 @@ export default function SubcategoryDetailPage() {
   }, [isStamping]);
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <div className="min-h-screen bg-onyx text-foreground p-8 w-full">
+    <main className="flex-1 min-h-screen bg-onyx text-foreground overflow-auto">
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-8 py-8 w-full">
         {/* Breadcrumb */}
         <div className="bg-onyx-surface border border-border/50 rounded-xl px-5 py-3 mb-8 flex items-center gap-2 text-xs uppercase tracking-widest">
           <span className="text-muted-foreground cursor-pointer hover:text-foreground/80" onClick={() => router.push("/inventory")}>Home</span>
@@ -436,7 +433,6 @@ export default function SubcategoryDetailPage() {
             </div>
           )}
         </div>
-      </div>
       
       <ProductDetailsModal 
         product={selectedProduct} 
@@ -497,6 +493,7 @@ export default function SubcategoryDetailPage() {
           }}
         />
       )}
-    </SidebarProvider>
+      </div>
+    </main>
   );
 }

@@ -42,11 +42,13 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
     p.paymentRef?.includes("Excess Gold Returned to Customer")
   );
 
-  // Regular payments (exclude excess gold settlement entries)
+  // Regular payments (exclude excess gold settlement entries and system records)
   const regularPayments = invoice.payments.filter(p => 
     !p.paymentRef?.includes("OLD Gold Cashed Out") &&
     !p.paymentRef?.includes("Cash Given to Customer (Old Gold Excess Settlement)") &&
-    !p.paymentRef?.includes("Excess Gold Returned to Customer")
+    !p.paymentRef?.includes("Excess Gold Returned to Customer") &&
+    !p.paymentRef?.includes("Old Gold Exchange Weight:") &&
+    !p.paymentRef?.includes("System Bill Settings:")
   );
 
   return (

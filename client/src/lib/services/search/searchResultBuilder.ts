@@ -402,3 +402,150 @@ export function buildRfidTagResult(
   };
 }
 
+export function buildPurchaseSupplierResult(
+  raw: any,
+  matchType: MatchType,
+  branchName: string = '',
+): SearchResultDTO {
+  return {
+    id: raw.id,
+    entityType: 'purchase_supplier',
+    title: raw.businessName,
+    subtitle: `${raw.code} · ${raw.contactPerson || 'Direct Bullion Supplier'}`,
+    description: [
+      raw.city,
+      raw.gstin ? `GSTIN: ${raw.gstin}` : null,
+      raw.mobile ? maskMobile(raw.mobile) : null,
+    ].filter(Boolean).join(' · '),
+    badges: [
+      raw.isActive
+        ? { label: 'ACTIVE', variant: 'success' as const }
+        : { label: 'INACTIVE', variant: 'outline' as const },
+      { label: 'BULLION SUPPLIER', variant: 'gold' as const },
+    ],
+    metrics: [
+      { label: 'Payable', value: formatCurrency(raw.currentPayable) },
+      { label: 'Purchased', value: formatCurrency(raw.totalPurchasedValue) },
+      { label: 'Gold (g)', value: formatWeight(raw.totalGoldPurchasedGm) },
+    ],
+    branchName: branchName || 'All Branches',
+    branchId: 0,
+    navigationUrl: `/purchase?tab=suppliers&supplierId=${raw.id}`,
+    matchType,
+    score: calculateScore(matchType, 'purchase_supplier', raw.createdAt),
+  };
+}
+
+export function buildPurchaseBookingResult(
+  raw: any,
+  matchType: MatchType,
+  branchName: string = '',
+): SearchResultDTO {
+  const metalName = (raw.metalCategory || 'GOLD_24K').replace('_', ' ');
+  return {
+    id: raw.id,
+    entityType: 'purchase_booking',
+    title: `${raw.bookingNumber} (${metalName})`,
+    subtitle: `Supplier: ${raw.supplier?.businessName || '—'}`,
+    description: [
+      `Weight: ${raw.grossWeight?.toFixed(3)}g`,
+      raw.bookingRate ? `Rate: ₹${Number(raw.bookingRate).toLocaleString('en-IN')}/g` : null,
+      raw.bookingDate ? `Date: ${new Date(raw.bookingDate).toLocaleDateString('en-IN')}` : null,
+    ].filter(Boolean).join(' · '),
+    badges: [
+      statusBadge(raw.status),
+      {
+        label: raw.metalReceiptStatus || 'PENDING',
+        variant: raw.metalReceiptStatus === 'FULLY_RECEIVED' ? ('success' as const) : raw.metalReceiptStatus === 'PARTIALLY_RECEIVED' ? ('warning' as const) : ('outline' as const),
+      },
+      {
+        label: raw.paymentStatus || 'PENDING',
+        variant: raw.paymentStatus === 'FULLY_PAID' ? ('success' as const) : raw.paymentStatus === 'PARTIALLY_PAID' ? ('warning' as const) : ('outline' as const),
+      },
+    ],
+    metrics: [
+      { label: 'Total', value: formatCurrency(raw.totalAmount) },
+      { label: 'Gross Wt', value: `${raw.grossWeight?.toFixed(3)}g` },
+      { label: 'Pending Wt', value: `${raw.pendingGrossWeight?.toFixed(3)}g` },
+    ],
+    branchName: branchName || raw.branch?.name || '',
+    branchId: raw.branchId,
+    navigationUrl: `/purchase?tab=bookings&bookingNumber=${raw.bookingNumber}`,
+    matchType,
+    score: calculateScore(matchType, 'purchase_booking', raw.createdAt, raw.totalAmount),
+  };
+}
+
+export function buildPurchaseInvoiceResult(
+  raw: any,
+  matchType: MatchType,
+  branchName: string = '',
+): SearchResultDTO {
+  return {
+    id: raw.id,
+    entityType: 'purchase_invoice',
+    title: `${raw.invoiceNumber}${raw.supplierInvoiceNumber ? ` (Ref: ${raw.supplierInvoiceNumber})` : ''}`,
+    subtitle: `Supplier: ${raw.supplier?.businessName || '—'}`,
+    description: [
+      `Gross: ${raw.totalGrossWeight?.toFixed(3)}g`,
+      `Fine: ${raw.totalFineWeight?.toFixed(3)}g`,
+      raw.invoiceDate ? `Date: ${new Date(raw.invoiceDate).toLocaleDateString('en-IN')}` : null,
+    ].filter(Boolean).join(' · '),
+    badges: [
+      statusBadge(raw.status),
+      {
+        label: raw.paymentStatus || 'PENDING',
+        variant: raw.paymentStatus === 'FULLY_PAID' ? ('success' as const) : raw.paymentStatus === 'PARTIALLY_PAID' ? ('warning' as const) : ('outline' as const),
+      },
+      {
+        label: raw.metalReceiptStatus || 'PENDING',
+        variant: raw.metalReceiptStatus === 'FULLY_RECEIVED' ? ('success' as const) : ('outline' as const),
+      },
+    ],
+    metrics: [
+      { label: 'Total', value: formatCurrency(raw.invoiceTotal) },
+      { label: 'Taxable', value: formatCurrency(raw.taxableValue) },
+      { label: 'Balance', value: formatCurrency(raw.balanceAmount) },
+    ],
+    branchName: branchName || raw.branch?.name || '',
+    branchId: raw.branchId,
+    navigationUrl: `/purchase?tab=invoices&invoiceNumber=${raw.invoiceNumber}`,
+    matchType,
+    score: calculateScore(matchType, 'purchase_invoice', raw.createdAt, raw.invoiceTotal),
+  };
+}
+
+export function buildPurchaseReceiptResult(
+  raw: any,
+  matchType: MatchType,
+  branchName: string = '',
+): SearchResultDTO {
+  const metalName = (raw.metalCategory || 'GOLD_24K').replace('_', ' ');
+  return {
+    id: raw.id,
+    entityType: 'purchase_receipt',
+    title: `${raw.receiptNumber} (${metalName})`,
+    subtitle: `Supplier: ${raw.supplier?.businessName || '—'}${raw.lotBatchNo ? ` · Lot: ${raw.lotBatchNo}` : ''}`,
+    description: [
+      `Actual Wt: ${raw.actualGrossWeight?.toFixed(3)}g`,
+      `Expected: ${raw.expectedGrossWeight?.toFixed(3)}g`,
+      raw.receiptDate ? `Date: ${new Date(raw.receiptDate).toLocaleDateString('en-IN')}` : null,
+    ].filter(Boolean).join(' · '),
+    badges: [
+      statusBadge(raw.status),
+      { label: `${raw.purityPercent}% PURITY`, variant: 'gold' as const },
+      raw.isWeightDiscrepancy ? { label: 'DISCREPANCY', variant: 'destructive' as const } : { label: 'WEIGHT OK', variant: 'success' as const },
+    ],
+    metrics: [
+      { label: 'Gross Wt', value: `${raw.actualGrossWeight?.toFixed(3)}g` },
+      { label: 'Fine Wt', value: `${raw.actualFineWeight?.toFixed(3)}g` },
+      { label: 'Diff', value: `${raw.weightDifference > 0 ? '+' : ''}${raw.weightDifference?.toFixed(3)}g` },
+    ],
+    branchName: branchName || raw.branch?.name || '',
+    branchId: raw.receivingBranchId,
+    navigationUrl: `/purchase?tab=receiving&receiptNumber=${raw.receiptNumber}`,
+    matchType,
+    score: calculateScore(matchType, 'purchase_receipt', raw.createdAt),
+  };
+}
+

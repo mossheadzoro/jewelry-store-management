@@ -33,6 +33,8 @@ export async function GET(req: NextRequest) {
     const stage = (req.nextUrl.searchParams.get('stage') || 'instant') as SearchStage;
     const scopeParam = req.nextUrl.searchParams.get('scope') || 'all';
     const entityFilter = req.nextUrl.searchParams.get('entity') as SearchEntityType | null;
+    const entitiesParam = req.nextUrl.searchParams.get('entities');
+    const entitiesFilter = entitiesParam ? (entitiesParam.split(',').map(s => s.trim()) as SearchEntityType[]) : undefined;
     const limit = parseInt(req.nextUrl.searchParams.get('limit') || '5', 10);
     const offset = parseInt(req.nextUrl.searchParams.get('offset') || '0', 10);
 
@@ -66,6 +68,7 @@ export async function GET(req: NextRequest) {
       scope: isNaN(scope as number) ? 'all' : scope,
       stage,
       entityFilter: entityFilter || undefined,
+      entitiesFilter: entitiesFilter || undefined,
       limit: Math.min(limit, 50),  // Cap at 50
       offset,
     });

@@ -24,7 +24,9 @@ export async function GET(req: Request) {
                 { productCode: { contains: "FINEGOLD", mode: "insensitive" } },
                 { name: { contains: "Bullion", mode: "insensitive" } },
                 { name: { contains: "Fine Gold", mode: "insensitive" } },
+                { name: { contains: "Free Gold", mode: "insensitive" } },
                 { name: { contains: "Old Gold", mode: "insensitive" } },
+                { subCategory: { name: { contains: "FREE GOLD", mode: "insensitive" } } },
               ]
             }
           }

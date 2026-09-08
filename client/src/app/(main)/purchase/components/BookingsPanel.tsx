@@ -110,10 +110,11 @@ export default function BookingsPanel({ onRefreshOverview }: BookingsPanelProps)
   const numBookingRate = Number(formData.bookingRate) || 0;
   const numMarketRate = Number(formData.marketRate) || 0;
 
-  // Live calculations: 24K bullion standard purity is 99.50%
-  const fineWeight = (formData.metalCategory === "GOLD_24K" && formData.purityPercent >= 99.50)
+  // Live calculations: 24K raw gold standard is 99.50% category — 24K raw gold is taken directly 1:1 without second fining
+  const is24K = formData.metalCategory === "GOLD_24K";
+  const fineWeight = is24K
     ? Number(numWeight.toFixed(3))
-    : Number(((numWeight * formData.purityPercent) / 99.50).toFixed(3));
+    : Number(((numWeight * formData.purityPercent) / 100).toFixed(3));
 
   // Financial calculations based on Rate Condition
   let actualBaseRate = 0;

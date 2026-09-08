@@ -198,11 +198,19 @@ export function normalizeInvoice(rawInvoice: any): any {
 
   const netTaxable = totalBeforeAdditional + totalAdditionalAmount; // ₹79,800 + ₹400 = ₹80,200
 
-  const cgst = (rawInvoice.cgst !== undefined && rawInvoice.cgst !== null) ? rawInvoice.cgst : (netTaxable * 0.015);
-  const sgst = (rawInvoice.sgst !== undefined && rawInvoice.sgst !== null) ? rawInvoice.sgst : (netTaxable * 0.015);
-
   const hallmarkingCharge = rawInvoice.hallmarkingCharge || 0;
   const taxOnHallmarking = rawInvoice.taxOnHallmarking || (hallmarkingCharge > 0 ? hallmarkingCharge * 0.18 : 0);
+  const hallmarkCgst = taxOnHallmarking / 2;
+  const hallmarkSgst = taxOnHallmarking / 2;
+
+  let cgst = (rawInvoice.cgst !== undefined && rawInvoice.cgst !== null) ? rawInvoice.cgst : (netTaxable * 0.015);
+  let sgst = (rawInvoice.sgst !== undefined && rawInvoice.sgst !== null) ? rawInvoice.sgst : (netTaxable * 0.015);
+
+  // If rawInvoice.cgst included hallmarkCgst, separate it so base CGST is pure 1.5%
+  if (hallmarkCgst > 0 && cgst > hallmarkCgst && !rawInvoice.taxOnGold && !rawInvoice.taxOnMaking) {
+    cgst = cgst - hallmarkCgst;
+    sgst = sgst - hallmarkSgst;
+  }
 
   const totalAmount = (rawInvoice.totalAmount !== undefined && rawInvoice.totalAmount !== null && rawInvoice.totalAmount > 0) 
     ? rawInvoice.totalAmount 
@@ -224,6 +232,10 @@ export function normalizeInvoice(rawInvoice: any): any {
     netTaxable,
     cgst,
     sgst,
+    hallmarkingCharge,
+    taxOnHallmarking,
+    hallmarkCgst,
+    hallmarkSgst,
     totalAmount
   };
 }

@@ -3,6 +3,43 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
+// ─── In-memory session verification cache ───────────────────────────────────
+// Prevents the jwt callback from hitting the database on every single request.
+// Each session is cached for SESSION_CACHE_TTL_MS after verification.
+const SESSION_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+const SESSION_CACHE_MAX_SIZE = 500;
+
+interface SessionCacheEntry {
+  isValid: boolean;
+  checkedAt: number;
+}
+
+const sessionCache = new Map<string, SessionCacheEntry>();
+
+function getSessionFromCache(sessionId: string): boolean | null {
+  const entry = sessionCache.get(sessionId);
+  if (!entry) return null;
+  if (Date.now() - entry.checkedAt > SESSION_CACHE_TTL_MS) {
+    sessionCache.delete(sessionId);
+    return null; // expired
+  }
+  return entry.isValid;
+}
+
+function setSessionCache(sessionId: string, isValid: boolean) {
+  // Evict oldest entries if cache is too large
+  if (sessionCache.size >= SESSION_CACHE_MAX_SIZE) {
+    const firstKey = sessionCache.keys().next().value;
+    if (firstKey) sessionCache.delete(firstKey);
+  }
+  sessionCache.set(sessionId, { isValid, checkedAt: Date.now() });
+}
+
+/** Call this when a session is explicitly revoked to invalidate it immediately */
+export function invalidateSessionCache(sessionId: string) {
+  sessionCache.delete(sessionId);
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -87,16 +124,31 @@ export const authOptions: NextAuthOptions = {
             }
           }
         } else if (token?.sessionId) {
-          // On subsequent requests, verify session record has not been revoked
-          const sess = await prisma.userSessionRecord.findUnique({
-            where: { id: token.sessionId as string },
-            select: { isRevoked: true, expiresAt: true },
-          }).catch(() => null);
+          // On subsequent requests, verify session record has not been revoked.
+          // Use in-memory cache to avoid hitting the DB on every single request.
+          const sid = token.sessionId as string;
+          const cached = getSessionFromCache(sid);
 
-          if (!sess || sess.isRevoked || new Date(sess.expiresAt) < new Date()) {
-            // Session revoked or expired - invalidate JWT token
+          if (cached === false) {
+            // Cached as invalid — reject immediately without DB query
             return {} as any;
           }
+
+          if (cached === null) {
+            // Not in cache or cache expired — query DB and cache the result
+            const sess = await prisma.userSessionRecord.findUnique({
+              where: { id: sid },
+              select: { isRevoked: true, expiresAt: true },
+            }).catch(() => null);
+
+            if (!sess || sess.isRevoked || new Date(sess.expiresAt) < new Date()) {
+              setSessionCache(sid, false);
+              return {} as any;
+            }
+
+            setSessionCache(sid, true);
+          }
+          // cached === true means session is valid and recently verified — skip DB query
         }
       } catch (err) {
         console.error("NextAuth JWT callback error:", err);

@@ -15,7 +15,11 @@ export type SearchEntityType =
   | 'scheme'
   | 'huid'
   | 'advance'
-  | 'rfid';
+  | 'rfid'
+  | 'purchase_supplier'
+  | 'purchase_booking'
+  | 'purchase_invoice'
+  | 'purchase_receipt';
 
 export type QueryType =
   | 'invoice_number'
@@ -30,6 +34,10 @@ export type QueryType =
   | 'scheme_number'
   | 'advance_receipt'
   | 'rfid_epc'
+  | 'purchase_booking_number'
+  | 'purchase_invoice_number'
+  | 'metal_receipt_number'
+  | 'supplier_code'
   | 'text_search';
 
 export type MatchType = 'exact' | 'prefix' | 'contains' | 'fuzzy';
@@ -48,7 +56,8 @@ export interface SearchRequest {
   assignedBranchIds: number[];
   scope?: 'all' | number;            // Admin: branch override
   stage?: SearchStage;                // Stage 1 or Stage 2
-  entityFilter?: SearchEntityType;    // Filter to specific entity type
+  entityFilter?: SearchEntityType;    // Filter to specific single entity type
+  entitiesFilter?: SearchEntityType[]; // Filter to a subset of entity types
   limit?: number;
   offset?: number;
 }
@@ -143,6 +152,10 @@ export const STAGE_1_ENTITIES: SearchEntityType[] = [
   'invoice',
   'order',
   'booking',
+  'purchase_booking',
+  'purchase_invoice',
+  'purchase_supplier',
+  'purchase_receipt',
 ];
 
 // --- Stage 2 entities (expanded search) ---
@@ -163,15 +176,19 @@ export const ALL_ENTITIES: SearchEntityType[] = [
 
 // --- Entity display config ---
 export const ENTITY_CONFIG: Record<SearchEntityType, { label: string; pluralLabel: string; icon: string; color: string }> = {
-  customer:   { label: 'Customer',       pluralLabel: 'Customers',        icon: '👤', color: '#60A5FA' },
-  product:    { label: 'Product',        pluralLabel: 'Products',         icon: '💎', color: '#C9A84C' },
-  invoice:    { label: 'Invoice',        pluralLabel: 'Invoices',         icon: '🧾', color: '#34D399' },
-  order:      { label: 'Order',          pluralLabel: 'Orders',           icon: '📋', color: '#A78BFA' },
-  booking:    { label: 'Booking',        pluralLabel: 'Bookings',         icon: '📅', color: '#FB923C' },
-  karigar:    { label: 'Karigar',        pluralLabel: 'Karigars',         icon: '🔨', color: '#F472B6' },
-  wholesaler: { label: 'Wholesaler',     pluralLabel: 'Wholesalers',      icon: '🏭', color: '#38BDF8' },
-  scheme:     { label: 'Saving Scheme',  pluralLabel: 'Saving Schemes',   icon: '🐷', color: '#FBBF24' },
-  huid:       { label: 'HUID',          pluralLabel: 'HUIDs',            icon: '🏷️', color: '#818CF8' },
-  advance:    { label: 'Advance',       pluralLabel: 'Advances',         icon: '💰', color: '#4ADE80' },
-  rfid:       { label: 'RFID Tag',      pluralLabel: 'RFID Tags',        icon: '📡', color: '#EAB308' },
+  customer:          { label: 'Customer',            pluralLabel: 'Customers',             icon: '👤', color: '#60A5FA' },
+  product:           { label: 'Product',             pluralLabel: 'Products',              icon: '💎', color: '#C9A84C' },
+  invoice:           { label: 'Invoice',             pluralLabel: 'Invoices',              icon: '🧾', color: '#34D399' },
+  order:             { label: 'Order',               pluralLabel: 'Orders',                icon: '📋', color: '#A78BFA' },
+  booking:           { label: 'Booking',             pluralLabel: 'Bookings',              icon: '📅', color: '#FB923C' },
+  karigar:           { label: 'Karigar',             pluralLabel: 'Karigars',              icon: '🔨', color: '#F472B6' },
+  wholesaler:        { label: 'Wholesaler',          pluralLabel: 'Wholesalers',           icon: '🏭', color: '#38BDF8' },
+  scheme:            { label: 'Saving Scheme',       pluralLabel: 'Saving Schemes',        icon: '🐷', color: '#FBBF24' },
+  huid:              { label: 'HUID',               pluralLabel: 'HUIDs',                 icon: '🏷️', color: '#818CF8' },
+  advance:           { label: 'Advance',            pluralLabel: 'Advances',              icon: '💰', color: '#4ADE80' },
+  rfid:              { label: 'RFID Tag',           pluralLabel: 'RFID Tags',             icon: '📡', color: '#EAB308' },
+  purchase_supplier: { label: 'Bullion Supplier',   pluralLabel: 'Bullion Suppliers',     icon: '🏢', color: '#EAB308' },
+  purchase_booking:  { label: 'Bullion Booking',    pluralLabel: 'Bullion Bookings',      icon: '📦', color: '#F59E0B' },
+  purchase_invoice:  { label: 'Purchase Invoice',   pluralLabel: 'Purchase Invoices',     icon: '📑', color: '#10B981' },
+  purchase_receipt:  { label: 'Metal Receipt (GRN)', pluralLabel: 'Metal Receipts (GRN)', icon: '⚖️', color: '#06B6D4' },
 };

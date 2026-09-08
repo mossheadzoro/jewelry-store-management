@@ -31,6 +31,10 @@ import {
   searchHuids,
   searchAdvances,
   searchRfidTags,
+  searchPurchaseSuppliers,
+  searchPurchaseBookings,
+  searchPurchaseInvoices,
+  searchPurchaseReceipts,
 } from './entitySearchers';
 
 // Map entity types to their searcher functions
@@ -46,6 +50,10 @@ const SEARCHER_MAP: Record<SearchEntityType, (query: string, scope: any, limit: 
   huid: searchHuids,
   advance: searchAdvances,
   rfid: searchRfidTags,
+  purchase_supplier: searchPurchaseSuppliers,
+  purchase_booking: searchPurchaseBookings,
+  purchase_invoice: searchPurchaseInvoices,
+  purchase_receipt: searchPurchaseReceipts,
 };
 
 export async function search(request: SearchRequest): Promise<SearchResponse> {
@@ -60,6 +68,7 @@ export async function search(request: SearchRequest): Promise<SearchResponse> {
     scope: requestedScope,
     stage = 'instant',
     entityFilter,
+    entitiesFilter,
     limit = 5,
   } = request;
 
@@ -75,7 +84,10 @@ export async function search(request: SearchRequest): Promise<SearchResponse> {
   // 3. Determine which entities to search
   let entitiesToSearch: SearchEntityType[];
 
-  if (entityFilter) {
+  if (entitiesFilter && entitiesFilter.length > 0) {
+    // Multi-entity filter (e.g. Purchase tab)
+    entitiesToSearch = entitiesFilter;
+  } else if (entityFilter) {
     // Specific entity filter from the UI
     entitiesToSearch = [entityFilter];
   } else if (classification.isExactIdentifier && classification.suggestedEntities.length > 0) {

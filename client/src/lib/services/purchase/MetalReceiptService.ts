@@ -7,6 +7,7 @@ import { VerificationService } from "./VerificationService";
 import { AuditLogService } from "@/lib/audit/AuditLogService";
 import { insertLedgerEntry } from "@/lib/inventoryLedger";
 import { PurchaseInvoiceService } from "./PurchaseInvoiceService";
+import { BullionInventoryService } from "./BullionInventoryService";
 
 export interface RecordMetalReceiptParams {
   branchId: number;
@@ -63,13 +64,14 @@ export class MetalReceiptService {
     else if (metalCategory === "SILVER_925") { defaultPurity = 92.50; karatage = 0; }
 
     const purityPercent = params.purityPercent || defaultPurity;
-    // 24K bullion is 99.50% standard — fine weight equals gross weight for 24K metal
-    const expectedFineWeight = (metalCategory === "GOLD_24K" && purityPercent >= 99.50)
+    // 24K raw gold standard is 99.50% category — 24K raw gold is taken directly 1:1 without second fining
+    const is24K = metalCategory === "GOLD_24K";
+    const expectedFineWeight = is24K
       ? Number(expectedGrossWeight.toFixed(3))
-      : Number(((expectedGrossWeight * purityPercent) / 99.50).toFixed(3));
-    const actualFineWeight = (metalCategory === "GOLD_24K" && purityPercent >= 99.50)
+      : Number(((expectedGrossWeight * purityPercent) / 100).toFixed(3));
+    const actualFineWeight = is24K
       ? Number(actualGrossWeight.toFixed(3))
-      : Number(((actualGrossWeight * purityPercent) / 99.50).toFixed(3));
+      : Number(((actualGrossWeight * purityPercent) / 100).toFixed(3));
     const weightDifference = Number((actualGrossWeight - expectedGrossWeight).toFixed(3));
 
     // Tolerance check: Weight difference exceeds ±0.050g for bullion bars
@@ -83,38 +85,6 @@ export class MetalReceiptService {
       where: { id: supplierId },
     });
     if (!supplier) throw new Error(`Bullion supplier ${supplierId} not found.`);
-
-    // Find or create standard Bullion Product Item for inventory tracking
-    let bullionProduct = await prisma.productItem.findFirst({
-      where: {
-        branchId,
-        productCode: `BULLION-${metalCategory}`,
-      },
-    });
-
-    if (!bullionProduct) {
-      // Find subcategory or first available
-      const subCategory = await prisma.subCategory.findFirst({
-        where: { category: { branchId } },
-      }) || await prisma.subCategory.findFirst();
-
-      if (subCategory) {
-        bullionProduct = await prisma.productItem.create({
-          data: {
-            branchId,
-            subCategoryId: subCategory.id,
-            name: `${metalCategory.replace("_", " ")} Raw Bullion Bar`,
-            productCode: `BULLION-${metalCategory}`,
-            barcode: `BUL-${metalCategory}-${branchId}-${Date.now().toString().slice(-4)}`,
-            gsWeight: actualGrossWeight,
-            ntWeight: actualGrossWeight,
-            purity: purityPercent,
-            quantity: 1,
-            allowNegativeStock: true,
-          },
-        });
-      }
-    }
 
     const receipt = await prisma.$transaction(async (tx) => {
       // 1. Create PurchaseMetalReceipt record
@@ -153,42 +123,21 @@ export class MetalReceiptService {
         },
       });
 
-      // 2. Post atomic entry to InventoryLedger
-      if (bullionProduct) {
-        await insertLedgerEntry(
-          tx,
-          {
-            productId: bullionProduct.id,
-            branchId,
-            txnType: "PURCHASE_IN",
-            refType: "PURCHASE",
-            refId: created.id,
-            qtyIn: 1,
-            grossWeightIn: actualGrossWeight,
-            netWeightIn: actualGrossWeight,
-            unitCost: 0,
-            totalValue: 0,
-            remarks: `Metal receipt ${receiptNumber} from ${supplier.businessName} (${metalCategory} ${actualGrossWeight.toFixed(3)}g)`,
-            createdById: receivedById,
-          },
-          {
-            karatage,
-            purityPercent,
-            batchLotNo: lotBatchNo || created.lotBatchNo || undefined,
-            hallmarkCertNo: testCertificateNo || undefined,
-          }
-        );
-
-        // Update productItem physical stock
-        await tx.productItem.update({
-          where: { id: bullionProduct.id },
-          data: {
-            gsWeight: { increment: actualGrossWeight },
-            ntWeight: { increment: actualGrossWeight },
-            quantity: { increment: 1 },
-          },
-        });
-      }
+      // 2. Post verified atomic entry to InventoryLedger & ProductItem with Safeguards
+      await BullionInventoryService.recordBullionIntakeWithSafeguards(tx, {
+        branchId,
+        receiptId: created.id,
+        receiptNumber,
+        metalCategory,
+        purityPercent,
+        actualGrossWeight,
+        actualFineWeight,
+        supplierName: supplier.businessName,
+        receivedById,
+        lotBatchNo: lotBatchNo || created.lotBatchNo || undefined,
+        testCertificateNo: testCertificateNo || undefined,
+        karatage,
+      });
 
       // 3. Update PurchaseBooking received progress
       if (purchaseBookingId) {

@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions, invalidateSessionCache } from "@/lib/authOptions";
 import { prisma } from "@/lib/prisma";
 import { SecurityService } from "@/lib/security/SecurityService";
 
@@ -81,6 +81,9 @@ export async function DELETE(req: NextRequest) {
       data: { isRevoked: true },
     });
 
+    // Immediately invalidate the in-memory cache so the revocation takes effect instantly
+    invalidateSessionCache(id);
+
     // Audit event
     await SecurityService.logAudit({
       tenantId,
@@ -119,6 +122,17 @@ export async function POST(req: NextRequest) {
     const tenantId = "default-tenant";
 
     if (action === "REVOKE_ALL_OTHER") {
+      // Fetch IDs of sessions being revoked so we can invalidate their cache entries
+      const sessionsToRevoke = await prisma.userSessionRecord.findMany({
+        where: {
+          tenantId,
+          userId,
+          isRevoked: false,
+          ...(currentSessionId ? { id: { not: currentSessionId } } : {}),
+        },
+        select: { id: true },
+      });
+
       await prisma.userSessionRecord.updateMany({
         where: {
           tenantId,
@@ -128,6 +142,11 @@ export async function POST(req: NextRequest) {
         },
         data: { isRevoked: true },
       });
+
+      // Immediately invalidate cache for all revoked sessions
+      for (const s of sessionsToRevoke) {
+        invalidateSessionCache(s.id);
+      }
 
       // Audit event
       await SecurityService.logAudit({

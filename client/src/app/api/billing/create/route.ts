@@ -29,6 +29,11 @@ export async function POST(req: Request) {
       cgst,
       sgst,
       totalAmount,
+      taxOnTotal = true,
+      hallmarkCharge: hallmarkChargeToggle = true,
+      taxOnMetal = false,
+      taxOnMakingToggle = false,
+      metalExchange = false,
       // Excess old gold data
       excessGoldMode,
       cashOutReductionPercent,
@@ -309,10 +314,20 @@ export async function POST(req: Request) {
             invoiceId: newInvoice.id,
             method: "OTHER",
             amount: 0,
-            paymentRef: `Old Gold Exchange Weight: ${exchangeGoldWeight?.toFixed(3)}g | Purity: ${exchangeGoldPurity || '22k'} | Deduction: ${exchangeGoldDeductionPercent || 2}% | Rate: ₹${exchangeMetalRate?.toFixed(2)} | Value: ₹${exchangeGoldValue?.toFixed(2)}`,
+            paymentRef: `Old Gold Exchange Weight: ${exchangeGoldWeight?.toFixed(3)}g | Purity: ${exchangeGoldPurity || '22k'} | Deduction: ${exchangeGoldDeductionPercent || 2}% | Rate: ₹${exchangeMetalRate?.toFixed(2)} | Value: ₹${exchangeGoldValue?.toFixed(2)} | MetalExchange: ${metalExchange ? 'true' : 'false'}`,
           },
         });
       }
+
+      // 3d. Record System Bill Settings for perfect edit-mode fidelity
+      await tx.invoicePayment.create({
+        data: {
+          invoiceId: newInvoice.id,
+          method: "OTHER",
+          amount: 0,
+          paymentRef: `System Bill Settings: TaxOnTotal: ${taxOnTotal ? 'true' : 'false'} | HallmarkCharge: ${hallmarkChargeToggle ? 'true' : 'false'} | TaxOnMetal: ${taxOnMetal ? 'true' : 'false'} | TaxOnMaking: ${taxOnMakingToggle ? 'true' : 'false'} | MetalExchange: ${metalExchange ? 'true' : 'false'}`,
+        },
+      });
 
       // 4. Update Customer Total Purchases & Spent (Removed as fields do not exist in schema)
 
@@ -428,6 +443,17 @@ export async function POST(req: Request) {
             });
           }
         }
+      }
+
+      // Link Applied Advance to this invoice
+      if (appliedAdvanceId) {
+        await tx.advance.update({
+          where: { id: appliedAdvanceId },
+          data: {
+            isApplied: true,
+            appliedInvoiceId: newInvoice.id,
+          },
+        });
       }
 
       // Mark associated Orders as DELIVERED if fully paid

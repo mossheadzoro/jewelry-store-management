@@ -60,12 +60,12 @@ export function useBillingLogic(isEditMode?: boolean) {
   const [products, setProducts] = useState<any[]>([]);
   const [metalRate, setMetalRate] = useState<number>(0);
 
-  // TAX STATES (global)
-  const [taxOnTotal, setTaxOnTotal] = useState(false);
+  // TAX STATES (global) - Hallmark and Total Tax default to ON for new bills; rest default to OFF
+  const [taxOnTotal, setTaxOnTotal] = useState(true);
   const [hallmarkCharge, setHallmarkCharge] = useState(true);
   const [taxOnMetal, setTaxOnMetal] = useState(false);
   const [taxOnMaking, setTaxOnMaking] = useState(false);
-  const [metalExchange, setMetalExchange] = useState(true);
+  const [metalExchange, setMetalExchange] = useState(false);
 
   // 🔥 Old gold exchange
   const [exchangeGoldWeight, setExchangeGoldWeight] = useState<number>(0);
@@ -130,6 +130,16 @@ export function useBillingLogic(isEditMode?: boolean) {
     setProducts([]);
     setAppliedWalletMetal22K(0);
     setAppliedWalletMetal24K(0);
+    setTaxOnTotal(true);
+    setHallmarkCharge(true);
+    setTaxOnMetal(false);
+    setTaxOnMaking(false);
+    setMetalExchange(false);
+    setExchangeGoldWeight(0);
+    setPayments([{ method: "CASH", amount: "", metalWeight: "", narration: "" }]);
+    setAppliedAdvance(null);
+    setAppliedSchemes([]);
+    resetExcessGoldHandling();
   };
 
   /* -------------------- RESTORE SESSION -------------------- */
@@ -159,11 +169,11 @@ export function useBillingLogic(isEditMode?: boolean) {
 
     setProducts(state.products ?? []);
     setMetalRate(state.metalRate ?? 0);
-    setTaxOnTotal(state.taxOnTotal ?? false);
-    setHallmarkCharge(state.hallmarkCharge ?? true);
-    setTaxOnMetal(state.taxOnMetal ?? false);
-    setTaxOnMaking(state.taxOnMaking ?? false);
-    setMetalExchange(state.metalExchange ?? true);
+    setTaxOnTotal(state.taxOnTotal !== undefined ? state.taxOnTotal : true);
+    setHallmarkCharge(state.hallmarkCharge !== undefined ? state.hallmarkCharge : true);
+    setTaxOnMetal(state.taxOnMetal !== undefined ? state.taxOnMetal : false);
+    setTaxOnMaking(state.taxOnMaking !== undefined ? state.taxOnMaking : false);
+    setMetalExchange(state.metalExchange !== undefined ? state.metalExchange : false);
     setExchangeGoldWeight(state.exchangeGoldWeight ?? 0);
     setExchangeGoldPurity(state.exchangeGoldPurity ?? "22k");
     setExchangeGoldDeductionPercent(state.exchangeGoldDeductionPercent ?? 2);
@@ -508,8 +518,6 @@ export function useBillingLogic(isEditMode?: boolean) {
   const netGoldValue = Math.max(totalGoldValue - effectiveExchangeValue, 0);
   const netGoldWeight = metalRate > 0 ? netGoldValue / metalRate : 0;
 
-  const subtotal = products.reduce((acc, p) => acc + itemTotal(p), 0);
-
   const totalProductQuantityForHallmark = products.reduce((acc, p) => acc + (Number(p.quantity) || 1), 0);
   const hallmarkConfig = globalSettings?.financialConfig?.hallmarkConfig || { charge: 500, cgst: 9, sgst: 9 };
   const hallmarkFee = (hallmarkCharge && products.length > 0) ? hallmarkConfig.charge * totalProductQuantityForHallmark : 0;
@@ -517,6 +525,8 @@ export function useBillingLogic(isEditMode?: boolean) {
   const hallmarkingCGST = (hallmarkCharge && products.length > 0) ? hallmarkFee * (hallmarkConfig.cgst / 100) : 0;
   const hallmarkingSGST = (hallmarkCharge && products.length > 0) ? hallmarkFee * (hallmarkConfig.sgst / 100) : 0;
   const hallmarkTax = hallmarkingCGST + hallmarkingSGST;
+
+  const subtotal = products.reduce((acc, p) => acc + itemTotal(p), 0) + (hallmarkCharge ? hallmarkFee : 0);
 
   // 🔥 GST logic (INCLUDES ADDITIONAL CHARGES)
   const goldGST = taxOnMetal ? netGoldValue * 0.03 : 0;
@@ -535,6 +545,7 @@ export function useBillingLogic(isEditMode?: boolean) {
 
   // Net Taxable Base = Net Gold Value + Discounted Making + Additional Charges
   const exchangeTotal = netGoldValue + totalMaking + totalAdditional;
+  const taxableSubtotal = exchangeTotal + (hallmarkCharge ? hallmarkFee : 0);
   const totalTax = taxOnTotal ? exchangeTotal * 0.03 : 0;
 
   /* -------------------- GRAND TOTAL -------------------- */
@@ -640,6 +651,7 @@ export function useBillingLogic(isEditMode?: boolean) {
     itemTotal,
 
     subtotal,
+    taxableSubtotal,
     hallmarkFee,
     totalTax,
     hallmarkTax,

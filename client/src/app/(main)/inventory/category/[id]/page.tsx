@@ -2,14 +2,11 @@
 
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Search, Plus, ArrowUpRight } from "lucide-react";
+import { Search, Plus, ArrowUpRight, ArrowLeft } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
 import { useBranchStore } from "@/lib/store/useBranchStore";
 import SubCategoryModal from "@/components/Inventory/SubCategory/AddSubCategory";
 import AddProductModal from "@/components/Inventory/Product/AddProductForm";
-
 
 interface SubCat {
   id: number;
@@ -53,37 +50,49 @@ export default function CategoryDetailPage() {
 
   if (loading) {
     return (
-      <SidebarProvider>
-        <AppSidebar />
-        <div className="min-h-screen bg-onyx text-foreground p-8 w-full flex items-center justify-center text-muted-foreground">Loading...</div>
-      </SidebarProvider>
+      <main className="flex-1 min-h-screen bg-onyx text-foreground overflow-auto">
+        <div className="max-w-[1400px] mx-auto px-6 sm:px-8 py-20 flex items-center justify-center text-muted-foreground">
+          Loading category data...
+        </div>
+      </main>
     );
   }
 
   if (!data) {
     return (
-      <SidebarProvider>
-        <AppSidebar />
-        <div className="min-h-screen bg-onyx text-foreground p-8 w-full flex items-center justify-center text-muted-foreground">Category not found</div>
-      </SidebarProvider>
+      <main className="flex-1 min-h-screen bg-onyx text-foreground overflow-auto">
+        <div className="max-w-[1400px] mx-auto px-6 sm:px-8 py-20 flex flex-col items-center justify-center gap-4 text-muted-foreground">
+          <p>Category not found.</p>
+          <button
+            onClick={() => router.push("/inventory")}
+            className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-yellow-500 hover:underline"
+          >
+            <ArrowLeft size={16} /> Back to Inventory
+          </button>
+        </div>
+      </main>
     );
   }
 
   if ('error' in data) {
     return (
-      <SidebarProvider>
-        <AppSidebar />
-        <div className="min-h-screen bg-onyx text-foreground p-8 w-full flex items-center justify-center text-red-500">
-          {(data as any).error}
+      <main className="flex-1 min-h-screen bg-onyx text-foreground overflow-auto">
+        <div className="max-w-[1400px] mx-auto px-6 sm:px-8 py-20 flex flex-col items-center justify-center gap-4 text-red-500">
+          <p>{(data as any).error}</p>
+          <button
+            onClick={() => router.push("/inventory")}
+            className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-yellow-500 hover:underline"
+          >
+            <ArrowLeft size={16} /> Back to Inventory
+          </button>
         </div>
-      </SidebarProvider>
+      </main>
     );
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <div className="min-h-screen bg-onyx text-foreground p-8 w-full">
+    <main className="flex-1 min-h-screen bg-onyx text-foreground overflow-auto">
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-8 py-8 w-full">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-widest mb-8">
           <span className="cursor-pointer hover:text-foreground/80" onClick={() => router.push("/inventory")}>Home</span>
@@ -94,12 +103,12 @@ export default function CategoryDetailPage() {
         </div>
 
         {/* Header */}
-        <div className="flex justify-between items-start mb-10">
+        <div className="flex justify-between items-start mb-10 flex-wrap gap-4">
           <div>
             <h1 className="text-5xl font-black tracking-tight uppercase mb-2">{data.name}</h1>
             <p className="text-muted-foreground text-sm">{data.description || "Fine Jewellery Collection"}</p>
           </div>
-          <div className="bg-onyx-elevated border border-yellow-800/50 rounded-2xl px-8 py-5 text-right">
+          <div className="bg-onyx-elevated border border-yellow-800/50 rounded-2xl px-8 py-5 text-right shadow-sm">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Total Stock Weight</p>
             <p className="text-3xl font-bold">
               {data.totalWeight.toLocaleString("en-IN")}
@@ -109,7 +118,7 @@ export default function CategoryDetailPage() {
         </div>
 
         {/* Search + Add Buttons */}
-        <div className="flex gap-4 mb-10">
+        <div className="flex gap-4 mb-10 flex-wrap sm:flex-nowrap">
           <div className="flex-1 flex items-center bg-onyx-surface border border-border rounded-2xl px-5 py-3 gap-3">
             <Search size={20} className="text-muted-foreground" />
             <input
@@ -123,13 +132,13 @@ export default function CategoryDetailPage() {
           <div className="flex gap-3">
             <button
               onClick={() => setSubCatOpen(true)}
-              className="flex items-center gap-2 bg-onyx-elevated hover:bg-secondary text-foreground border border-border font-medium px-6 py-3 rounded-2xl text-sm transition-colors"
+              className="flex items-center gap-2 bg-onyx-elevated hover:bg-secondary text-foreground border border-border font-medium px-6 py-3 rounded-2xl text-sm transition-colors cursor-pointer"
             >
               <Plus size={18} /> Add Subcategory
             </button>
             <button
               onClick={() => setAddProductOpen(true)}
-              className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-foreground font-semibold px-6 py-3 rounded-2xl text-sm transition-colors shadow-lg shadow-yellow-900/20"
+              className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-foreground font-semibold px-6 py-3 rounded-2xl text-sm transition-colors shadow-lg shadow-yellow-900/20 cursor-pointer"
             >
               <Plus size={18} /> Add Product
             </button>
@@ -138,18 +147,23 @@ export default function CategoryDetailPage() {
 
         {/* Subcategory Cards */}
         {filtered.length === 0 ? (
-          <div className="text-muted-foreground text-center py-20">No subcategories found.</div>
+          <div className="text-muted-foreground text-center py-20 bg-onyx-surface/50 border border-border/30 rounded-2xl">
+            No subcategories found.
+          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((sub) => (
               <div
                 key={sub.id}
                 onClick={() => router.push(`/inventory/subcategory/${sub.id}`)}
-                className="bg-onyx-surface border border-border/50 rounded-2xl p-6 cursor-pointer hover:bg-onyx-elevated hover:border-border transition-all group"
+                className="bg-onyx-surface border border-border/50 rounded-2xl p-6 cursor-pointer hover:bg-onyx-elevated hover:border-yellow-600/40 transition-all group shadow-sm"
               >
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-1">{sub.name}</h3>
-                  <p className="text-xs text-muted-foreground">Jewellery subcategory</p>
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-1 group-hover:text-yellow-400 transition-colors">{sub.name}</h3>
+                    <p className="text-xs text-muted-foreground">Jewellery subcategory</p>
+                  </div>
+                  <ArrowUpRight size={18} className="text-gray-600 group-hover:text-yellow-400 transition-colors" />
                 </div>
 
                 <div className="border-t border-border/50 pt-4 flex justify-between">
@@ -183,6 +197,6 @@ export default function CategoryDetailPage() {
           />
         )}
       </div>
-    </SidebarProvider>
+    </main>
   );
 }

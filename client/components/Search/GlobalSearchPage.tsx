@@ -34,6 +34,10 @@ import {
   IconBolt,
   IconChevronDown,
   IconCommand,
+  IconBuildingBank,
+  IconPackage,
+  IconReceipt2,
+  IconScale,
 } from "@tabler/icons-react";
 
 // ============================================================================
@@ -51,6 +55,11 @@ const ENTITY_ICONS: Record<SearchEntityType, React.ReactNode> = {
   scheme: <IconPigMoney size={18} />,
   huid: <IconTag size={18} />,
   advance: <IconCash size={18} />,
+  rfid: <IconTag size={18} />,
+  purchase_supplier: <IconBuildingBank size={18} />,
+  purchase_booking: <IconPackage size={18} />,
+  purchase_invoice: <IconReceipt2 size={18} />,
+  purchase_receipt: <IconScale size={18} />,
 };
 
 // ============================================================================
@@ -64,6 +73,7 @@ const TABS: { id: string; label: string; entities: SearchEntityType[] | null }[]
   { id: "invoices", label: "Invoices", entities: ["invoice"] },
   { id: "orders", label: "Orders", entities: ["order"] },
   { id: "bookings", label: "Bookings", entities: ["booking"] },
+  { id: "purchase", label: "Purchase", entities: ["purchase_booking", "purchase_invoice", "purchase_supplier", "purchase_receipt"] },
   { id: "more", label: "More", entities: ["karigar", "wholesaler", "scheme", "huid", "advance"] },
 ];
 
@@ -421,19 +431,22 @@ function EmptyState({
         Search your entire ERP
       </h3>
       <p className="text-xs text-muted-foreground dark:text-zinc-400 text-center max-w-sm mb-6">
-        Search across customers, products, invoices, orders, bookings, and more.
-        Try typing a name, invoice number, mobile, HUID, or barcode.
+        Search across customers, products, invoices, purchase bookings, bullion suppliers, and more.
+        Try typing a name, booking number, invoice number, mobile, or GRN.
       </p>
 
       {/* Search Suggestions */}
       <div className="flex flex-wrap justify-center gap-2 mb-8">
         {[
           "Customer name",
+          "PB-2026-...",
+          "Bullion supplier",
+          "PUR-2026-...",
+          "GRN-2026-...",
           "INV-MAI-...",
           "Mobile number",
           "HUID",
           "Product code",
-          "Order number",
         ].map((hint) => (
           <span
             key={hint}
@@ -527,8 +540,12 @@ export default function GlobalSearchPage() {
 
         if (entityFilter && entityFilter !== "all") {
           const tabEntities = TABS.find((t) => t.id === entityFilter)?.entities;
-          if (tabEntities && tabEntities.length === 1) {
-            params.set("entity", tabEntities[0]);
+          if (tabEntities) {
+            if (tabEntities.length === 1) {
+              params.set("entity", tabEntities[0]);
+            } else if (tabEntities.length > 1) {
+              params.set("entities", tabEntities.join(","));
+            }
           }
         }
 
@@ -664,7 +681,7 @@ export default function GlobalSearchPage() {
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder="Search customers, products, invoices, orders, bookings, HUIDs..."
+                  placeholder="Search customers, products, purchase bookings, invoices, suppliers, HUIDs..."
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);

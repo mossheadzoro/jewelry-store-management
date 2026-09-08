@@ -241,7 +241,8 @@ export default function EditProductPage({ id }: EditProductPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-onyx text-foreground p-8 w-full">
+    <main className="flex-1 min-h-screen bg-onyx text-foreground overflow-auto">
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-8 py-8 w-full">
       {/* Header and Breadcrumb */}
       <div className="max-w-6xl mx-auto mb-8 flex items-center justify-between">
         <button
@@ -629,6 +630,7 @@ export default function EditProductPage({ id }: EditProductPageProps) {
           </Button>
         </div>
       </div>
-    </div>
+      </div>
+    </main>
   );
 }

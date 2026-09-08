@@ -22,6 +22,10 @@ import {
   buildHuidResult,
   buildAdvanceResult,
   buildRfidTagResult,
+  buildPurchaseSupplierResult,
+  buildPurchaseBookingResult,
+  buildPurchaseInvoiceResult,
+  buildPurchaseReceiptResult,
 } from './searchResultBuilder';
 
 // Utility: get branch name map for display
@@ -532,6 +536,148 @@ export async function searchRfidTags(
   return results.map((r: any) => {
     const mt = determineMatchType(query, r.epc);
     return buildRfidTagResult(r, mt, branchMap[r.branchId] || '');
+  });
+}
+
+// ============================================================================
+// PURCHASE PANEL ENTITY SEARCHERS
+// ============================================================================
+
+export async function searchPurchaseSuppliers(
+  query: string,
+  scope: SearchPermissionScope,
+  limit: number = 5,
+): Promise<SearchResultDTO[]> {
+  const where: any = {
+    OR: [
+      { businessName: { contains: query, mode: 'insensitive' } },
+      { code: { contains: query, mode: 'insensitive' } },
+      { contactPerson: { contains: query, mode: 'insensitive' } },
+      { mobile: { contains: query } },
+      { email: { contains: query, mode: 'insensitive' } },
+      { gstin: { contains: query, mode: 'insensitive' } },
+      { city: { contains: query, mode: 'insensitive' } },
+    ],
+  };
+
+  const results = await prisma.bullionSupplier.findMany({
+    where,
+    take: limit,
+    orderBy: { businessName: 'asc' },
+  });
+
+  return results.map((r: any) => {
+    const mt = determineMatchType(query, r.businessName) === 'exact'
+      ? 'exact'
+      : determineMatchType(query, r.code);
+    return buildPurchaseSupplierResult(r, mt);
+  });
+}
+
+export async function searchPurchaseBookings(
+  query: string,
+  scope: SearchPermissionScope,
+  limit: number = 5,
+): Promise<SearchResultDTO[]> {
+  const branchMap = await branchNameMap();
+  const where: any = {
+    OR: [
+      { bookingNumber: { contains: query, mode: 'insensitive' } },
+      { notes: { contains: query, mode: 'insensitive' } },
+      { metalCategory: { contains: query, mode: 'insensitive' } },
+      { supplier: { businessName: { contains: query, mode: 'insensitive' } } },
+    ],
+  };
+
+  if (!scope.isGlobal && scope.branchIds.length > 0) {
+    where.branchId = { in: scope.branchIds };
+  }
+
+  const results = await prisma.purchaseBooking.findMany({
+    where,
+    include: {
+      supplier: true,
+      branch: { select: { id: true, name: true } },
+    },
+    take: limit,
+    orderBy: { bookingDate: 'desc' },
+  });
+
+  return results.map((r: any) => {
+    const mt = determineMatchType(query, r.bookingNumber);
+    return buildPurchaseBookingResult(r, mt, branchMap[r.branchId] || '');
+  });
+}
+
+export async function searchPurchaseInvoices(
+  query: string,
+  scope: SearchPermissionScope,
+  limit: number = 5,
+): Promise<SearchResultDTO[]> {
+  const branchMap = await branchNameMap();
+  const where: any = {
+    OR: [
+      { invoiceNumber: { contains: query, mode: 'insensitive' } },
+      { supplierInvoiceNumber: { contains: query, mode: 'insensitive' } },
+      { notes: { contains: query, mode: 'insensitive' } },
+      { supplier: { businessName: { contains: query, mode: 'insensitive' } } },
+    ],
+  };
+
+  if (!scope.isGlobal && scope.branchIds.length > 0) {
+    where.branchId = { in: scope.branchIds };
+  }
+
+  const results = await prisma.purchaseInvoice.findMany({
+    where,
+    include: {
+      supplier: true,
+      branch: { select: { id: true, name: true } },
+    },
+    take: limit,
+    orderBy: { invoiceDate: 'desc' },
+  });
+
+  return results.map((r: any) => {
+    const mt = determineMatchType(query, r.invoiceNumber) === 'exact'
+      ? 'exact'
+      : determineMatchType(query, r.supplierInvoiceNumber);
+    return buildPurchaseInvoiceResult(r, mt, branchMap[r.branchId] || '');
+  });
+}
+
+export async function searchPurchaseReceipts(
+  query: string,
+  scope: SearchPermissionScope,
+  limit: number = 5,
+): Promise<SearchResultDTO[]> {
+  const branchMap = await branchNameMap();
+  const where: any = {
+    OR: [
+      { receiptNumber: { contains: query, mode: 'insensitive' } },
+      { lotBatchNo: { contains: query, mode: 'insensitive' } },
+      { purityTestingResult: { contains: query, mode: 'insensitive' } },
+      { supplier: { businessName: { contains: query, mode: 'insensitive' } } },
+    ],
+  };
+
+  if (!scope.isGlobal && scope.branchIds.length > 0) {
+    where.receivingBranchId = { in: scope.branchIds };
+  }
+
+  const results = await prisma.purchaseMetalReceipt.findMany({
+    where,
+    include: {
+      supplier: true,
+      branch: { select: { id: true, name: true } },
+    },
+    take: limit,
+    orderBy: { receiptDate: 'desc' },
+  });
+
+  return results.map((r: any) => {
+    const mt = determineMatchType(query, r.receiptNumber);
+    return buildPurchaseReceiptResult(r, mt, branchMap[r.receivingBranchId] || '');
   });
 }
 

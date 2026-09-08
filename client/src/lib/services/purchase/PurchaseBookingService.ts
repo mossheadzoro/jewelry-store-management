@@ -36,6 +36,7 @@ export class PurchaseBookingService {
       branchId,
       supplierId,
       metalCategory = "GOLD_24K",
+      purityPercent: inputPurityPercent,
       grossWeight,
       bookingRate,
       marketRate = bookingRate,
@@ -68,11 +69,13 @@ export class PurchaseBookingService {
     if (metalCategory === "SILVER_999") defaultPurity = 99.90;
     if (metalCategory === "SILVER_925") defaultPurity = 92.50;
 
-    const purityPercent = params.purityPercent || defaultPurity;
-    // 24K bullion is 99.50% standard purity as traded. Gross weight is full 24K metal weight (no fining deduction needed).
-    const fineWeight = (metalCategory === "GOLD_24K" && purityPercent >= 99.50)
+    const purityPercent = inputPurityPercent || defaultPurity;
+
+    // 24K raw gold standard is 99.50% category — 24K raw gold is taken directly 1:1 without second fining
+    const is24K = metalCategory === "GOLD_24K";
+    const fineWeight = is24K
       ? Number(grossWeight.toFixed(3))
-      : Number(((grossWeight * purityPercent) / 99.50).toFixed(3));
+      : Number(((grossWeight * purityPercent) / 100).toFixed(3));
 
     // Financial calculations based on Rate Condition (With GST vs Without GST)
     let actualBaseRate: number;

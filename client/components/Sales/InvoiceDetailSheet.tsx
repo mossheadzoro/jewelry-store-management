@@ -116,9 +116,22 @@ export default function InvoiceDetailSheet({
             const hallmarkingAmount = data.hallmarkingCharge || 0;
             const subtotal = metalAmount + makingAmount + stoneAmount + hallmarkingAmount;
 
-            const cgstAmount = data.cgst ?? data.products.reduce((s: number, p: any) => s + (p.cgst || 0), 0);
-            const sgstAmount = data.sgst ?? data.products.reduce((s: number, p: any) => s + (p.sgst || 0), 0);
-            const grandTotal = data.grandTotal || data.totalAmount || (subtotal + cgstAmount + sgstAmount);
+            const hallmarkTax = data.taxOnHallmarking ?? (hallmarkingAmount > 0 ? hallmarkingAmount * 0.18 : 0);
+            const hallmarkCgst = hallmarkTax / 2;
+            const hallmarkSgst = hallmarkTax / 2;
+
+            const rawCgst = data.cgst ?? data.products.reduce((s: number, p: any) => s + (p.cgst || 0), 0);
+            const rawSgst = data.sgst ?? data.products.reduce((s: number, p: any) => s + (p.sgst || 0), 0);
+
+            // Separate base jewellery CGST/SGST from hallmark tax if it was combined
+            const baseCgst = (hallmarkCgst > 0 && rawCgst > hallmarkCgst && !data.taxOnGold && !data.taxOnMakingAmount)
+              ? (rawCgst - hallmarkCgst)
+              : rawCgst;
+            const baseSgst = (hallmarkSgst > 0 && rawSgst > hallmarkSgst && !data.taxOnGold && !data.taxOnMakingAmount)
+              ? (rawSgst - hallmarkSgst)
+              : rawSgst;
+
+            const grandTotal = data.grandTotal || data.totalAmount || (subtotal + baseCgst + baseSgst + hallmarkCgst + hallmarkSgst);
             
             const totalPaid = data.payments ? data.payments.reduce((s: number, p: any) => s + (parseFloat(p.amount) || 0), 0) : (data.paidAmount || 0);
             const balance = data.balanceAmount ?? Math.max(0, grandTotal - totalPaid);
@@ -320,12 +333,24 @@ export default function InvoiceDetailSheet({
                   {/* GST */}
                   <div className="flex justify-between pt-2 border-t border-[#1F1F24] border-dashed">
                     <span className="text-[#6B6560]">CGST (1.5%)</span>
-                    <span className="font-semibold font-mono text-[#F0EBE0]">{formatINR(cgstAmount)}</span>
+                    <span className="font-semibold font-mono text-[#F0EBE0]">{formatINR(baseCgst)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#6B6560]">SGST (1.5%)</span>
-                    <span className="font-semibold font-mono text-[#F0EBE0]">{formatINR(sgstAmount)}</span>
+                    <span className="font-semibold font-mono text-[#F0EBE0]">{formatINR(baseSgst)}</span>
                   </div>
+                  {(hallmarkingAmount > 0 || hallmarkTax > 0) && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-[#6B6560]">Hallmark CGST (9%)</span>
+                        <span className="font-semibold font-mono text-[#F0EBE0]">{formatINR(hallmarkCgst)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#6B6560]">Hallmark SGST (9%)</span>
+                        <span className="font-semibold font-mono text-[#F0EBE0]">{formatINR(hallmarkSgst)}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Payments Breakdown */}

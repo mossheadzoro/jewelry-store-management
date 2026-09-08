@@ -5,6 +5,7 @@ import { prisma, MetalCategory, NoteSettlementMode } from "@/lib/prisma";
 import { PurchaseNumberingService } from "./PurchaseNumberingService";
 import { AuditLogService } from "@/lib/audit/AuditLogService";
 import { insertLedgerEntry } from "@/lib/inventoryLedger";
+import { BullionInventoryService } from "./BullionInventoryService";
 
 export interface CreatePurchaseReturnParams {
   purchaseInvoiceId: string;
@@ -80,9 +81,11 @@ export class PurchaseReturnNoteService {
     const firstItem = invoice.items[0];
     const metalCategory = firstItem?.metalCategory || "GOLD_24K";
     const purityPercent = firstItem?.purityPercent || 99.50;
-    const returnedFineWeight = (metalCategory === "GOLD_24K" && purityPercent >= 99.50)
+    // 24K raw gold standard is 99.50% category — 24K raw gold is taken directly 1:1 without second fining
+    const is24K = metalCategory === "GOLD_24K";
+    const returnedFineWeight = is24K
       ? Number(returnedGrossWeight.toFixed(3))
-      : Number(((returnedGrossWeight * purityPercent) / 99.50).toFixed(3));
+      : Number(((returnedGrossWeight * purityPercent) / 100).toFixed(3));
 
     // Calculate proportionate taxable value and GST
     const ratePerGram = invoice.taxableValue / invoice.totalGrossWeight;
@@ -124,12 +127,12 @@ export class PurchaseReturnNoteService {
       });
 
       // 2. Post PURCHASE_RETURN_OUT to InventoryLedger
-      const bullionProduct = await tx.productItem.findFirst({
-        where: {
-          branchId: invoice.branchId,
-          productCode: `BULLION-${metalCategory}`,
-        },
-      });
+      const bullionProduct = await BullionInventoryService.getOrCreateBullionProduct(
+        tx,
+        invoice.branchId,
+        metalCategory,
+        purityPercent
+      );
 
       if (bullionProduct) {
         await insertLedgerEntry(
@@ -149,8 +152,9 @@ export class PurchaseReturnNoteService {
             createdById: requestedById,
           },
           {
-            karatage: metalCategory === "GOLD_24K" ? 24 : 22,
-            purityPercent,
+            karatage: is24K ? 24 : 22,
+            purityPercent: is24K ? 100 : purityPercent,
+            fineWeightOut: returnedFineWeight,
           }
         );
 

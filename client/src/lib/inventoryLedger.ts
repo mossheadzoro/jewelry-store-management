@@ -46,6 +46,10 @@ export interface LedgerEntryParams {
  * None of these are required — existing call-sites omit this entirely.
  */
 export interface JewelryLedgerParams {
+  /** Explicit pure fine weight in grams (overrides calculation from purityPercent) */
+  fineWeightIn?: number;
+  /** Explicit pure fine weight out in grams (overrides calculation from purityPercent) */
+  fineWeightOut?: number;
   /** Karatage of the metal (e.g. 22, 18, 14, 9) */
   karatage?: number;
   /** Purity as a percentage (e.g. 91.6 for 22K, 75.0 for 18K) */
@@ -195,13 +199,21 @@ export async function insertLedgerEntry(
   let balanceGrossWt = round3(prevGrossWt + grossWeightIn - grossWeightOut);
   let balanceNetWt = round3(prevNetWt + netWeightIn - netWeightOut);
 
-  // ── NEW: Fine weight balance (only computed if purity is provided) ──
+  // ── NEW: Fine weight balance (24K raw gold >= 99.5% is 1:1 fine weight; no second fining) ──
   const fineWeightIn =
-    jewelryParams?.purityPercent != null
+    jewelryParams?.fineWeightIn != null
+      ? round3(jewelryParams.fineWeightIn)
+      : (jewelryParams?.karatage === 24 || (jewelryParams?.purityPercent != null && jewelryParams.purityPercent >= 99.50))
+      ? round3(netWeightIn)
+      : jewelryParams?.purityPercent != null
       ? round3(netWeightIn * (jewelryParams.purityPercent / 100))
       : null;
   const fineWeightOut =
-    jewelryParams?.purityPercent != null
+    jewelryParams?.fineWeightOut != null
+      ? round3(jewelryParams.fineWeightOut)
+      : (jewelryParams?.karatage === 24 || (jewelryParams?.purityPercent != null && jewelryParams.purityPercent >= 99.50))
+      ? round3(netWeightOut)
+      : jewelryParams?.purityPercent != null
       ? round3(netWeightOut * (jewelryParams.purityPercent / 100))
       : null;
   const balanceFineWt = round3(
