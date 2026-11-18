@@ -3333,7 +3333,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "C:\\Projects\\Jwellery Management\\jewelry-store-management\\client\\src\\generated\\client",
+      "value": "/vercel/sandbox/primary/client/src/generated/client",
       "fromEnvVar": null
     },
     "config": {
@@ -3342,17 +3342,16 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "windows",
+        "value": "rhel-openssl-3.0.x",
         "native": true
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "C:\\Projects\\Jwellery Management\\jewelry-store-management\\client\\prisma\\schema.prisma",
+    "sourceFilePath": "/vercel/sandbox/primary/client/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": null,
-    "schemaEnvPath": "../../../.env"
+    "rootEnvPath": null
   },
   "relativePath": "../../../prisma",
   "clientVersion": "6.11.1",
@@ -3361,6 +3360,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
