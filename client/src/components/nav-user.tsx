@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+
 import {
   IconCreditCard,
   IconDotsVertical,
@@ -96,17 +98,23 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <IconUserCircle />
-                Account
+              <DropdownMenuItem asChild>
+                <Link href="/profile?tab=account" className="w-full cursor-pointer flex items-center gap-2">
+                  <IconUserCircle size={16} />
+                  Account
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <IconCreditCard />
-                Billing
+              <DropdownMenuItem asChild>
+                <Link href="/profile?tab=billing" className="w-full cursor-pointer flex items-center gap-2">
+                  <IconCreditCard size={16} />
+                  Billing
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <IconNotification />
-                Notifications
+              <DropdownMenuItem asChild>
+                <Link href="/profile?tab=notifications" className="w-full cursor-pointer flex items-center gap-2">
+                  <IconNotification size={16} />
+                  Notifications
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

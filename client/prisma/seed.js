@@ -116,8 +116,45 @@ async function main() {
     },
   });
 
-  console.log("✅ Admin seeded successfully.");
+  // Create manager user
+  await prisma.user.upsert({
+    where: { email: "manager@jewels.com" },
+    update: {
+      systemRole: "MANAGER",
+      roleId: managerRole.id,
+    },
+    create: {
+      name: "Manager",
+      email: "manager@jewels.com",
+      password: hashedPassword,
+      roleId: managerRole.id,
+      systemRole: "MANAGER",
+      gender: "MALE",
+      phone: "9876543211",
+      branchId: defaultBranch.id,
+    },
+  });
 
+  // Create salesman user
+  await prisma.user.upsert({
+    where: { email: "salesman@jewels.com" },
+    update: {
+      systemRole: "SALESMAN",
+      roleId: salesRole.id,
+    },
+    create: {
+      name: "Salesman",
+      email: "salesman@jewels.com",
+      password: hashedPassword,
+      roleId: salesRole.id,
+      systemRole: "SALESMAN",
+      gender: "MALE",
+      phone: "9876543212",
+      branchId: defaultBranch.id,
+    },
+  });
+
+  console.log("✅ Admin, Manager, and Salesman seeded successfully.");
 
 
 

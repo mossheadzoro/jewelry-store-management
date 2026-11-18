@@ -12,22 +12,34 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const branchIdStr = searchParams.get("branchId");
-    const branchId = branchIdStr ? parseInt(branchIdStr, 10) : (session.user.branchId ? parseInt(session.user.branchId, 10) : undefined);
+    const branchId = branchIdStr
+      ? parseInt(branchIdStr, 10)
+      : (session.user.branchId ? parseInt(session.user.branchId, 10) : undefined);
 
-    if (!branchId) {
-      return NextResponse.json({ error: "Branch ID is required" }, { status: 400 });
+    if (!branchId || isNaN(branchId)) {
+      return NextResponse.json({ error: "Valid Branch ID is required" }, { status: 400 });
+    }
+
+    // Verify branch exists in DB
+    const branch = await prisma.branch.findUnique({
+      where: { id: branchId },
+      select: { id: true, name: true },
+    });
+
+    if (!branch) {
+      return NextResponse.json({ error: "Branch not found" }, { status: 404 });
     }
 
     let settings = await prisma.branchSettings.findUnique({
-      where: { branchId }
+      where: { branchId },
     });
 
     if (!settings) {
       settings = await prisma.branchSettings.create({
         data: {
           branchId,
-          themeMode: "light"
-        }
+          themeMode: "light",
+        },
       });
     }
 
@@ -40,8 +52,10 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user.role !== "ADMIN" && session.user.role !== "MANAGER")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userRole = (session?.user?.role || (session?.user as any)?.systemRole || "").toUpperCase();
+  const isAllowed = ["ADMIN", "MANAGER", "SUPER_ADMIN", "OWNER"].includes(userRole);
+  if (!session || !isAllowed) {
+    return NextResponse.json({ error: "Unauthorized: Admin or Manager access required" }, { status: 401 });
   }
 
   try {
@@ -50,12 +64,18 @@ export async function PUT(req: NextRequest) {
       branchId, themeMode, applyToAllBranches
     } = body;
 
-    if (!branchId) {
-       return NextResponse.json({ error: "Branch ID is required" }, { status: 400 });
+    const targetBranchId = branchId !== undefined && branchId !== null
+      ? parseInt(String(branchId), 10)
+      : (session.user.branchId ? parseInt(session.user.branchId, 10) : undefined);
+
+    if (!targetBranchId || isNaN(targetBranchId)) {
+       return NextResponse.json({ error: "Valid Branch ID is required" }, { status: 400 });
     }
 
-    const updateData: any = {};
-    if (themeMode !== undefined) updateData.themeMode = themeMode;
+    const updateData: { themeMode?: string } = {};
+    if (themeMode && ["light", "dark", "system"].includes(themeMode)) {
+      updateData.themeMode = themeMode;
+    }
 
     let settings;
     
@@ -67,22 +87,22 @@ export async function PUT(req: NextRequest) {
           update: updateData,
           create: {
             branchId: b.id,
-            ...updateData
+            themeMode: updateData.themeMode || "light",
           }
         })
       );
       await Promise.all(upsertPromises);
       
       settings = await prisma.branchSettings.findUnique({
-        where: { branchId }
+        where: { branchId: targetBranchId }
       });
     } else {
       settings = await prisma.branchSettings.upsert({
-        where: { branchId },
+        where: { branchId: targetBranchId },
         update: updateData,
         create: {
-          branchId,
-          ...updateData
+          branchId: targetBranchId,
+          themeMode: updateData.themeMode || "light",
         }
       });
     }

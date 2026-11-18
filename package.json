@@ -1,0 +1,14 @@
+{
+  "name": "jewelry-store-management",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix client",
+    "build": "npm run build --prefix client",
+    "start": "npm run start --prefix client",
+    "lint": "npm run lint --prefix client",
+    "postinstall": "npm run postinstall --prefix client",
+    "db:migrate": "npm run db:migrate --prefix client",
+    "db:status": "npm run db:status --prefix client"
+  }
+}

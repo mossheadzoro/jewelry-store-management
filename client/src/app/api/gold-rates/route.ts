@@ -82,18 +82,22 @@ export async function GET(req: NextRequest) {
     }
 
     // Look up branch's gold rate settings
-    let settings = null;
-    if (targetBranchId) {
-      settings = await prisma.globalProductSettings.findUnique({
-        where: { branchId: targetBranchId },
-      });
-    }
+    let settings: any = null;
+    try {
+      if (targetBranchId) {
+        settings = await prisma.globalProductSettings.findUnique({
+          where: { branchId: targetBranchId },
+        });
+      }
 
-    // If no branch-specific settings found, fallback to the first available settings
-    if (!settings) {
-      settings = await prisma.globalProductSettings.findFirst({
-        where: { goldRateConfig: { not: null as any } },
-      });
+      // If no branch-specific settings found, fallback to the first available settings
+      if (!settings) {
+        settings = await prisma.globalProductSettings.findFirst({
+          where: { goldRateConfig: { not: null as any } },
+        });
+      }
+    } catch (dbErr) {
+      console.warn("Could not retrieve globalProductSettings, proceeding with defaults/live rates:", dbErr);
     }
 
     const goldRateConfig: any = settings?.goldRateConfig || {};

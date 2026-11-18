@@ -33,6 +33,12 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# prisma native binaries & tmp engines
+*.node
+*.node.tmp*
+*.dll.node*
+prisma/migrations_archive/
+
 # vercel
 .vercel
 

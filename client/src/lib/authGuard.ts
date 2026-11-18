@@ -80,11 +80,26 @@ export async function requireAuth(req: Request, options?: { module?: string, req
     const hasWildcard = perms && !Array.isArray(perms) && typeof perms === "object" && perms["*"] === true;
 
     if (!hasWildcard) {
-      // Check custom role permissions
+      let hasPermission = false;
       const permissionsList = Array.isArray(user.role?.permissions) ? user.role!.permissions as any[] : [];
-      const hasPermission = permissionsList.some(
-        (p: any) => p.module === options.module && p.action === action
-      );
+      
+      if (permissionsList.length > 0) {
+        hasPermission = permissionsList.some(
+          (p: any) => p.module === options.module && p.action === action
+        );
+      } else if (perms && typeof perms === "object") {
+        // Handle seeded permissions format (e.g., { "Inventory": ["VIEW_STOCK", "ADD_STOCK"] })
+        const moduleKey = Object.keys(perms).find(k => k.toUpperCase() === options.module?.toUpperCase());
+        if (moduleKey) {
+          const modulePerms = perms[moduleKey];
+          if (Array.isArray(modulePerms)) {
+             if (action === "view") hasPermission = modulePerms.some(p => p.includes("VIEW"));
+             else if (action === "create") hasPermission = modulePerms.some(p => p.includes("ADD") || p.includes("CREATE"));
+             else if (action === "edit") hasPermission = modulePerms.some(p => p.includes("EDIT") || p.includes("UPDATE") || p.includes("MODIFY") || p.includes("CHANGE"));
+             else if (action === "delete") hasPermission = modulePerms.some(p => p.includes("DELETE") || p.includes("REMOVE"));
+          }
+        }
+      }
 
       if (!hasPermission) {
         return { error: `Forbidden: Missing ${action} permission for ${options.module}`, status: 403 };

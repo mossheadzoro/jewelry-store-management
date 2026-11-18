@@ -53,14 +53,14 @@ export default function BranchSelector() {
   if (!isAdmin) {
     return (
       <div className="w-full px-3 py-2">
-        <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[#121215] border border-[#27272a] text-[12px] text-platinum shadow-inner">
-          <div className="w-6 h-6 rounded-lg bg-[#d4a843]/10 border border-[#d4a843]/20 flex items-center justify-center shrink-0">
-            <Store className="w-3.5 h-3.5 text-[#d4a843]" />
+        <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-onyx-surface border border-onyx-border text-[12px] text-platinum shadow-xs">
+          <div className="w-6 h-6 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center shrink-0">
+            <Store className="w-3.5 h-3.5 text-gold" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider flex items-center gap-1">
+            <div className="text-[10px] text-platinum-muted font-semibold uppercase tracking-wider flex items-center gap-1">
               <span>Store Location</span>
-              <Lock className="w-2.5 h-2.5 text-zinc-500" />
+              <Lock className="w-2.5 h-2.5 text-platinum-muted" />
             </div>
             <p className="font-medium text-platinum text-[12px] truncate leading-tight mt-0.5">
               {selectedBranch?.name || "Assigned Branch"}
@@ -84,11 +84,11 @@ export default function BranchSelector() {
   return (
     <div className="w-full px-3 py-2 space-y-1.5">
       <div className="flex items-center justify-between px-0.5">
-        <label className="text-[11px] font-semibold text-[#d4a843] uppercase tracking-wider flex items-center gap-1.5">
-          <Building2 className="w-3.5 h-3.5" />
+        <label className="text-[11px] font-semibold text-gold uppercase tracking-wider flex items-center gap-1.5">
+          <Building2 className="w-3.5 h-3.5 text-gold" />
           <span>Store Network</span>
         </label>
-        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#d4a843]/15 text-[#d4a843] border border-[#d4a843]/30">
+        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gold/15 text-gold border border-gold/30">
           ADMIN
         </span>
       </div>
@@ -97,23 +97,23 @@ export default function BranchSelector() {
         onValueChange={handleChange}
         value={selectedBranch?.id?.toString() || ""}
       >
-        <SelectTrigger className="w-full h-9 bg-[#121215] border border-[#27272a] hover:border-[#d4a843]/50 focus:border-[#d4a843] focus:ring-1 focus:ring-[#d4a843]/30 rounded-xl text-[12px] text-platinum px-3 transition-all">
+        <SelectTrigger className="w-full h-9 bg-onyx-surface border border-onyx-border hover:border-gold/50 focus:border-gold focus:ring-1 focus:ring-gold/30 rounded-xl text-[12px] text-platinum px-3 transition-all">
           <div className="flex items-center gap-2 truncate">
-            <MapPin className="w-3.5 h-3.5 text-[#d4a843] shrink-0" />
+            <MapPin className="w-3.5 h-3.5 text-gold shrink-0" />
             <SelectValue placeholder="Select active branch..." />
           </div>
         </SelectTrigger>
-        <SelectContent className="bg-[#121215] border border-[#27272a] text-platinum rounded-xl shadow-2xl max-h-60">
+        <SelectContent className="bg-onyx-surface border border-onyx-border text-platinum rounded-xl shadow-2xl max-h-60">
           {branches.map((branch) => (
             <SelectItem
               key={branch.id}
               value={branch.id.toString()}
-              className="text-[12px] focus:bg-[#1a1a1f] focus:text-[#d4a843] rounded-lg cursor-pointer py-2"
+              className="text-[12px] text-platinum focus:bg-onyx-elevated focus:text-gold rounded-lg cursor-pointer py-2 transition-colors"
             >
               <div className="flex items-center justify-between w-full gap-2">
                 <span className="font-medium truncate">{branch.name}</span>
                 {branch.city && (
-                  <span className="text-[10px] text-zinc-500">
+                  <span className="text-[10px] text-platinum-muted">
                     {branch.city}
                   </span>
                 )}

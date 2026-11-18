@@ -5,12 +5,14 @@ import { authOptions } from "@/lib/authOptions";
 
 export default async function DashboardRedirect() {
   const session = await getServerSession(authOptions);
-   console.log(session?.user.role)
+  const role = session?.user?.role?.toUpperCase();
    
-  if (session?.user?.role === "ADMIN") {
+  if (role === "ADMIN" || role === "SUPER_ADMIN" || role === "OWNER") {
     redirect("/dashboard/admin");
-  } else if (session?.user?.role === "MANAGER") {
+  } else if (role === "MANAGER") {
     redirect("/dashboard/manager");
+  } else if (role === "SALESMAN") {
+    redirect("/dashboard/salesman");
   } else {
     redirect("/unauthorized");
   }
